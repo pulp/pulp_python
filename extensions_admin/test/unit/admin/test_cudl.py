@@ -40,9 +40,9 @@ class TestCreatePythonrRepositoryCommand(unittest.TestCase):
 
     def test_describe_importers(self):
         command = cudl.CreatePythonRepositoryCommand(Mock())
-        user_input = {'branch': ['apple']}
+        user_input = {}
         result = command._parse_importer_config(user_input)
-        target_result = {constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple']}
+        target_result = {}
         compare_dict(result, target_result)
 
 
@@ -60,12 +60,10 @@ class TestUpdatePythonRepositoryCommand(unittest.TestCase):
         user_input = {
             'repo-id': 'foo-repo',
             KEY_FEED: 'blah',
-            'branch': ['apple', 'peach']
         }
         self.command.run(**user_input)
 
-        expected_importer_config = {KEY_FEED: 'blah',
-                                    constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple', 'peach']}
+        expected_importer_config = {KEY_FEED: 'blah'}
 
         self.context.server.repo.update.assert_called_once_with('foo-repo', {},
                                                                 expected_importer_config, None)
@@ -84,13 +82,12 @@ class TestUpdatePythonRepositoryCommand(unittest.TestCase):
 
     def test_repo_update_importer_remove_branches(self):
         user_input = {
-            'branch': [''],
             'repo-id': 'foo-repo'
         }
         self.command.run(**user_input)
 
         repo_config = {}
-        importer_config = {'branches': None}
+        importer_config = None
         self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
                                                                 importer_config, None)
 

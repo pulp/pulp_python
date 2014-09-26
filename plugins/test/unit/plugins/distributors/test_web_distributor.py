@@ -11,17 +11,17 @@ from pulp.plugins.distributor import Distributor
 from pulp.plugins.model import Repository
 
 from pulp_python.common import constants
-from pulp_python.plugins.distributors import web
+from pulp_python.plugins.distributors import web_distributor
 
 
 class TestEntryPoint(unittest.TestCase):
     def test_returns_importer(self):
-        distributor, config = web.entry_point()
+        distributor, config = web_distributor.entry_point()
 
         self.assertTrue(issubclass(distributor, Distributor))
 
     def test_returns_config(self):
-        distributor, config = web.entry_point()
+        distributor, config = web_distributor.entry_point()
 
         # make sure it's at least the correct type
         self.assertTrue(isinstance(config, dict))
@@ -30,20 +30,20 @@ class TestEntryPoint(unittest.TestCase):
 class TestBasics(unittest.TestCase):
 
     def setUp(self):
-        self.distributor = web.WebDistributor()
+        self.distributor = web_distributor.WebDistributor()
         self.working_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         shutil.rmtree(self.working_dir)
 
     def test_metadata(self):
-        metadata = web.WebDistributor.metadata()
+        metadata = web_distributor.WebDistributor.metadata()
 
         self.assertEqual(metadata['id'], constants.WEB_DISTRIBUTOR_TYPE_ID)
         self.assertTrue(len(metadata['display_name']) > 0)
 
-    @patch('pulp_python.plugins.distributors.web.configuration.get_master_publish_dir')
-    @patch('pulp_python.plugins.distributors.web.configuration.get_web_publish_dir')
+    @patch('pulp_python.plugins.distributors.web_distributor.configuration.get_master_publish_dir')
+    @patch('pulp_python.plugins.distributors.web_distributor.configuration.get_web_publish_dir')
     def test_distributor_removed(self, mock_web, mock_master):
 
         mock_web.return_value = os.path.join(self.working_dir, 'web')
@@ -57,7 +57,7 @@ class TestBasics(unittest.TestCase):
 
         self.assertEquals(0, len(os.listdir(self.working_dir)))
 
-    @patch('pulp_python.plugins.distributors.web.WebPublisher')
+    @patch('pulp_python.plugins.distributors.web_distributor.WebPublisher')
     def test_publish_repo(self, mock_publisher):
         repo = Repository('test')
         config = PluginCallConfiguration(None, None)
@@ -73,7 +73,7 @@ class TestBasics(unittest.TestCase):
 
         self.distributor._publisher.cancel.assert_called_once()
 
-    @patch('pulp_python.plugins.distributors.web.configuration.validate_config')
+    @patch('pulp_python.plugins.distributors.web_distributor.configuration.validate_config')
     def test_validate_config(self, mock_validate):
         value = self.distributor.validate_config(Mock(), 'foo', Mock())
         mock_validate.assert_called_once_with('foo')

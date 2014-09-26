@@ -15,7 +15,7 @@ PLUGIN_DEFAULT_CONFIG = {
     constants.CONFIG_KEY_PYTHON_PUBLISH_DIRECTORY: constants.CONFIG_VALUE_PYTHON_PUBLISH_DIRECTORY
 }
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def entry_point():

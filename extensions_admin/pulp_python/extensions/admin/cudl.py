@@ -72,9 +72,6 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         :rtype:             dict
         """
         config = self.parse_user_input(user_input)
-        value = user_input.pop(OPT_BRANCH.keyword, None)
-        if value:
-            config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
         return config
 
 
