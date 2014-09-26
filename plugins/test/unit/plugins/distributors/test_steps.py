@@ -72,7 +72,3 @@ class TestPublishMetadataStep(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.working_directory)
-
-    @patch('pulp_python.plugins.distributors.steps.subprocess.check_call')
-    def test_process_main_empty_repo(self, mock_check_call):
-        pass

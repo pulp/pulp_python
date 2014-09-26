@@ -1,7 +1,6 @@
 from gettext import gettext as _
 import logging
 import os
-import subprocess
 
 from pulp.plugins.util.publish_step import PluginStep, AtomicDirectoryPublishStep
 
