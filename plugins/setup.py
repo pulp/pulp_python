@@ -12,7 +12,7 @@ setup(
     description='plugins for python support in pulp',
     entry_points={
         'pulp.importers': [
-            'importer = pulp_python.plugins.importers.web:entry_point',
+            'importer = pulp_python.plugins.importers.importer:entry_point',
         ],
         'pulp.distributors': [
             'distributor = pulp_python.plugins.distributors.web:entry_point'

@@ -30,7 +30,7 @@ IMPORTER_CONFIGURATION_FLAGS = dict(
 
 class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, ImporterConfigMixin):
     default_notes = {REPO_NOTE_TYPE_KEY: constants.REPO_NOTE_PYTHON}
-    IMPORTER_TYPE_ID = constants.WEB_IMPORTER_TYPE_ID
+    IMPORTER_TYPE_ID = constants.IMPORTER_TYPE_ID
 
     def __init__(self, context):
         CreateAndConfigureRepositoryCommand.__init__(self, context)
@@ -53,10 +53,10 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         config = {}
         auto_publish = user_input.get('auto-publish', True)
         data = [
-            dict(distributor_type_id=constants.WEB_DISTRIBUTOR_TYPE_ID,
+            dict(distributor_type_id=constants.DISTRIBUTOR_TYPE_ID,
                  distributor_config=config,
                  auto_publish=auto_publish,
-                 distributor_id=constants.CLI_WEB_DISTRIBUTOR_ID),
+                 distributor_id=constants.CLI_DISTRIBUTOR_ID),
         ]
 
         return data
@@ -104,7 +104,7 @@ class UpdatePythonRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
         if web_config:
             kwargs['distributor_configs'] = {}
-            kwargs['distributor_configs'][constants.CLI_WEB_DISTRIBUTOR_ID] = web_config
+            kwargs['distributor_configs'][constants.CLI_DISTRIBUTOR_ID] = web_config
 
         super(UpdatePythonRepositoryCommand, self).run(**kwargs)
 

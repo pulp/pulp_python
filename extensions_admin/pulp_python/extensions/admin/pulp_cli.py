@@ -4,9 +4,9 @@ from pulp.client.commands.repo import cudl, sync_publish, status
 from pulp.client.extensions.decorator import priority
 
 from pulp_python.common import constants
-from pulp_python.extensions.admin.cudl import CreatePythonRepositoryCommand
-from pulp_python.extensions.admin.cudl import UpdatePythonRepositoryCommand
-from pulp_python.extensions.admin.cudl import ListPythonRepositoriesCommand
+from pulp_python.extensions.admin.cudl import (
+    CreatePythonRepositoryCommand, UpdatePythonRepositoryCommand, ListPythonRepositoriesCommand)
+from pulp_python.extensions.admin import upload
 
 
 SECTION_ROOT = 'python'
@@ -31,12 +31,10 @@ def initialize(context):
     :type context:  pulp.client.extensions.core.ClientContext
     """
     root_section = context.cli.create_section(SECTION_ROOT, DESC_ROOT)
-    repo_section = add_repo_section(context, root_section)
-    add_publish_section(context, repo_section)
-    add_sync_section(context, repo_section)
+    _add_repo_section(context, root_section)
 
 
-def add_repo_section(context, parent_section):
+def _add_repo_section(context, parent_section):
     """
     add a repo section to the python section
 
@@ -53,10 +51,13 @@ def add_repo_section(context, parent_section):
     repo_section.add_command(cudl.DeleteRepositoryCommand(context))
     repo_section.add_command(ListPythonRepositoriesCommand(context))
 
-    return repo_section
+    _add_publish_section(context, repo_section)
+    _add_sync_section(context, repo_section)
+
+    repo_section.add_command(upload.UploadPackageCommand(context))
 
 
-def add_publish_section(context, parent_section):
+def _add_publish_section(context, parent_section):
     """
     add a publish section to the repo section
 
@@ -71,14 +72,12 @@ def add_publish_section(context, parent_section):
     section.add_command(
         sync_publish.RunPublishRepositoryCommand(context,
                                                  renderer,
-                                                 constants.CLI_WEB_DISTRIBUTOR_ID))
+                                                 constants.CLI_DISTRIBUTOR_ID))
     section.add_command(
         sync_publish.PublishStatusCommand(context, renderer))
 
-    return section
 
-
-def add_sync_section(context, parent_section):
+def _add_sync_section(context, parent_section):
     """
     add a sync section
 
@@ -94,5 +93,3 @@ def add_sync_section(context, parent_section):
 
     sync_section = parent_section.create_subsection(SECTION_SYNC, DESC_SYNC)
     sync_section.add_command(sync_publish.RunSyncRepositoryCommand(context, renderer))
-
-    return sync_section
