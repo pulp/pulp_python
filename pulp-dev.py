@@ -5,6 +5,9 @@ import optparse
 import os
 import sys
 
+from pulp.devel import environment
+
+
 WARNING_COLOR = '\033[31m'
 WARNING_RESET = '\033[0m'
 
@@ -18,6 +21,8 @@ DIRS = ('/var/lib/pulp/published/python/web',)
 
 # Standard directories
 DIR_PLUGINS = '/usr/lib/pulp/plugins'
+
+ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 LINKS = (
     ('plugins/etc/httpd/conf.d/pulp_python.conf', '/etc/httpd/conf.d/pulp_python.conf'),
@@ -92,7 +97,8 @@ def getlinks():
 
 def install(opts):
     # Install the packages in developer mode
-    os.system('./manage_setup_pys.sh develop')
+    environment.manage_setup_pys('install', ROOT_DIR)
+
     warnings = []
     create_dirs(opts)
     # Ensure the directory is owned by apache
@@ -120,7 +126,7 @@ def uninstall(opts):
         os.unlink(dst)
 
     # Uninstall the packages
-    os.system('./manage_setup_pys.sh develop --uninstall')
+    environment.manage_setup_pys('uninstall', ROOT_DIR)
     return os.EX_OK
 
 
@@ -161,7 +167,6 @@ def _create_link(opts, src, dst):
                   % (dst, src, e)
             return msg
 
-# -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
     # TODO add something to check for permissions
