@@ -2,5 +2,8 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "pypy"
 install: "pip install flake8"
-script: flake8 --config=flake8.cfg .
+before_script: flake8 --config=flake8.cfg .
+script: nosetests --with-coverage --cover-package pulp_python --cover-min-percentage 100 --cover-erase
+after_success: coveralls
