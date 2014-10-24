@@ -18,14 +18,14 @@ class TestCreatePythonrRepositoryCommand(unittest.TestCase):
     def test_importer_id(self):
         # this value is required to be set, so just make sure it's correct
         self.assertEqual(cudl.CreatePythonRepositoryCommand.IMPORTER_TYPE_ID,
-                         constants.WEB_IMPORTER_TYPE_ID)
+                         constants.IMPORTER_TYPE_ID)
 
     def test_describe_distributors(self):
         command = cudl.CreatePythonRepositoryCommand(Mock())
         user_input = {}
         result = command._describe_distributors(user_input)
-        target_result = {'distributor_id': constants.CLI_WEB_DISTRIBUTOR_ID,
-                         'distributor_type_id': constants.WEB_DISTRIBUTOR_TYPE_ID,
+        target_result = {'distributor_id': constants.CLI_DISTRIBUTOR_ID,
+                         'distributor_type_id': constants.DISTRIBUTOR_TYPE_ID,
                          'distributor_config': {},
                          'auto_publish': True}
         compare_dict(result[0], target_result)
@@ -76,7 +76,7 @@ class TestUpdatePythonRepositoryCommand(unittest.TestCase):
         self.command.run(**user_input)
 
         repo_config = {}
-        dist_config = {constants.CLI_WEB_DISTRIBUTOR_ID: {'auto_publish': False}}
+        dist_config = {constants.CLI_DISTRIBUTOR_ID: {'auto_publish': False}}
         self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
                                                                 None, dist_config)
 
@@ -121,7 +121,7 @@ class TestListPythonRepositoriesCommand(unittest.TestCase):
                     {'config': {}}
                 ],
                 'distributors': [
-                    {'id': constants.CLI_WEB_DISTRIBUTOR_ID}
+                    {'id': constants.CLI_DISTRIBUTOR_ID}
                 ]
             },
             {'id': 'non-rpm-repo',
@@ -165,7 +165,7 @@ class TestListPythonRepositoriesCommand(unittest.TestCase):
                 'repo_id': 'matching',
                 'notes': {REPO_NOTE_TYPE_KEY: constants.REPO_NOTE_PYTHON, },
                 'distributors': [
-                    {'id': constants.CLI_WEB_DISTRIBUTOR_ID}
+                    {'id': constants.CLI_DISTRIBUTOR_ID}
                 ]
             },
             {

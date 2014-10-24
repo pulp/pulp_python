@@ -8,11 +8,11 @@ from pulp.plugins.distributor import Distributor
 
 from pulp_python.common import constants
 from pulp_python.plugins.distributors import configuration
-from pulp_python.plugins.distributors.steps import WebPublisher
+from pulp_python.plugins.distributors.steps import PythonPublisher
 
 
 PLUGIN_DEFAULT_CONFIG = {
-    constants.CONFIG_KEY_PYTHON_PUBLISH_DIRECTORY: constants.CONFIG_VALUE_PYTHON_PUBLISH_DIRECTORY
+    constants.CONFIG_KEY_PUBLISH_DIRECTORY: constants.CONFIG_VALUE_PUBLISH_DIRECTORY
 }
 
 _logger = logging.getLogger(__name__)
@@ -30,10 +30,10 @@ def entry_point():
 
     plugin_config.update(edited_config)
 
-    return WebDistributor, plugin_config
+    return PythonDistributor, plugin_config
 
 
-class WebDistributor(Distributor):
+class PythonDistributor(Distributor):
 
     @classmethod
     def metadata(cls):
@@ -51,16 +51,16 @@ class WebDistributor(Distributor):
         :rtype:  dict
         """
         return {
-            'id': constants.WEB_DISTRIBUTOR_TYPE_ID,
-            'display_name': _('Python Web Distributor'),
-            'types': [constants.REPOSITORY_TYPE_ID]
+            'id': constants.DISTRIBUTOR_TYPE_ID,
+            'display_name': _('Python Python Distributor'),
+            'types': [constants.PACKAGE_TYPE_ID]
         }
 
     def __init__(self):
         """
-        Initialize the WebDistributor.
+        Initialize the PythonDistributor.
         """
-        super(WebDistributor, self).__init__()
+        super(PythonDistributor, self).__init__()
         self._publisher = None
         self.canceled = False
 
@@ -86,7 +86,7 @@ class WebDistributor(Distributor):
         :rtype:                 pulp.plugins.model.PublishReport
         """
         _logger.debug('Publishing Python repository: %s' % repo.id)
-        self._publisher = WebPublisher(repo, publish_conduit, config)
+        self._publisher = PythonPublisher(repo, publish_conduit, config)
         return self._publisher.process_lifecycle()
 
     def cancel_publish_repo(self):

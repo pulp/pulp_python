@@ -11,10 +11,10 @@ from pulp_python.plugins.distributors import configuration
 logger = logging.getLogger(__name__)
 
 
-class WebPublisher(PluginStep):
+class PythonPublisher(PluginStep):
     """
-    Web publisher class that is responsible for the actual publishing
-    of a repository via a web server
+    Publisher class that is responsible for the actual publishing
+    of a repository via a web server.
     """
     def __init__(self, repo, publish_conduit, config):
         """
@@ -25,8 +25,8 @@ class WebPublisher(PluginStep):
         :param config:          Pulp configuration for the distributor
         :type  config:          pulp.plugins.config.PluginCallConfiguration
         """
-        super(WebPublisher, self).__init__(constants.PUBLISH_STEP_WEB_PUBLISHER,
-                                           repo, publish_conduit, config)
+        super(PythonPublisher, self).__init__(constants.PUBLISH_STEP_PUBLISHER,
+                                              repo, publish_conduit, config)
 
         publish_dir = configuration.get_web_publish_dir(repo, config)
         os.makedirs(self.get_working_dir())
