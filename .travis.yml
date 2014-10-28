@@ -3,7 +3,15 @@ python:
   - "2.6"
   - "2.7"
   - "pypy"
-install: "pip install flake8"
-before_script: flake8 --config=flake8.cfg .
-script: nosetests --with-coverage --cover-package pulp_python --cover-min-percentage 100 --cover-erase
+before_install:
+  - "git clone https://github.com/pulp/pulp.git"
+install:
+  - "pip install -r test_requirements.txt"
+  - "pip install -r requirements.txt"
+  - "pulp/manage_setup_pys.sh install"
+  - "./manage_setup_pys.sh install"
+before_script:
+  - "rm -rf pulp"
+  - "flake8 --config=flake8.cfg ."
+script: nosetests --with-coverage --cover-package pulp_python --cover-min-percentage 100 --cover-erase common/test/unit/ extensions_admin/test/unit/ plugins/test/unit/
 after_success: coveralls
