@@ -1,3 +1,5 @@
+celery
+iniparse
 isodate
 okaara
 pymongo

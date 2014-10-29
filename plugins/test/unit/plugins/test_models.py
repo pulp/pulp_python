@@ -2,6 +2,7 @@
 This modules contains tests for pulp_python.plugins.models.
 """
 from gettext import gettext as _
+import hashlib
 import tarfile
 import unittest
 
@@ -60,11 +61,12 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(
             models.Package._ATTRS, ('name', 'version', 'summary', 'home_page', 'author',
                                     'author_email', 'license', 'description', 'platform',
-                                    '_filename'))
+                                    '_filename', '_checksum', '_checksum_type'))
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_closely_named_metadata(self, tarfile_open, _compression_type):
+    def test_from_archive_closely_named_metadata(self, tarfile_open, _compression_type, _checksum):
         """
         Test from_archive() with files named very similarly to PKG-INFO to test the regex. This also
         coincidentally tests behavior when the archive is missing metadata.
@@ -94,9 +96,10 @@ class TestPackage(unittest.TestCase):
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.close.assert_called_once_with()
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_empty_metadata(self, tarfile_open, _compression_type):
+    def test_from_archive_empty_metadata(self, tarfile_open, _compression_type, _checksum):
         """
         Test from_archive() when the PKG-INFO file is empty.
         """
@@ -135,9 +138,10 @@ class TestPackage(unittest.TestCase):
 
         self.assertRaises(IOError, models.Package.from_archive, dne)
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_good_metadata(self, tarfile_open, _compression_type):
+    def test_from_archive_good_metadata(self, tarfile_open, _compression_type, _checksum):
         """
         Test from_archive() with good metadata, with PKG-INFO at the typical location as would be
         done by setup.py sdist.
@@ -182,15 +186,20 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package.description, 'UNKNOWN')
         self.assertEqual(package.platform, 'UNKNOWN')
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
+        self.assertEqual(package._checksum, 'sum')
+        self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
+        _checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
         tarfile_open.return_value.close.assert_called_once_with()
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_metadata_at_absolute_root(self, tarfile_open, _compression_type):
+    def test_from_archive_metadata_at_absolute_root(self, tarfile_open, _compression_type,
+                                                    _checksum):
         """
         Test from_archive() with good metadata when the PKG-INFO file is at /.
         """
@@ -234,15 +243,19 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package.description, 'UNKNOWN')
         self.assertEqual(package.platform, 'UNKNOWN')
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
+        self.assertEqual(package._checksum, 'sum')
+        self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
+        _checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[0])
         tarfile_open.return_value.close.assert_called_once_with()
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_metadata_at_root(self, tarfile_open, _compression_type):
+    def test_from_archive_metadata_at_root(self, tarfile_open, _compression_type, _checksum):
         """
         Test from_archive() when the PKG-INFO file is at the root of the archive.
         """
@@ -286,15 +299,20 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package.description, 'UNKNOWN')
         self.assertEqual(package.platform, 'UNKNOWN')
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
+        self.assertEqual(package._checksum, 'sum')
+        self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
+        _checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
         tarfile_open.return_value.close.assert_called_once_with()
 
+    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_missing_required_metadata(self, tarfile_open, _compression_type):
+    def test_from_archive_missing_required_metadata(self, tarfile_open, _compression_type,
+                                                    _checksum):
         """
         Test from_archive() when the PKG-INFO file is missing required fields.
         """
@@ -353,8 +371,10 @@ class TestPackage(unittest.TestCase):
         description = 'a description'
         platform = 'Linux'
         _filename = 'nectar-1.3.1.tar.gz'
+        _checksum = 'some_sum'
+        _checksum_type = 'some-type'
         pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename)
+                            description, platform, _filename, _checksum, _checksum_type)
 
         pp.init_unit(conduit)
 
@@ -362,7 +382,8 @@ class TestPackage(unittest.TestCase):
             models.Package.TYPE, {'name': name, 'version': version},
             {'summary': summary, 'home_page': home_page, 'author': author,
              'author_email': author_email, 'license': license, 'description': description,
-             'platform': platform, '_filename': _filename},
+             'platform': platform, '_filename': _filename, '_checksum': _checksum,
+             '_checksum_type': _checksum_type},
             _filename)
         self.assertEqual(pp._unit, pulp_unit)
 
@@ -371,8 +392,9 @@ class TestPackage(unittest.TestCase):
         Test the save_unit() method.
         """
         conduit = mock.MagicMock()
-        pp = models.Package('name', 'version', 'summary', 'home_page', 'author', 'author_email',
-                            'license', 'description', 'platform', '_filename')
+        pp = models.Package(
+            'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
+            'description', 'platform', '_filename', '_checksum', '_checksum_type')
         pp._unit = mock.MagicMock()
 
         pp.save_unit(conduit)
@@ -383,8 +405,9 @@ class TestPackage(unittest.TestCase):
         """
         Test the storage_path property.
         """
-        pp = models.Package('name', 'version', 'summary', 'home_page', 'author', 'author_email',
-                            'license', 'description', 'platform', '_filename')
+        pp = models.Package(
+            'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
+            'description', 'platform', '_filename', '_checksum', '_checksum_type')
         pp._unit = mock.MagicMock()
         path = '/some/path.tar.gz'
         pp._unit.storage_path.return_value = path
@@ -392,6 +415,54 @@ class TestPackage(unittest.TestCase):
         sp = pp.storage_path()
 
         self.assertEqual(sp, path)
+
+    @mock.patch('__builtin__.open')
+    def test__checksum_default_sum(self, mock_open):
+        """
+        Assert that the checksum method works correctly with the default sum.
+        """
+        file_chunks = ['Hello', ' World!', '']
+
+        def mock_read(size):
+            """
+            A fake file read() that will return "Hello", " World!" and "" when called three times.
+            """
+            self.assertEqual(size, 32 * 1024 * 1024)
+            return file_chunks.pop(0)
+
+        mock_open.return_value.__enter__.return_value.read.side_effect = mock_read
+        path = '/some/path'
+
+        checksum = models.Package._checksum(path)
+
+        mock_open.assert_called_once_with(path)
+        hasher = hashlib.sha512()
+        hasher.update('Hello World!')
+        self.assertEqual(checksum, hasher.hexdigest())
+
+    @mock.patch('__builtin__.open')
+    def test__checksum_md5(self, mock_open):
+        """
+        Assert that the checksum method works correctly with md5.
+        """
+        file_chunks = ['Hello', ' World!', '']
+
+        def mock_read(size):
+            """
+            A fake file read() that will return "Hello", " World!" and "" when called three times.
+            """
+            self.assertEqual(size, 32 * 1024 * 1024)
+            return file_chunks.pop(0)
+
+        mock_open.return_value.__enter__.return_value.read.side_effect = mock_read
+        path = '/some/path'
+
+        checksum = models.Package._checksum(path, 'md5')
+
+        mock_open.assert_called_once_with(path)
+        hasher = hashlib.md5()
+        hasher.update('Hello World!')
+        self.assertEqual(checksum, hasher.hexdigest())
 
     @mock.patch('pulp_python.plugins.models.open', create=True)
     def test__compression_type_empty_file(self, mock_open):
@@ -494,9 +565,11 @@ class TestPackage(unittest.TestCase):
         description = 'a description'
         platform = 'Linux'
         _filename = 'nectar-1.3.1.tar.gz'
+        _checksum = 'abcde'
+        _checksum_type = 'some_type'
 
         pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename)
+                            description, platform, _filename, _checksum, _checksum_type)
 
         self.assertEqual(pp.name, name)
         self.assertEqual(pp.version, version)
@@ -508,6 +581,8 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(pp.description, description)
         self.assertEqual(pp.platform, platform)
         self.assertEqual(pp._filename, _filename)
+        self.assertEqual(pp._checksum, _checksum)
+        self.assertEqual(pp._checksum_type, _checksum_type)
         self.assertEqual(pp._unit, None)
 
     def test___repr__(self):
@@ -524,8 +599,10 @@ class TestPackage(unittest.TestCase):
         description = 'a description'
         platform = 'Linux'
         _filename = 'nectar-1.3.1.tar.gz'
+        _checksum = 'abcde'
+        _checksum_type = 'some_type'
 
         pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename)
+                            description, platform, _filename, _checksum, _checksum_type)
 
         self.assertEqual(repr(pp), 'Python Package: nectar-1.3.1')

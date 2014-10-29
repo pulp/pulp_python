@@ -4,14 +4,21 @@ python:
   - "2.7"
   - "pypy"
 before_install:
+  - "pushd .."
   - "git clone https://github.com/pulp/pulp.git"
+  - "git clone https://github.com/pulp/nectar.git"
+  - "popd"
 install:
   - "pip install -r test_requirements.txt"
   - "pip install -r requirements.txt"
-  - "pulp/manage_setup_pys.sh install"
-  - "./manage_setup_pys.sh install"
-before_script:
-  - "rm -rf pulp"
+  - "pushd .."
+  - "python nectar/setup.py develop"
+  - "pulp/manage_setup_pys.sh develop"
+  - "popd"
+  - "./manage_setup_pys.sh develop"
+  - "sudo mkdir -p /etc/pulp"
+  - "sudo touch /etc/pulp/server.conf"
+script:
   - "flake8 --config=flake8.cfg ."
-script: nosetests --with-coverage --cover-package pulp_python --cover-min-percentage 100 --cover-erase common/test/unit/ extensions_admin/test/unit/ plugins/test/unit/
+  - "nosetests --with-coverage --cover-package pulp_python --cover-package $(pwd) --cover-min-percentage 100 common/test/unit/ extensions_admin/test/unit/ plugins/test/unit/"
 after_success: coveralls
