@@ -28,7 +28,7 @@ def initialize(context):
     Create the python CLI section and add it to the root
 
     :param context: the CLI context.
-    :type context:  pulp.client.extensions.core.ClientContext
+    :type  context: pulp.client.extensions.core.ClientContext
     """
     root_section = context.cli.create_section(SECTION_ROOT, DESC_ROOT)
     _add_repo_section(context, root_section)

@@ -16,6 +16,7 @@ class PublishContentStep(PluginStep):
     """
     Publish Content
     """
+
     def __init__(self):
         """
         Initialize the PublishContentStep.
@@ -42,6 +43,7 @@ class PublishMetadataStep(PluginStep):
     """
     Publish Metadata (refs, branch heads, etc)
     """
+
     def __init__(self):
         """
         Initialize the PublishMetadataStep.
@@ -122,6 +124,7 @@ class PythonPublisher(PluginStep):
     Publisher class that is responsible for the actual publishing
     of a repository via a web server.
     """
+
     def __init__(self, repo, publish_conduit, config):
         """
         :param repo:            Pulp managed Python repository

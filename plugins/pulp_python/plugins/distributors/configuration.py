@@ -1,10 +1,6 @@
-import logging
 import os
 
 from pulp_python.common import constants
-
-
-logger = logging.getLogger(__name__)
 
 
 def validate_config(config):
@@ -13,6 +9,8 @@ def validate_config(config):
 
     :param config: Pulp configuration for the distributor
     :type  config: pulp.plugins.config.PluginCallConfiguration
+    :return:       This always returns (True, None)
+    :rtype:        tuple
     :raises:       PulpCodedValidationException if any validations failed
     """
     return True, None

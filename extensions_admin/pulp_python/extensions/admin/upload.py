@@ -7,6 +7,7 @@ class UploadPackageCommand(upload.UploadCommand):
     """
     The command used to upload Python packages.
     """
+
     def determine_type_id(self, filename, **kwargs):
         """
         Return pulp_python.common.constants.PACKAGE_TYPE_ID.
@@ -15,7 +16,7 @@ class UploadPackageCommand(upload.UploadCommand):
         :type  filename: basestring
         :param kwargs:   Unused
         :type  kwargs:   dict
-        :returns:        pulp_python.common.constants.PACKAGE_TYPE_ID
+        :return:         pulp_python.common.constants.PACKAGE_TYPE_ID
         :rtype:          basestring
         """
         return constants.PACKAGE_TYPE_ID
@@ -29,7 +30,7 @@ class UploadPackageCommand(upload.UploadCommand):
         :type  args:   list
         :param kwargs: Unused
         :type  kwargs: dict
-        :returns:      An empty dictionary
+        :return:       An empty dictionary
         :rtype:        dict
         """
         return {}

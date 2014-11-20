@@ -2,3 +2,4 @@ flake8
 coveralls
 coverage
 nose
+pep257

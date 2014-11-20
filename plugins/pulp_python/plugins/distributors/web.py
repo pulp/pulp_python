@@ -37,6 +37,7 @@ class PythonDistributor(Distributor):
     """
     This distributor is for use with the pip client.
     """
+
     @classmethod
     def metadata(cls):
         """

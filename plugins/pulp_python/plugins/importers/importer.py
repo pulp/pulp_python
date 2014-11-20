@@ -21,6 +21,7 @@ class PythonImporter(Importer):
     """
     This class is used to import Python modules into Pulp.
     """
+
     @classmethod
     def metadata(cls):
         """
@@ -105,5 +106,12 @@ class PythonImporter(Importer):
     def validate_config(self, repo, config):
         """
         We don't have a config yet, so it's always valid
+
+        :param repo:   metadata describing the repository
+        :type  repo:   pulp.plugins.model.Repository
+        :param config: plugin configuration for the repository
+        :type  config: pulp.plugins.config.PluginCallConfiguration
+        :return:       This always returns (True, '')
+        :rtype:        tuple
         """
         return True, ''

@@ -13,6 +13,7 @@ class Package(object):
     """
     This class represents a Python package.
     """
+
     TYPE = constants.PACKAGE_TYPE_ID
     # The full list of supported attributes. Attributes beginning with underscore are specific to
     # this module and are not found in PKG-INFO.

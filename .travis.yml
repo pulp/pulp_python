@@ -19,6 +19,5 @@ install:
   - "sudo mkdir -p /etc/pulp"
   - "sudo touch /etc/pulp/server.conf"
 script:
-  - "flake8 --config=flake8.cfg ."
-  - "nosetests --with-coverage --cover-package pulp_python --cover-package $(pwd) --cover-min-percentage 100 common/test/unit/ extensions_admin/test/unit/ plugins/test/unit/"
+  - "./run-tests.py --enable-coverage --cover-min-percentage 100"
 after_success: coveralls

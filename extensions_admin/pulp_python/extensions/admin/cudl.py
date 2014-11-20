@@ -29,10 +29,20 @@ IMPORTER_CONFIGURATION_FLAGS = dict(
 
 
 class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, ImporterConfigMixin):
+    """
+    Creates Python repositories on the Pulp server.
+    """
+
     default_notes = {REPO_NOTE_TYPE_KEY: constants.REPO_NOTE_PYTHON}
     IMPORTER_TYPE_ID = constants.IMPORTER_TYPE_ID
 
     def __init__(self, context):
+        """
+        Initialize the command.
+
+        :param context: The CLI context
+        :type  context: pulp.client.extensions.core.ClientContext
+        """
         CreateAndConfigureRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
@@ -44,7 +54,7 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         is needed to create distributor configs.
 
         :param user_input: dictionary of data passed in by okaara
-        :type  user_inpus: dict
+        :type  user_input: dict
         :return:           list of dict containing distributor_type_id,
                            repo_plugin_config, auto_publish, and distributor_id (the same
                            that would be passed to the RepoDistributorAPI.create call).
@@ -67,7 +77,7 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         is needed to create an importer config.
 
         :param user_input:  dictionary of data passed in by okaara
-        :type  user_inpus:  dict
+        :type  user_input:  dict
         :return:            importer config
         :rtype:             dict
         """
@@ -76,14 +86,29 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
 
 
 class UpdatePythonRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin):
+    """
+    Updates existing Python repositories on the Pulp server.
+    """
 
     def __init__(self, context):
+        """
+        Initialize the command.
+
+        :param context: The CLI context
+        :type  context: pulp.client.extensions.core.ClientContext
+        """
         UpdateRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def run(self, **kwargs):
+        """
+        Update the repository.
+
+        :param kwargs: The user input
+        :type  kwargs: dict
+        """
         arg_utils.convert_removed_options(kwargs)
 
         importer_config = self.parse_user_input(kwargs)
@@ -110,8 +135,17 @@ class UpdatePythonRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
 
 class ListPythonRepositoriesCommand(ListRepositoriesCommand):
+    """
+    List the Python repostories on the Pulp server.
+    """
 
     def __init__(self, context):
+        """
+        Initialize the command.
+
+        :param context: The CLI context
+        :type  context: pulp.client.extensions.core.ClientContext
+        """
         repos_title = _('Python Repositories')
         super(ListPythonRepositoriesCommand, self).__init__(context, repos_title=repos_title)
 
@@ -125,9 +159,9 @@ class ListPythonRepositoriesCommand(ListRepositoriesCommand):
         Get a list of all the python repositories that match the specified query params
 
         :param query_params: query parameters for refining the list of repositories
-        :type query_params:  dict
+        :type  query_params: dict
         :param kwargs:       Any additional parameters passed into the repo list command
-        :type kwargs:        dict
+        :type  kwargs:       dict
         :return:             List of python repositories
         :rtype:              list of dict
         """
@@ -147,9 +181,9 @@ class ListPythonRepositoriesCommand(ListRepositoriesCommand):
          Get a list of all the non python repositories that match the specified query params
 
         :param query_params: query parameters for refining the list of repositories
-        :type query_params:  dict
+        :type  query_params: dict
         :param kwargs:       Any additional parameters passed into the repo list command
-        :type kwargs:        dict
+        :type  kwargs:       dict
         :return:             List of non repositories
         :rtype:              list of dict
         """
@@ -168,9 +202,9 @@ class ListPythonRepositoriesCommand(ListRepositoriesCommand):
         get all the repositories associated with a repo that match a set of query parameters
 
         :param query_params: query parameters for refining the list of repositories
-        :type query_params:  dict
+        :type  query_params: dict
         :param kwargs:       Any additional parameters passed into the repo list command
-        :type kwargs:        dict
+        :type  kwargs:       dict
         :return:             list of repositories
         :rtype:              list of dict
         """
