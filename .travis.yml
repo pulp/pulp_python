@@ -5,8 +5,11 @@ python:
   - "pypy"
 before_install:
   - "pushd .."
-  - "git clone https://github.com/pulp/pulp.git"
+  - "git clone https://github.com/pulp/pulp.git --branch 2.5-release"
   - "git clone https://github.com/pulp/nectar.git"
+  - "pushd nectar"
+  - "git checkout python-nectar-1.1.6-1"
+  - "popd"
   - "popd"
 install:
   - "pip install -r test_requirements.txt"
