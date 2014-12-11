@@ -137,5 +137,8 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Wed Dec 10 2014 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.0.alpha
+- new package built with tito
+
 * Mon Nov 17 2014 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.0.alpha
 - Initial release
