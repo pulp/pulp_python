@@ -8,7 +8,7 @@ from pulp.client.commands.repo.sync_publish import PublishStatusCommand,\
     RunPublishRepositoryCommand, RunSyncRepositoryCommand
 from pulp.client.extensions.core import PulpCli
 
-from pulp_python.extensions.admin import pulp_cli, upload
+from pulp_python.extensions.admin import packages, pulp_cli, upload
 
 
 class TestInitialize(unittest.TestCase):
@@ -32,6 +32,7 @@ class TestInitialize(unittest.TestCase):
         self.assertTrue(isinstance(repo_section.commands['update'], UpdateRepositoryCommand))
         self.assertTrue(isinstance(repo_section.commands['list'], ListRepositoriesCommand))
         self.assertTrue(isinstance(repo_section.commands['upload'], upload.UploadPackageCommand))
+        self.assertTrue(isinstance(repo_section.commands['packages'], packages.PackagesCommand))
 
         section = repo_section.subsections['sync']
         self.assertTrue(isinstance(section.commands['run'], RunSyncRepositoryCommand))
