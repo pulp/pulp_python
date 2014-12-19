@@ -74,9 +74,9 @@ Install a Package From a Pulp Hosted Python Repository
 
 To conclude our tutorial, we will now install our package on another machine using pip::
 
-   $ pip install -i http://<Pulp's FQDN>/pulp/python/web/my_own_pypi/simple/ pulp_python_plugins
+   $ pip install -i http://pulp.example.com/pulp/python/web/my_own_pypi/simple/ pulp_python_plugins
    Downloading/unpacking pulp-python-plugins
-     http://coconut.usersys.redhat.com/pulp/python/web/my_own_pypi/simple/pulp_python_plugins/ uses an insecure transport scheme (http). Consider using https if coconut.usersys.redhat.com has it available
+     http://pulp.example.com/pulp/python/web/my_own_pypi/simple/pulp_python_plugins/ uses an insecure transport scheme (http). Consider using https if pulp.example.com has it available
      Downloading pulp_python_plugins-0.0.0.tar.gz
      Running setup.py (path:/home/rbarlow/.virtualenvs/test/build/pulp-python-plugins/setup.py) egg_info for package pulp-python-plugins
        
