@@ -6,7 +6,7 @@ from pulp.client.extensions.decorator import priority
 from pulp_python.common import constants
 from pulp_python.extensions.admin.cudl import (
     CreatePythonRepositoryCommand, UpdatePythonRepositoryCommand, ListPythonRepositoriesCommand)
-from pulp_python.extensions.admin import upload
+from pulp_python.extensions.admin import packages, upload
 
 
 SECTION_ROOT = 'python'
@@ -55,6 +55,7 @@ def _add_repo_section(context, parent_section):
     _add_sync_section(context, repo_section)
 
     repo_section.add_command(upload.UploadPackageCommand(context))
+    repo_section.add_command(packages.PackagesCommand(context))
 
 
 def _add_publish_section(context, parent_section):

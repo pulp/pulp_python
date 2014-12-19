@@ -61,6 +61,22 @@ And now we can see that there is one Python package in our repository::
    Content Unit Counts:
      Python Package: 1
 
+Query Packages in a Repository
+------------------------------
+
+You can also query the packages in a repository::
+
+   $ pulp-admin python repo packages --repo-id my_own_pypi --match name=pulp_python_plugins
+   Name:         pulp_python_plugins
+   Version:      0.0.0
+   Author:       Pulp Team
+   Author Email: pulp-list@redhat.com
+   Description:  UNKNOWN
+   Home Page:    http://www.pulpproject.org
+   License:      GPLv2+
+   Platform:     UNKNOWN
+   Summary:      plugins for python support in pulp
+
 Publish a Python Repository
 ---------------------------
 
