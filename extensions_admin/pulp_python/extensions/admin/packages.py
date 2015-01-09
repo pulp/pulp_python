@@ -16,6 +16,7 @@ class PackagesCommand(DisplayUnitAssociationsCommand):
     """
     This command is used to search for existing Python packages in a repository.
     """
+
     def __init__(self, context):
         """
         Initialize the command.

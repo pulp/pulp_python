@@ -33,7 +33,6 @@ if exit_code != 0:
 # Ensure that all doc strings are present
 doc_check.recursive_check(PROJECT_DIR)
 
-
 PACKAGES = [PROJECT_DIR, 'pulp_python', ]
 
 TESTS = [
