@@ -84,3 +84,39 @@ class TestPackagesCommand(unittest.TestCase):
 
         c.prompt.render_document_list.assert_called_once_with(['package_1', 'package_2'],
                                                               order=['name', 'version', 'author'])
+
+
+class TestPackageRemoveCommand(unittest.TestCase):
+    """
+    This class contains tests for the PackageRemoveCommand class.
+    """
+    @mock.patch('pulp_python.extensions.admin.packages.UnitRemoveCommand.__init__')
+    def test___init__(self, super___init__):
+        """
+        Assert correct behavior from __init__().
+        """
+        context = mock.MagicMock()
+
+        c = packages.PackageRemoveCommand(context)
+
+        super___init__.assert_called_once_with(c, context, name='remove',
+                                               description=packages.DESC_REMOVE,
+                                               type_id=constants.PACKAGE_TYPE_ID)
+
+    def test_get_formatter_for_type(self):
+        """
+        Assert correct behavior from get_formatter_for_type().
+        """
+        context = mock.MagicMock()
+        command = packages.PackageRemoveCommand(context)
+
+        formatter = command.get_formatter_for_type(constants.PACKAGE_TYPE_ID)
+        self.assertEquals('test-name-test-version', formatter({'name': 'test-name',
+                                                               'version': 'test-version'}))
+
+    def test_get_formatter_for_type_raises_value_error(self):
+        """
+        Assert wrong type_id for get_formatter_for_type() raises ValueError.
+        """
+        self.assertRaises(ValueError, packages.PackageRemoveCommand.get_formatter_for_type,
+                          'foo-type')

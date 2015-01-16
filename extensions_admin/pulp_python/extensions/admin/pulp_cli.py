@@ -56,6 +56,7 @@ def _add_repo_section(context, parent_section):
 
     repo_section.add_command(upload.UploadPackageCommand(context))
     repo_section.add_command(packages.PackagesCommand(context))
+    repo_section.add_command(packages.PackageRemoveCommand(context))
 
 
 def _add_publish_section(context, parent_section):
