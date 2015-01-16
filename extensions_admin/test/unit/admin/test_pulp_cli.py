@@ -33,6 +33,7 @@ class TestInitialize(unittest.TestCase):
         self.assertTrue(isinstance(repo_section.commands['list'], ListRepositoriesCommand))
         self.assertTrue(isinstance(repo_section.commands['upload'], upload.UploadPackageCommand))
         self.assertTrue(isinstance(repo_section.commands['packages'], packages.PackagesCommand))
+        self.assertTrue(isinstance(repo_section.commands['remove'], packages.PackageRemoveCommand))
 
         section = repo_section.subsections['sync']
         self.assertTrue(isinstance(section.commands['run'], RunSyncRepositoryCommand))
