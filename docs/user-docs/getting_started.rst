@@ -88,7 +88,7 @@ that clients can install the package from Pulp::
 Install a Package From a Pulp Hosted Python Repository
 ------------------------------------------------------
 
-To conclude our tutorial, we will now install our package on another machine using pip::
+We will now install our package on another machine using pip::
 
    $ pip install -i http://pulp.example.com/pulp/python/web/my_own_pypi/simple/ pulp_python_plugins
    Downloading/unpacking pulp-python-plugins
@@ -101,3 +101,22 @@ To conclude our tutorial, we will now install our package on another machine usi
        
    Successfully installed pulp-python-plugins
    Cleaning up...
+
+Remove Python Packages From a Pulp Python Repository
+----------------------------------------------------
+
+Occasionally, we may want to remove uploaded packages from the repository::
+
+   $ pulp-admin python repo remove --repo-id my_own_pypi --str-eq="name=pulp_python_plugins"
+   This command may be exited via ctrl+c without affecting the request.
+
+
+   [\]
+   Running...
+
+   Units Removed:
+     pulp_python_plugins-0.0.0
+
+Note that this only removes the association of given packages with the repository. Uploaded packages still exist
+on the server. Python packages which are not associated with any repositories can be removed from the server using
+`pulp-admin orphan remove --type python_package` command.
