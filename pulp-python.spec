@@ -3,7 +3,7 @@
 
 Name: pulp-python
 Version: 0.0.0
-Release: 0.0.alpha%{?dist}
+Release: 0.1.beta%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -137,8 +137,8 @@ client capabilites with Python specific features.
 
 
 %changelog
-* Wed Dec 10 2014 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.0.alpha
-- new package built with tito
+* Wed Jan 21 2015 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.1.beta
+- First beta
 
 * Mon Nov 17 2014 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.0.alpha
 - Initial release
