@@ -29,6 +29,47 @@ class TestPythonImporter(unittest.TestCase):
     """
     This class contains tests for the PythonImporter class.
     """
+    def test_import_units_units_none(self):
+        """
+        Assert correct behavior when units == None.
+        """
+        python_importer = importer.PythonImporter()
+        import_conduit = mock.MagicMock()
+        units = ['unit_a', 'unit_b', 'unit_3']
+        import_conduit.get_source_units.return_value = units
+
+        imported_units = python_importer.import_units(mock.MagicMock(), mock.MagicMock(),
+                                                      import_conduit, mock.MagicMock(), units=None)
+
+        # Assert that the correct criteria was used
+        criteria = import_conduit.get_source_units.mock_calls[0][2]['criteria']
+        self.assertEqual(criteria['type_ids'], [constants.PACKAGE_TYPE_ID])
+        import_conduit.get_source_units.assert_called_once_with(criteria=criteria)
+        # Assert that the units were associated correctly
+        associate_unit_call_args = [c[1] for c in import_conduit.associate_unit.mock_calls]
+        self.assertEqual(associate_unit_call_args, [(u,) for u in units])
+        # Assert that the units were returned
+        self.assertEqual(imported_units, units)
+
+    def test_import_units_units_not_none(self):
+        """
+        Assert correct behavior when units != None.
+        """
+        python_importer = importer.PythonImporter()
+        import_conduit = mock.MagicMock()
+        units = ['unit_a', 'unit_b', 'unit_3']
+
+        imported_units = python_importer.import_units(mock.MagicMock(), mock.MagicMock(),
+                                                      import_conduit, mock.MagicMock(), units=units)
+
+        # Assert that no criteria was used
+        self.assertEqual(import_conduit.get_source_units.call_count, 0)
+        # Assert that the units were associated correctly
+        associate_unit_call_args = [c[1] for c in import_conduit.associate_unit.mock_calls]
+        self.assertEqual(associate_unit_call_args, [(u,) for u in units])
+        # Assert that the units were returned
+        self.assertEqual(imported_units, units)
+
     def test_metadata(self):
         """
         Test the metadata class method's return value.

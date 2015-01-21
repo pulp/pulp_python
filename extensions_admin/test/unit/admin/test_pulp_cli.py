@@ -27,13 +27,14 @@ class TestInitialize(unittest.TestCase):
         python_section = context.cli.root_section.subsections['python']
 
         repo_section = python_section.subsections['repo']
+        self.assertTrue(isinstance(repo_section.commands['copy'], packages.CopyPackagesCommand))
         self.assertTrue(isinstance(repo_section.commands['create'], CreateRepositoryCommand))
         self.assertTrue(isinstance(repo_section.commands['delete'], DeleteRepositoryCommand))
         self.assertTrue(isinstance(repo_section.commands['update'], UpdateRepositoryCommand))
         self.assertTrue(isinstance(repo_section.commands['list'], ListRepositoriesCommand))
         self.assertTrue(isinstance(repo_section.commands['upload'], upload.UploadPackageCommand))
-        self.assertTrue(isinstance(repo_section.commands['packages'], packages.PackagesCommand))
-        self.assertTrue(isinstance(repo_section.commands['remove'], packages.PackageRemoveCommand))
+        self.assertTrue(isinstance(repo_section.commands['remove'], packages.RemovePackagesCommand))
+        self.assertTrue(isinstance(repo_section.commands['packages'], packages.ListPackagesCommand))
 
         section = repo_section.subsections['sync']
         self.assertTrue(isinstance(section.commands['run'], RunSyncRepositoryCommand))

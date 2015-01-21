@@ -10,9 +10,35 @@ from pulp_python.common import constants
 from pulp_python.extensions.admin import packages
 
 
-class TestPackagesCommand(unittest.TestCase):
+class TestCopyPackagesCommand(unittest.TestCase):
     """
-    This class contains tests for the PackagesCommand class.
+    This class contains tests for the CopyPackagesCommand class.
+    """
+    @mock.patch('pulp_python.extensions.admin.packages.unit.UnitCopyCommand.__init__')
+    def test___init__(self, super___init__):
+        """
+        Assert correct behavior from __init__().
+        """
+        context = mock.MagicMock()
+
+        packages.CopyPackagesCommand(context)
+
+        super___init__.assert_called_once_with(context, description=packages.DESC_COPY,
+                                               type_id=constants.PACKAGE_TYPE_ID)
+
+    def test_get_formatter_for_type(self):
+        """
+        Assert the correct return value from get_formatter_for_type().
+        """
+        formatter = packages.CopyPackagesCommand.get_formatter_for_type(constants.PACKAGE_TYPE_ID)
+
+        self.assertEqual(formatter({'name': 'pulp_python_plugins', 'version': '0.0.0'}),
+                         'pulp_python_plugins-0.0.0')
+
+
+class TestListPackagesCommand(unittest.TestCase):
+    """
+    This class contains tests for the ListPackagesCommand class.
     """
     @mock.patch('pulp_python.extensions.admin.packages.DisplayUnitAssociationsCommand.__init__')
     def test___init__(self, super___init__):
@@ -21,12 +47,11 @@ class TestPackagesCommand(unittest.TestCase):
         """
         context = mock.MagicMock()
 
-        c = packages.PackagesCommand(context)
+        c = packages.ListPackagesCommand(context)
 
         super___init__.assert_called_once_with(c.run, name='packages',
                                                description=packages.DESC_SEARCH)
         self.assertEqual(c.context, context)
-        self.assertEqual(c.prompt, context.prompt)
 
     def test_run_with_details(self):
         """
@@ -49,12 +74,12 @@ class TestPackagesCommand(unittest.TestCase):
 
         context = mock.MagicMock()
         context.server.repo_unit.search.side_effect = search
-        c = packages.PackagesCommand(context)
+        c = packages.ListPackagesCommand(context)
         kwargs = {options.OPTION_REPO_ID.keyword: 'some_repo', c.ASSOCIATION_FLAG.keyword: True}
 
         c.run(**kwargs)
 
-        c.prompt.render_document_list.assert_called_once_with(_packages, order=[])
+        context.prompt.render_document_list.assert_called_once_with(_packages, order=[])
 
     def test_run_without_details(self):
         """
@@ -77,18 +102,18 @@ class TestPackagesCommand(unittest.TestCase):
 
         context = mock.MagicMock()
         context.server.repo_unit.search.side_effect = search
-        c = packages.PackagesCommand(context)
+        c = packages.ListPackagesCommand(context)
         kwargs = {options.OPTION_REPO_ID.keyword: 'some_repo'}
 
         c.run(**kwargs)
 
-        c.prompt.render_document_list.assert_called_once_with(['package_1', 'package_2'],
-                                                              order=['name', 'version', 'author'])
+        context.prompt.render_document_list.assert_called_once_with(
+            ['package_1', 'package_2'], order=['name', 'version', 'author'])
 
 
-class TestPackageRemoveCommand(unittest.TestCase):
+class TestRemovePackagesCommand(unittest.TestCase):
     """
-    This class contains tests for the PackageRemoveCommand class.
+    This class contains tests for the RemovePackagesCommand class.
     """
     @mock.patch('pulp_python.extensions.admin.packages.UnitRemoveCommand.__init__')
     def test___init__(self, super___init__):
@@ -97,7 +122,7 @@ class TestPackageRemoveCommand(unittest.TestCase):
         """
         context = mock.MagicMock()
 
-        c = packages.PackageRemoveCommand(context)
+        c = packages.RemovePackagesCommand(context)
 
         super___init__.assert_called_once_with(c, context, name='remove',
                                                description=packages.DESC_REMOVE,
@@ -108,7 +133,7 @@ class TestPackageRemoveCommand(unittest.TestCase):
         Assert correct behavior from get_formatter_for_type().
         """
         context = mock.MagicMock()
-        command = packages.PackageRemoveCommand(context)
+        command = packages.RemovePackagesCommand(context)
 
         formatter = command.get_formatter_for_type(constants.PACKAGE_TYPE_ID)
         self.assertEquals('test-name-test-version', formatter({'name': 'test-name',
@@ -118,5 +143,5 @@ class TestPackageRemoveCommand(unittest.TestCase):
         """
         Assert wrong type_id for get_formatter_for_type() raises ValueError.
         """
-        self.assertRaises(ValueError, packages.PackageRemoveCommand.get_formatter_for_type,
+        self.assertRaises(ValueError, packages.RemovePackagesCommand.get_formatter_for_type,
                           'foo-type')
