@@ -138,6 +138,13 @@ client capabilites with Python specific features.
 
 %changelog
 * Wed Jan 21 2015 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.1.beta
+- Adding ability to remove Python packages from Pulp repository using pulp-
+  admin (skarmark@redhat.com)
+- Support copying Python packages between repos. (rbarlow@redhat.com)
+- Add a CLI command to list packages. (rbarlow@redhat.com)
+- Create documentation. (rbarlow@redhat.com)
+
+* Wed Jan 21 2015 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.1.beta
 - First beta
 
 * Mon Nov 17 2014 Randy Barlow <rbarlow@redhat.com> 0.0.0-0.0.alpha
