@@ -55,3 +55,6 @@ target/
 
 # Ninja IDE
 *.nja
+
+# PyCharm
+.idea

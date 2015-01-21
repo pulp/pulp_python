@@ -120,3 +120,34 @@ Occasionally, we may want to remove uploaded packages from the repository::
 Note that this only removes the association of given packages with the repository. Uploaded packages still exist
 on the server. Python packages which are not associated with any repositories can be removed from the server using
 `pulp-admin orphan remove --type python_package` command.
+
+.. _sync_from_pypi:
+
+Synchronize Packages from PyPI
+------------------------------
+
+It is possible to synchronize packages from the Python Package Index. In order to do this, you must
+specify the feed URL as well as a comma separated list of package names you wish to sync::
+
+   $ pulp-admin python repo create --repo-id pypi --feed https://pypi.python.org/ --package-names numpy,scipy
+   Repository [pypi] successfully created
+
+   $ pulp-admin python repo sync run --repo-id pypi
+   +----------------------------------------------------------------------+
+                       Synchronizing Repository [pypi]
+   +----------------------------------------------------------------------+
+
+   This command may be exited via ctrl+c without affecting the request.
+
+
+   Downloading and processing metadata.
+   [-]
+   ... completed
+
+   Downloading and processing Python packages.
+   [==================================================] 100%
+   30 of 30 items
+   ... completed
+
+
+   Task Succeeded 

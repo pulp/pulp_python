@@ -81,6 +81,68 @@ class TestPythonImporter(unittest.TestCase):
             'types': [constants.PACKAGE_TYPE_ID]}
         self.assertEqual(metadata, expected_value)
 
+    @mock.patch('pulp_python.plugins.importers.importer.shutil.rmtree')
+    @mock.patch('pulp_python.plugins.importers.importer.sync.SyncStep.__init__')
+    @mock.patch('pulp_python.plugins.importers.importer.sync.SyncStep.sync')
+    @mock.patch('pulp_python.plugins.importers.importer.tempfile.mkdtemp')
+    def test_sync_repo_failure(self, mkdtemp, sync, __init__, rmtree):
+        """
+        Test the sync_repo() method when the sync fails.
+        """
+        config = mock.MagicMock()
+        python_importer = importer.PythonImporter()
+        repo = mock.MagicMock()
+        sync_conduit = mock.MagicMock()
+        # Fake the sync raising some bogus error
+        sync.side_effect = IOError('I/O error, lol!')
+        __init__.return_value = None
+
+        try:
+            python_importer.sync_repo(repo, sync_conduit, config)
+        except IOError as e:
+            # Make sure the error was passed on as it should have been
+            self.assertEqual(str(e), 'I/O error, lol!')
+
+        # A temporary working dir should have been created in the repo's working dir
+        mkdtemp.assert_called_once_with(dir=repo.working_dir)
+        # No matter what happens, it's important that we cleaned up the temporary dir
+        rmtree.assert_called_once_with(mkdtemp.return_value, ignore_errors=True)
+        # Make sure the SyncStep was initialized correctly
+        __init__.assert_called_once_with(repo=repo, conduit=sync_conduit, config=config,
+                                         working_dir=mkdtemp.return_value)
+        # Make sure all the right args were passed on to sync()
+        sync.assert_called_once_with()
+
+    @mock.patch('pulp_python.plugins.importers.importer.shutil.rmtree')
+    @mock.patch('pulp_python.plugins.importers.importer.sync.SyncStep.__init__')
+    @mock.patch('pulp_python.plugins.importers.importer.sync.SyncStep.sync')
+    @mock.patch('pulp_python.plugins.importers.importer.tempfile.mkdtemp')
+    def test_sync_repo_success(self, mkdtemp, sync, __init__, rmtree):
+        """
+        Test the sync_repo() method when the sync is successful.
+        """
+        config = mock.MagicMock()
+        python_importer = importer.PythonImporter()
+        repo = mock.MagicMock()
+        sync_conduit = mock.MagicMock()
+        sync_report = mock.MagicMock()
+        sync.return_value = sync_report
+        __init__.return_value = None
+
+        return_value = python_importer.sync_repo(repo, sync_conduit, config)
+
+        # A temporary working dir should have been created in the repo's working dir
+        mkdtemp.assert_called_once_with(dir=repo.working_dir)
+        # No matter what happens, it's important that we cleaned up the temporary dir
+        rmtree.assert_called_once_with(mkdtemp.return_value, ignore_errors=True)
+        # Make sure the SyncStep was initialized correctly
+        __init__.assert_called_once_with(repo=repo, conduit=sync_conduit, config=config,
+                                         working_dir=mkdtemp.return_value)
+        # Make sure all the right args were passed on to sync()
+        sync.assert_called_once_with()
+        # And, of course, assert that the sync report was returned
+        self.assertEqual(return_value, sync_report)
+
     @mock.patch('pulp_python.plugins.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.models.Package.init_unit', autospec=True)
     @mock.patch('pulp_python.plugins.models.Package.save_unit', autospec=True)

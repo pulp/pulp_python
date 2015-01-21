@@ -1,11 +1,13 @@
 import shutil
+import tempfile
 from gettext import gettext as _
 
 from pulp.plugins.importer import Importer
-from pulp.server.db.model.criteria import UnitAssociationCriteria
+from pulp.server.db.model import criteria
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
+from pulp_python.plugins.importers import sync
 
 
 def entry_point():
@@ -63,8 +65,8 @@ class PythonImporter(Importer):
         :rtype:                list
         """
         if units is None:
-            criteria = UnitAssociationCriteria(type_ids=[constants.PACKAGE_TYPE_ID])
-            units = import_conduit.get_source_units(criteria=criteria)
+            search = criteria.UnitAssociationCriteria(type_ids=[constants.PACKAGE_TYPE_ID])
+            units = import_conduit.get_source_units(criteria=search)
 
         for u in units:
             import_conduit.associate_unit(u)
@@ -91,6 +93,41 @@ class PythonImporter(Importer):
             'display_name': _('Python Importer'),
             'types': [constants.PACKAGE_TYPE_ID]
         }
+
+    def sync_repo(self, repo, sync_conduit, config):
+        """
+        Synchronizes content into the given repository. This call is responsible
+        for adding new content units to Pulp as well as associating them to the
+        given repository.
+
+        While this call may be implemented using multiple threads, its execution
+        from the Pulp server's standpoint should be synchronous. This call should
+        not return until the sync is complete.
+
+        It is not expected that this call be atomic. Should an error occur, it
+        is not the responsibility of the importer to rollback any unit additions
+        or associations that have been made.
+
+        The returned report object is used to communicate the results of the
+        sync back to the user. Care should be taken to i18n the free text "log"
+        attribute in the report if applicable.
+
+        :param repo:         metadata describing the repository
+        :type  repo:         pulp.plugins.model.Repository
+        :param sync_conduit: provides access to relevant Pulp functionality
+        :type  sync_conduit: pulp.plugins.conduits.repo_sync.RepoSyncConduit
+        :param config:       plugin configuration
+        :type  config:       pulp.plugins.config.PluginCallConfiguration
+        :return:             report of the details of the sync
+        :rtype:              pulp.plugins.model.SyncReport
+        """
+        working_dir = tempfile.mkdtemp(dir=repo.working_dir)
+        try:
+            sync_step = sync.SyncStep(repo=repo, conduit=sync_conduit, config=config,
+                                      working_dir=working_dir)
+            return sync_step.sync()
+        finally:
+            shutil.rmtree(working_dir, ignore_errors=True)
 
     def upload_unit(self, repo, type_id, unit_key, metadata, file_path, conduit, config):
         """

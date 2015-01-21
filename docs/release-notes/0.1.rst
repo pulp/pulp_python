@@ -1,0 +1,7 @@
+0.1 Release Notes
+=================
+
+0.1.0
+-----
+
+This release introduces the ability to :ref:`sync_from_pypi`.

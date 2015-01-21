@@ -13,9 +13,11 @@ from pulp_python.common import constants
 
 d = _('if "true", on each successful sync the repository will automatically be '
       'published; if "false" content will only be available after manually publishing '
-      'the repository; defaults to "true"')
+      'the repository; defaults to "false"')
 OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
                                  parse_func=parsers.parse_boolean)
+d = _('a comma separated list of package names you wish Pulp to sync')
+OPT_PACKAGE_NAMES = PulpCliOption('--package-names', d, required=False)
 
 DESC_FEED = _('URL for the upstream python repo')
 
@@ -28,24 +30,17 @@ IMPORTER_CONFIGURATION_FLAGS = dict(
 )
 
 
-class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, ImporterConfigMixin):
+class PythonRepositoryOptions(object):
     """
-    Creates Python repositories on the Pulp server.
+    A mixin to provide the same custom options to the create and update commands.
     """
 
-    default_notes = {REPO_NOTE_TYPE_KEY: constants.REPO_NOTE_PYTHON}
-    IMPORTER_TYPE_ID = constants.IMPORTER_TYPE_ID
-
-    def __init__(self, context):
+    def __init__(self):
         """
-        Initialize the command.
-
-        :param context: The CLI context
-        :type  context: pulp.client.extensions.core.ClientContext
+        Initialize the PythonRepositoryOptions object.
         """
-        CreateAndConfigureRepositoryCommand.__init__(self, context)
-        ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
+        self.add_option(OPT_PACKAGE_NAMES)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def _describe_distributors(self, user_input):
@@ -82,36 +77,59 @@ class CreatePythonRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         :rtype:             dict
         """
         config = self.parse_user_input(user_input)
+        if OPT_PACKAGE_NAMES.keyword in user_input:
+            config[constants.CONFIG_KEY_PACKAGE_NAMES] = user_input.pop(OPT_PACKAGE_NAMES.keyword)
         return config
 
 
-class UpdatePythonRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin):
+class CreatePythonRepositoryCommand(PythonRepositoryOptions, CreateAndConfigureRepositoryCommand,
+                                    ImporterConfigMixin):
     """
-    Updates existing Python repositories on the Pulp server.
+    This CLI command is used to create Python repositories on the server.
+    """
+
+    default_notes = {REPO_NOTE_TYPE_KEY: constants.REPO_NOTE_PYTHON}
+    IMPORTER_TYPE_ID = constants.IMPORTER_TYPE_ID
+
+    def __init__(self, context):
+        """
+        Initialize the create command.
+
+        :param context: The CLI context
+        :type  context: pulp.client.extensions.core.ClientContext
+        """
+        CreateAndConfigureRepositoryCommand.__init__(self, context)
+        ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
+        PythonRepositoryOptions.__init__(self)
+
+
+class UpdatePythonRepositoryCommand(PythonRepositoryOptions, UpdateRepositoryCommand,
+                                    ImporterConfigMixin):
+    """
+    This CLI command allows the user to update existing Python repositories.
     """
 
     def __init__(self, context):
         """
-        Initialize the command.
+        Initialize the update command.
 
         :param context: The CLI context
         :type  context: pulp.client.extensions.core.ClientContext
         """
         UpdateRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
-        self.add_option(OPT_AUTO_PUBLISH)
-        self.options_bundle.opt_feed.description = DESC_FEED
+        PythonRepositoryOptions.__init__(self)
 
     def run(self, **kwargs):
         """
-        Update the repository.
+        Perform the update on the server.
 
         :param kwargs: The user input
         :type  kwargs: dict
         """
         arg_utils.convert_removed_options(kwargs)
 
-        importer_config = self.parse_user_input(kwargs)
+        importer_config = self._parse_importer_config(kwargs)
 
         # Remove importer specific keys
         for key in importer_config.keys():
@@ -136,12 +154,13 @@ class UpdatePythonRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
 class ListPythonRepositoriesCommand(ListRepositoriesCommand):
     """
-    List the Python repostories on the Pulp server.
+    This CLI command presents the user with the list of Python repositories that exist on the
+    server.
     """
 
     def __init__(self, context):
         """
-        Initialize the command.
+        Initialize the list command.
 
         :param context: The CLI context
         :type  context: pulp.client.extensions.core.ClientContext

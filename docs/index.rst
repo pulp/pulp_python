@@ -14,6 +14,7 @@ instance or file a `new bug <https://pulp.plan.io/projects/pulp_python/issues/ne
 .. toctree::
    :maxdepth: 2
 
+   release-notes/index
    admin-docs/index
    user-docs/index
    reference/index

@@ -63,10 +63,10 @@ class TestPackage(unittest.TestCase):
                                     'author_email', 'license', 'description', 'platform',
                                     '_filename', '_checksum', '_checksum_type'))
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_closely_named_metadata(self, tarfile_open, _compression_type, _checksum):
+    def test_from_archive_closely_named_metadata(self, tarfile_open, _compression_type, checksum):
         """
         Test from_archive() with files named very similarly to PKG-INFO to test the regex. This also
         coincidentally tests behavior when the archive is missing metadata.
@@ -96,10 +96,10 @@ class TestPackage(unittest.TestCase):
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.close.assert_called_once_with()
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_empty_metadata(self, tarfile_open, _compression_type, _checksum):
+    def test_from_archive_empty_metadata(self, tarfile_open, _compression_type, checksum):
         """
         Test from_archive() when the PKG-INFO file is empty.
         """
@@ -138,10 +138,10 @@ class TestPackage(unittest.TestCase):
 
         self.assertRaises(IOError, models.Package.from_archive, dne)
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_good_metadata(self, tarfile_open, _compression_type, _checksum):
+    def test_from_archive_good_metadata(self, tarfile_open, _compression_type, checksum):
         """
         Test from_archive() with good metadata, with PKG-INFO at the typical location as would be
         done by setup.py sdist.
@@ -189,17 +189,17 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
-        _checksum.assert_called_once_with(path)
+        checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
         tarfile_open.return_value.close.assert_called_once_with()
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
     def test_from_archive_metadata_at_absolute_root(self, tarfile_open, _compression_type,
-                                                    _checksum):
+                                                    checksum):
         """
         Test from_archive() with good metadata when the PKG-INFO file is at /.
         """
@@ -246,16 +246,16 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
-        _checksum.assert_called_once_with(path)
+        checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[0])
         tarfile_open.return_value.close.assert_called_once_with()
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
-    def test_from_archive_metadata_at_root(self, tarfile_open, _compression_type, _checksum):
+    def test_from_archive_metadata_at_root(self, tarfile_open, _compression_type, checksum):
         """
         Test from_archive() when the PKG-INFO file is at the root of the archive.
         """
@@ -302,17 +302,17 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
         self.assertEqual(package._unit, None)
-        _checksum.assert_called_once_with(path)
+        checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
         tarfile_open.return_value.close.assert_called_once_with()
 
-    @mock.patch('pulp_python.plugins.models.Package._checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
     def test_from_archive_missing_required_metadata(self, tarfile_open, _compression_type,
-                                                    _checksum):
+                                                    checksum):
         """
         Test from_archive() when the PKG-INFO file is missing required fields.
         """
@@ -417,7 +417,7 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(sp, path)
 
     @mock.patch('__builtin__.open')
-    def test__checksum_default_sum(self, mock_open):
+    def test_checksum_default_sum(self, mock_open):
         """
         Assert that the checksum method works correctly with the default sum.
         """
@@ -433,7 +433,7 @@ class TestPackage(unittest.TestCase):
         mock_open.return_value.__enter__.return_value.read.side_effect = mock_read
         path = '/some/path'
 
-        checksum = models.Package._checksum(path)
+        checksum = models.Package.checksum(path)
 
         mock_open.assert_called_once_with(path)
         hasher = hashlib.sha512()
@@ -441,7 +441,7 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(checksum, hasher.hexdigest())
 
     @mock.patch('__builtin__.open')
-    def test__checksum_md5(self, mock_open):
+    def test_checksum_md5(self, mock_open):
         """
         Assert that the checksum method works correctly with md5.
         """
@@ -457,7 +457,7 @@ class TestPackage(unittest.TestCase):
         mock_open.return_value.__enter__.return_value.read.side_effect = mock_read
         path = '/some/path'
 
-        checksum = models.Package._checksum(path, 'md5')
+        checksum = models.Package.checksum(path, 'md5')
 
         mock_open.assert_called_once_with(path)
         hasher = hashlib.md5()

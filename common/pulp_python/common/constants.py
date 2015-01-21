@@ -12,6 +12,9 @@ DISTRIBUTOR_CONFIG_FILE_NAME = 'server/plugins.conf.d/python_distributor.json'
 CONFIG_KEY_PUBLISH_DIRECTORY = 'python_publish_directory'
 CONFIG_VALUE_PUBLISH_DIRECTORY = '/var/lib/pulp/published/python'
 
+# Config keys for the importer plugin conf
+CONFIG_KEY_PACKAGE_NAMES = 'package_names'
+
 # STEP_ID
 PUBLISH_STEP_PUBLISHER = 'python_publish_step'
 PUBLISH_STEP_CONTENT = 'python_publish_content'

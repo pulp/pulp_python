@@ -40,7 +40,7 @@ class Package(object):
         """
         try:
             compression_type = cls._compression_type(archive_path)
-            checksum = cls._checksum(archive_path)
+            checksum = cls.checksum(archive_path)
             package_archive = tarfile.open(archive_path)
             for member in package_archive.getmembers():
                 if re.match('.*/PKG-INFO$|^PKG-INFO$', member.name):
@@ -118,7 +118,7 @@ class Package(object):
         return self._unit.storage_path
 
     @staticmethod
-    def _checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
+    def checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
         """
         Return the checksum of the given path using the given algorithm.
 

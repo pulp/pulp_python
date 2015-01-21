@@ -12,8 +12,9 @@ before_install:
   - "popd"
   - "popd"
 install:
+  # This is needed to build M2Crypto
+  - "sudo apt-get install swig"
   - "pip install -r test_requirements.txt"
-  - "pip install -r requirements.txt"
   - "pushd .."
   - "python nectar/setup.py develop"
   - "pulp/manage_setup_pys.sh develop"
