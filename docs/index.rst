@@ -7,8 +7,9 @@ With these plugins, you can create Python repositories in Pulp, upload Python pa
 repositories, and use pip to install packages from client machines.
 
 We plan to add support for more features in the future, and community contributions are welcome.
-Send us pull requests on `our GitHub repository <https://github.com/pulp/pulp_python>`_. We track
-our bugs in `Red Hat's Bugzilla <https://bugzilla.redhat.com/enter_bug.cgi?product=Pulp>`_ instance.
+Send us pull requests on `our GitHub repository <https://github.com/pulp/pulp_python>`_. See existing
+bugs in the `Pulp's Redmine <https://pulp.plan.io/projects/pulp_python/issues?set_filter=1&tracker_id=1>`_
+instance or file a `new bug <https://pulp.plan.io/projects/pulp_python/issues/new>`_.
 
 .. toctree::
    :maxdepth: 2
