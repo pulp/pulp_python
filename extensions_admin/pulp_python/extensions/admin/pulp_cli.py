@@ -1,12 +1,12 @@
 from gettext import gettext as _
 
-from pulp.client.commands.repo import cudl, sync_publish, status
+from pulp.client.commands.repo import cudl, status, sync_publish
 from pulp.client.extensions.decorator import priority
 
 from pulp_python.common import constants
-from pulp_python.extensions.admin.cudl import (
-    CreatePythonRepositoryCommand, UpdatePythonRepositoryCommand, ListPythonRepositoriesCommand)
 from pulp_python.extensions.admin import packages, upload
+from pulp_python.extensions.admin.cudl import (
+    CreatePythonRepositoryCommand, ListPythonRepositoriesCommand, UpdatePythonRepositoryCommand)
 
 
 SECTION_ROOT = 'python'

@@ -3,9 +3,8 @@ import shutil
 import tempfile
 import unittest
 
-from mock import Mock, patch, MagicMock
+from mock import MagicMock, Mock, patch
 
-from pulp.plugins.conduits.repo_publish import RepoPublishConduit
 from pulp.plugins.config import PluginCallConfiguration
 from pulp.plugins.distributor import Distributor
 from pulp.plugins.model import Repository
@@ -61,8 +60,8 @@ class TestBasics(unittest.TestCase):
     def test_publish_repo(self, mock_publisher):
         repo = Repository('test')
         config = PluginCallConfiguration(None, None)
-        conduit = RepoPublishConduit(repo.id, 'foo_repo')
-        self.distributor.publish_repo(repo, conduit, config)
+        mock_conduit = Mock()
+        self.distributor.publish_repo(repo, mock_conduit, config)
 
         mock_publisher.return_value.assert_called_once()
 

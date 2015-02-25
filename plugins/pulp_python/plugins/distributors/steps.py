@@ -1,9 +1,9 @@
-from gettext import gettext as _
-from xml.etree import cElementTree as ElementTree
 import logging
 import os
+from gettext import gettext as _
+from xml.etree import cElementTree as ElementTree
 
-from pulp.plugins.util.publish_step import PluginStep, AtomicDirectoryPublishStep
+from pulp.plugins.util.publish_step import AtomicDirectoryPublishStep, PluginStep
 
 from pulp_python.common import constants
 from pulp_python.plugins.distributors import configuration

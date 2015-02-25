@@ -1,8 +1,8 @@
-from gettext import gettext as _
 import shutil
+from gettext import gettext as _
 
-from pulp.plugins.conduits import mixins
 from pulp.plugins.importer import Importer
+from pulp.server.db.model.criteria import UnitAssociationCriteria
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
@@ -63,7 +63,7 @@ class PythonImporter(Importer):
         :rtype:                list
         """
         if units is None:
-            criteria = mixins.UnitAssociationCriteria(type_ids=[constants.PACKAGE_TYPE_ID])
+            criteria = UnitAssociationCriteria(type_ids=[constants.PACKAGE_TYPE_ID])
             units = import_conduit.get_source_units(criteria=criteria)
 
         for u in units:
