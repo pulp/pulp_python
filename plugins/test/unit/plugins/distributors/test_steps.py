@@ -1,13 +1,14 @@
 """
 This module contains tests for the pulp_python.plugins.distributors.steps module.
 """
-from gettext import gettext as _
-from xml.etree import cElementTree as ElementTree
 import os
 import unittest
 
-from pulp.plugins.model import Unit
+from gettext import gettext as _
+from xml.etree import cElementTree as ElementTree
+
 import mock
+from pulp.plugins.model import Unit
 
 from pulp_python.common import constants
 from pulp_python.plugins.distributors import steps
@@ -205,8 +206,8 @@ class TestPublishMetadataStep(unittest.TestCase):
         self.assertEqual(len(body.findall('a')), 2)
         anchors = body.findall('a')
         hrefs = [
-            os.path.join('..', '..', steps._get_package_path(name, p['filename']))
-            + '#%s=%s' % (p['checksum_type'], p['checksum']) for p in packages]
+            os.path.join('..', '..', steps._get_package_path(name, p['filename'])) +
+            '#%s=%s' % (p['checksum_type'], p['checksum']) for p in packages]
         self.assertEqual(set([a.get('href') for a in anchors]), set(hrefs))
         self.assertEqual(set([a.text for a in anchors]), set([p['filename'] for p in packages]))
 

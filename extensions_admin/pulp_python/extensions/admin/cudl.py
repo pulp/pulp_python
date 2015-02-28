@@ -5,8 +5,8 @@ from pulp.client.commands.repo.cudl import CreateAndConfigureRepositoryCommand
 from pulp.client.commands.repo.cudl import ListRepositoriesCommand
 from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
 from pulp.client.commands.repo.importer_config import ImporterConfigMixin
-from pulp.common.constants import REPO_NOTE_TYPE_KEY
 from pulp.client.extensions.extensions import PulpCliOption
+from pulp.common.constants import REPO_NOTE_TYPE_KEY
 
 from pulp_python.common import constants
 

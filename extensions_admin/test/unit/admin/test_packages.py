@@ -3,8 +3,8 @@ This module contains tests for the pulp_python.extensions.admin.packages module.
 """
 import unittest
 
-from pulp.client.commands import options
 import mock
+from pulp.client.commands import options
 
 from pulp_python.common import constants
 from pulp_python.extensions.admin import packages

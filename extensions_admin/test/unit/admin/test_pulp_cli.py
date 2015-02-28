@@ -2,8 +2,8 @@ import unittest
 
 import mock
 from pulp.client.commands.repo.cudl import CreateRepositoryCommand, DeleteRepositoryCommand
-from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
 from pulp.client.commands.repo.cudl import ListRepositoriesCommand
+from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
 from pulp.client.commands.repo.sync_publish import PublishStatusCommand,\
     RunPublishRepositoryCommand, RunSyncRepositoryCommand
 from pulp.client.extensions.core import PulpCli

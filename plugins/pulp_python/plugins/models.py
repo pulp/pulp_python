@@ -1,7 +1,7 @@
-from gettext import gettext as _
 import hashlib
 import re
 import tarfile
+from gettext import gettext as _
 
 from pulp_python.common import constants
 
