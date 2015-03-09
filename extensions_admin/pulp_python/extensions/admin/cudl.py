@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
-from pulp.client import arg_utils, parsers
+from okaara import parsers
+from pulp.client import arg_utils
 from pulp.client.commands.repo.cudl import CreateAndConfigureRepositoryCommand
 from pulp.client.commands.repo.cudl import ListRepositoriesCommand
 from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
