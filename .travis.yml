@@ -5,7 +5,7 @@ python:
   - "pypy"
 before_install:
   - "pushd .."
-  - "git clone https://github.com/pulp/pulp.git --branch master"
+  - "git clone https://github.com/pulp/pulp.git --branch 2.5-release"
   - "git clone https://github.com/pulp/nectar.git"
   - "pushd nectar"
   - "git checkout python-nectar-1.1.6-1"
@@ -15,6 +15,8 @@ install:
   # This is needed to build M2Crypto
   - "sudo apt-get install swig"
   - "pip install -r test_requirements.txt"
+  # 2.5 didn't have its dependencies in its setup.py, so we need to install them too
+  - "pip install okaara pymongo iniparse"
   - "pushd .."
   - "python nectar/setup.py develop"
   - "pulp/manage_setup_pys.sh develop"
@@ -23,5 +25,5 @@ install:
   - "sudo mkdir -p /etc/pulp"
   - "sudo touch /etc/pulp/server.conf"
 script:
-  - "./run-tests.py --enable-coverage --cover-min-percentage 100"
+  - "./run-tests.py --enable-coverage"
 after_success: coveralls
