@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pulp_python_extensions_admin',
-    version='0.0.0',
+    version='1.0.0',
     packages=find_packages(),
     url='http://www.pulpproject.org',
     license='GPLv2+',
