@@ -1,0 +1,34 @@
+1.0 Release Notes
+=================
+
+1.0.0
+-----
+
+The Pulp team is pleased to release version 1.0.0 of the Python plugins for Pulp.
+
+Sync Feature
+^^^^^^^^^^^^
+
+This release introduces the ability to :ref:`sync_from_pypi`.
+
+Upgrade
+^^^^^^^
+
+To upgrade, simply follow these steps (substituting for systemctl as appropriate, if you are not
+using systemd):
+
+#. Stop all Pulp services on every machine that is part of the installation::
+
+   $ for s in {pulp_workers,pulp_resource_manager,pulp_celerybeat,httpd,goferd}; do sudo systemctl stop $s; done;
+
+#. Upgrade the Pulp packages on every machine::
+
+   $ sudo yum update
+
+#. Apply database migrations::
+
+   $ sudo -u apache pulp-manage-db
+
+#. Start the Pulp services::
+
+   $ for s in {pulp_workers,pulp_resource_manager,pulp_celerybeat,httpd,goferd}; do sudo systemctl start $s; done;
