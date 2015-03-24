@@ -3,7 +3,7 @@
 
 Name: pulp-python
 Version: 1.0.0
-Release: 0.1.alpha%{?dist}
+Release: 0.1.beta%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -137,6 +137,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue Mar 24 2015 Randy Barlow <rbarlow@redhat.com> 1.0.0-0.1.beta
+- Added ability to synchronize with PyPI.
+
 * Wed Jan 21 2015 Randy Barlow <rbarlow@redhat.com> 0.0.0-1
 - Initial release
 - Adding ability to remove Python packages from Pulp repository using pulp-
