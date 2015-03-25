@@ -66,8 +66,8 @@ Query Packages in a Repository
 
 You can also query the packages in a repository::
 
-   $ pulp-admin python repo packages --repo-id my_own_pypi --match name=pulp_python_plugins
-   Name:         pulp_python_plugins
+   $ pulp-admin python repo packages --repo-id my_own_pypi --match name=pulp-python-plugins
+   Name:         pulp-python-plugins
    Version:      0.0.0
    Author:       Pulp Team
    Author Email: pulp-list@redhat.com
@@ -77,6 +77,7 @@ You can also query the packages in a repository::
    Platform:     UNKNOWN
    Summary:      plugins for python support in pulp
 
+
 Publish a Python Repository
 ---------------------------
 
@@ -85,29 +86,30 @@ that clients can install the package from Pulp::
 
    $ pulp-admin python repo publish run --repo-id my_own_pypi
 
+
 Install a Package From a Pulp Hosted Python Repository
 ------------------------------------------------------
 
 We will now install our package on another machine using pip::
 
-   $ pip install -i http://pulp.example.com/pulp/python/web/my_own_pypi/simple/ pulp_python_plugins
+   $ pip install -i http://pulp.example.com/pulp/python/web/my_own_pypi/simple/ pulp-python-plugins
    Downloading/unpacking pulp-python-plugins
-     http://pulp.example.com/pulp/python/web/my_own_pypi/simple/pulp_python_plugins/ uses an insecure transport scheme (http). Consider using https if pulp.example.com has it available
-     Downloading pulp_python_plugins-0.0.0.tar.gz
-     Running setup.py (path:/home/rbarlow/.virtualenvs/test/build/pulp-python-plugins/setup.py) egg_info for package pulp-python-plugins
-       
+     Downloading pulp-python-plugins-0.0.0.tar.gz
+     Running setup.py egg_info for package pulp-python-plugins
+
    Installing collected packages: pulp-python-plugins
      Running setup.py install for pulp-python-plugins
-       
+
    Successfully installed pulp-python-plugins
    Cleaning up...
+
 
 Remove Python Packages From a Pulp Python Repository
 ----------------------------------------------------
 
 Occasionally, we may want to remove uploaded packages from the repository::
 
-   $ pulp-admin python repo remove --repo-id my_own_pypi --str-eq="name=pulp_python_plugins"
+   $ pulp-admin python repo remove --repo-id my_own_pypi --str-eq="name=pulp-python-plugins"
    This command may be exited via ctrl+c without affecting the request.
 
 
@@ -115,11 +117,11 @@ Occasionally, we may want to remove uploaded packages from the repository::
    Running...
 
    Units Removed:
-     pulp_python_plugins-0.0.0
+     pulp-python-plugins-0.0.0
 
-Note that this only removes the association of given packages with the repository. Uploaded packages still exist
-on the server. Python packages which are not associated with any repositories can be removed from the server using
-`pulp-admin orphan remove --type python_package` command.
+Note that this only removes the association of given packages with the repository. Uploaded packages
+still exist on the server. Python packages which are not associated with any repositories can be
+removed from the server using `pulp-admin orphan remove --type python_package` command.
 
 .. _sync_from_pypi:
 
