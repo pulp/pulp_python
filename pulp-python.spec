@@ -3,7 +3,7 @@
 
 Name: pulp-python
 Version: 1.0.0
-Release: 0.2.rc%{?dist}
+Release: 0.3.rc%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -42,6 +42,7 @@ popd
 rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/%{_sysconfdir}/pulp/
+mkdir -p %{buildroot}/%{_sysconfdir}/pulp/vhosts80/
 
 pushd common
 %{__python} setup.py install -O1 --skip-build --root %{buildroot}
@@ -59,6 +60,7 @@ mkdir -p %{buildroot}/%{_usr}/lib/pulp/plugins/types
 mkdir -p %{buildroot}/%{_var}/lib/pulp/published/python
 
 cp -R plugins/etc/httpd %{buildroot}/%{_sysconfdir}/
+cp plugins/etc/pulp/vhosts80/pulp_python.conf %{buildroot}/%{_sysconfdir}/pulp/vhosts80/
 # Types
 cp -R plugins/types/* %{buildroot}/%{_usr}/lib/pulp/plugins/types/
 
@@ -107,6 +109,7 @@ to provide Python package support.
 %defattr(-,root,root,-)
 %{python_sitelib}/pulp_python/plugins/
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/pulp_python.conf
+%config(noreplace) %{_sysconfdir}/pulp/vhosts80/pulp_python.conf
 %{_usr}/lib/pulp/plugins/types/python.json
 %{python_sitelib}/pulp_python_plugins*.egg-info
 
