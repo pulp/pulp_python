@@ -32,3 +32,8 @@ using systemd):
 #. Start the Pulp services::
 
    $ for s in {pulp_workers,pulp_resource_manager,pulp_celerybeat,httpd,goferd}; do sudo systemctl start $s; done;
+
+Bugfixes
+^^^^^^^^
+
+This release contains minor bugfixes. See the :fixedbugs:`1.0.0`.
