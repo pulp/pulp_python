@@ -5,7 +5,6 @@ import os
 import subprocess
 import sys
 
-from pulp.devel import doc_check
 from pulp.devel.test_runner import run_tests
 
 
@@ -31,9 +30,6 @@ exit_code = subprocess.call(['pep257', '--ignore=' + pep257_fail_ignore_codes])
 
 if exit_code != 0:
     sys.exit(exit_code)
-
-# Ensure that all doc strings are present
-doc_check.recursive_check(PROJECT_DIR)
 
 PACKAGES = [PROJECT_DIR, 'pulp_python', ]
 
