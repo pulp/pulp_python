@@ -1,6 +1,6 @@
+from gettext import gettext as _
 import logging
 import os
-from gettext import gettext as _
 from xml.etree import cElementTree as ElementTree
 
 from pulp.plugins.util.publish_step import AtomicDirectoryPublishStep, PluginStep

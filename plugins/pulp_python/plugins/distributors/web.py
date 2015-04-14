@@ -1,7 +1,7 @@
 import copy
+from gettext import gettext as _
 import logging
 import shutil
-from gettext import gettext as _
 
 from pulp.common.config import read_json_config
 from pulp.plugins.distributor import Distributor

@@ -1,8 +1,8 @@
 """
 Contains tests for pulp_python.plugins.importers.importer.
 """
-import unittest
 from gettext import gettext as _
+import unittest
 
 import mock
 

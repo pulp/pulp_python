@@ -1,12 +1,12 @@
 """
 This module contains the necessary means for a necessary means for syncing packages from PyPI.
 """
+from cStringIO import StringIO
+from gettext import gettext as _
 import json
 import logging
 import os
 import shutil
-from cStringIO import StringIO
-from gettext import gettext as _
 from urlparse import urljoin
 
 from nectar import request
