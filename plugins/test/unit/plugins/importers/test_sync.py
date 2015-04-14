@@ -1,11 +1,11 @@
 """
 This module contains tests for the pulp_python.plugins.importers.sync module.
 """
+from cStringIO import StringIO
+from gettext import gettext as _
 import os
 import types
 import unittest
-from cStringIO import StringIO
-from gettext import gettext as _
 
 import mock
 from pulp.server.db.model import criteria
