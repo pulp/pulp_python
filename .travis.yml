@@ -5,7 +5,7 @@ python:
   - "pypy"
 before_install:
   - "pushd .."
-  - "git clone https://github.com/pulp/pulp.git --branch master"
+  - "git clone https://github.com/pulp/pulp.git --branch 2.7-dev"
   - "git clone https://github.com/pulp/nectar.git"
   - "pushd nectar"
   - "git checkout python-nectar-1.1.6-1"
