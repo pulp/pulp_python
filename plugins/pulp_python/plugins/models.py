@@ -57,8 +57,9 @@ class Package(object):
 
             # Build a list of tuples of all the attributes found in the metadata. Ignore attributes
             # with a leading underscore, as they are not part of the metadata.
+            # rstrip for DOS line ending support
             try:
-                required_attrs = [attr for attr in cls._ATTRS if attr[0] != '_']
+                required_attrs = [attr.rstrip() for attr in cls._ATTRS if attr[0] != '_']
                 attrs = dict()
                 for attr in required_attrs:
                     attrs[attr] = re.search('^%s: (?P<field>.*)$' % cls._metadata_label(attr),
