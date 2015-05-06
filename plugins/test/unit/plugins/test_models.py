@@ -198,6 +198,64 @@ class TestPackage(unittest.TestCase):
     @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
     @mock.patch('pulp_python.plugins.models.tarfile.open')
+    def test_from_archive_dos_metadata(self, tarfile_open, _compression_type, checksum):
+        """
+        Test from_archive() with good metadata that has DOS line endings, with
+        PKG-INFO at the typical location as would be done by setup.py sdist.
+        """
+        tarfile_open.return_value = mock.MagicMock(spec=tarfile.TarFile)
+
+        class TarInfo(object):
+            """
+            This class fakes being a TarInfo. It just needs a name.
+            """
+            def __init__(self, name):
+                self.name = name
+
+        members = [
+            TarInfo(name) for name in ['nectar-1.3.1', 'nectar-1.3.1/nectar',
+                                       'nectar-1.3.1/nectar/config.py',
+                                       'nectar-1.3.1/nectar/downloaders',
+                                       'nectar-1.3.1/nectar/downloaders/threaded.py',
+                                       'nectar-1.3.1/nectar/downloaders/base.py',
+                                       'nectar-1.3.1/nectar/downloaders/__init__.py',
+                                       'nectar-1.3.1/nectar/downloaders/local.py',
+                                       'nectar-1.3.1/nectar/__init__.py',
+                                       'nectar-1.3.1/nectar/exceptions.py',
+                                       'nectar-1.3.1/nectar/listener.py',
+                                       'nectar-1.3.1/nectar/report.py',
+                                       'nectar-1.3.1/nectar/request.py', 'nectar-1.3.1/PKG-INFO']]
+        tarfile_open.return_value.getmembers.return_value = members
+        mock_manifest_file = mock.MagicMock(spec=file)
+        mock_manifest_file.read.return_value = re.sub(r'\n', '\r\n', GOOD_MANIFEST)
+        tarfile_open.return_value.extractfile.return_value = mock_manifest_file
+        path = '/some/path.tar.gz'
+
+        package = models.Package.from_archive(path)
+
+        self.assertEqual(package.name, 'nectar')
+        self.assertEqual(package.version, '1.3.1')
+        self.assertEqual(package.summary, 'Performance tuned network download client library')
+        self.assertEqual(package.home_page, 'https://github.com/pulp/nectar')
+        self.assertEqual(package.author, 'Pulp Team')
+        self.assertEqual(package.author_email, 'pulp-list@redhat.com')
+        self.assertEqual(package.license, 'GPLv2')
+        self.assertEqual(package.description, 'UNKNOWN')
+        self.assertEqual(package.platform, 'UNKNOWN')
+        self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
+        self.assertEqual(package._checksum, 'sum')
+        self.assertEqual(package._checksum_type, 'sha512')
+        self.assertEqual(package._unit, None)
+        checksum.assert_called_once_with(path)
+        tarfile_open.assert_called_once_with(path)
+        _compression_type.assert_called_once_with(path)
+        tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
+        tarfile_open.return_value.close.assert_called_once_with()
+
+
+    @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
+    @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
+    @mock.patch('pulp_python.plugins.models.tarfile.open')
     def test_from_archive_metadata_at_absolute_root(self, tarfile_open, _compression_type,
                                                     checksum):
         """
