@@ -153,7 +153,7 @@ class TestPythonImporter(unittest.TestCase):
         """
         package = models.Package(
             'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-            'description', 'platform', '_filename', '_checksum', '_checksum_type')
+            'description', 'platform', '_filename', '_checksum', '_checksum_type', '_metadata_file')
         from_archive.return_value = package
         storage_path = '/some/path/name-version.tar.bz2'
 
