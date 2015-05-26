@@ -4,4 +4,5 @@ flake8
 flake8-import-order
 mock
 nose
+nosexcover
 pep257
