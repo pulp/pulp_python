@@ -14,12 +14,12 @@ before_install:
 install:
   # This is needed to build M2Crypto
   - "sudo apt-get install swig"
-  - "pip install -r test_requirements.txt"
+  - "sudo pip install -r test_requirements.txt"
   - "pushd .."
-  - "python nectar/setup.py develop"
-  - "pulp/manage_setup_pys.sh develop"
+  - "sudo python nectar/setup.py develop"
+  - "sudo pulp/manage_setup_pys.sh develop"
   - "popd"
-  - "./manage_setup_pys.sh develop"
+  - "sudo ./manage_setup_pys.sh develop"
   - "sudo mkdir -p /etc/pulp"
   - "sudo touch /etc/pulp/server.conf"
 script:
