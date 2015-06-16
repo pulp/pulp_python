@@ -18,7 +18,8 @@ class Package(object):
     # The full list of supported attributes. Attributes beginning with underscore are specific to
     # this module and are not found in PKG-INFO.
     _ATTRS = ('name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-              'description', 'platform', '_filename', '_checksum', '_checksum_type')
+              'description', 'platform', '_filename', '_checksum', '_checksum_type',
+              '_metadata_file')
 
     @classmethod
     def from_archive(cls, archive_path):
@@ -42,16 +43,21 @@ class Package(object):
             compression_type = cls._compression_type(archive_path)
             checksum = cls.checksum(archive_path)
             package_archive = tarfile.open(archive_path)
+            metadata_file = None
             for member in package_archive.getmembers():
                 if re.match('.*/PKG-INFO$|^PKG-INFO$', member.name):
-                    # We have found the metadata!
-                    metadata_file = member
-                    break
-            if 'metadata_file' not in locals():
+                    # find the metadata file with the shortest path
+                    if metadata_file:
+                        if len(member.name) < len(metadata_file.name):
+                            metadata_file = member
+                    else:
+                        metadata_file = member
+            if not metadata_file:
                 msg = _('The archive at %(path)s does not contain a PKG-INFO file.')
                 msg = msg % {'path': archive_path}
                 raise ValueError(msg)
 
+            metadata_file_name = metadata_file.name
             metadata_file = package_archive.extractfile(metadata_file)
             metadata = metadata_file.read()
 
@@ -61,7 +67,7 @@ class Package(object):
                 required_attrs = [attr for attr in cls._ATTRS if attr[0] != '_']
                 attrs = dict()
                 for attr in required_attrs:
-                    attrs[attr] = re.search('^%s: (?P<field>.*)$' % cls._metadata_label(attr),
+                    attrs[attr] = re.search('^%s: (?P<field>.*?)\s*$' % cls._metadata_label(attr),
                                             metadata, flags=re.MULTILINE).group('field')
             except AttributeError:
                 msg = _('The PKG-INFO file is missing required attributes. Please ensure that the '
@@ -74,6 +80,7 @@ class Package(object):
             attrs['_filename'] = '%s-%s.tar%s' % (attrs['name'], attrs['version'], compression_type)
             attrs['_checksum'] = checksum
             attrs['_checksum_type'] = DEFAULT_CHECKSUM_TYPE
+            attrs['_metadata_file'] = metadata_file_name
             package = cls(**attrs)
             return package
         finally:
@@ -177,7 +184,7 @@ class Package(object):
         return label.replace('_', '-')
 
     def __init__(self, name, version, summary, home_page, author, author_email, license,
-                 description, platform, _filename, _checksum, _checksum_type):
+                 description, platform, _filename, _checksum, _checksum_type, _metadata_file):
         """
         Initialize self with the given parameters as its attributes.
 
@@ -205,6 +212,8 @@ class Package(object):
         :type  _checksum:      basestring
         :param _checksum_type: The name of the algorithm used to calculate the checksum.
         :type  _checksum_type: basestring
+        :param _metadata_file: The path of the metadata file in the package
+        :type  _metadata_file: basestring
         """
         for attr in self._ATTRS:
             setattr(self, attr, locals()[attr])
