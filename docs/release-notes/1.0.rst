@@ -1,6 +1,18 @@
 1.0 Release Notes
 =================
 
+1.0.1
+-----
+
+This is a bugfix release. It contains two bugfixes:
+
+* Add support for packages that use DOS line endings
+* Add support for packages that contain more than one PKG-INFO file
+
+These fixed were both provided to the Pulp community in
+`Pull Request #40 <https://github.com/pulp/pulp_python/pull/40>`_. Thanks to Graham Forest for the
+contributions!
+
 1.0.0
 -----
 
