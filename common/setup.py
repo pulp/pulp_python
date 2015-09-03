@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pulp_python_common',
-    version='1.0.1b1',
+    version='1.0.1c2',
     packages=find_packages(),
     url='http://www.pulpproject.org',
     license='GPLv2+',
