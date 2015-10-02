@@ -14,7 +14,7 @@ from pulp_python.common import constants
 
 d = _('if "true", on each successful sync the repository will automatically be '
       'published; if "false" content will only be available after manually publishing '
-      'the repository; defaults to "false"')
+      'the repository; defaults to "true"')
 OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
                                  parse_func=parsers.parse_boolean)
 d = _('a comma separated list of package names you wish Pulp to sync')
@@ -57,7 +57,11 @@ class PythonRepositoryOptions(object):
         :rtype:            list of dict
         """
         config = {}
-        auto_publish = user_input.get('auto-publish', True)
+        auto_publish = user_input.get(OPT_AUTO_PUBLISH.keyword)
+
+        if auto_publish is None:
+            auto_publish = True
+
         data = [
             dict(distributor_type_id=constants.DISTRIBUTOR_TYPE_ID,
                  distributor_config=config,
@@ -141,7 +145,6 @@ class UpdatePythonRepositoryCommand(PythonRepositoryOptions, UpdateRepositoryCom
 
         # Update distributor configuration
         web_config = {}
-
         value = kwargs.pop(OPT_AUTO_PUBLISH.keyword, None)
         if value is not None:
             web_config['auto_publish'] = value

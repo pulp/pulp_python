@@ -69,7 +69,10 @@ class TestPythonRespositoryOptions(unittest.TestCase):
 
     def test_describe_distributors(self):
         command = TestPythonRespositoryOptions.MixinTestClass()
-        user_input = {}
+        # by default the value is set to None
+        user_input = {
+            'auto-publish': None
+        }
         result = command._describe_distributors(user_input)
         target_result = {'distributor_id': constants.CLI_DISTRIBUTOR_ID,
                          'distributor_type_id': constants.DISTRIBUTOR_TYPE_ID,
