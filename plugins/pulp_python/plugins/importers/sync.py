@@ -1,12 +1,12 @@
 """
 This module contains the necessary means for a necessary means for syncing packages from PyPI.
 """
+from cStringIO import StringIO
+from gettext import gettext as _
 import json
 import logging
 import os
 import shutil
-from cStringIO import StringIO
-from gettext import gettext as _
 from urlparse import urljoin
 
 from nectar import request
@@ -151,8 +151,8 @@ class DownloadPackagesStep(publish_step.DownloadStep):
         package = models.Package.from_archive(report.destination)
         package.init_unit(self.conduit)
 
-        # Move the package into its proper place
-        shutil.move(report.destination, package.storage_path)
+        # Copy the package from working directory into its proper place
+        shutil.copy(report.destination, package.storage_path)
 
         package.save_unit(self.conduit)
 
