@@ -151,8 +151,8 @@ class DownloadPackagesStep(publish_step.DownloadStep):
         package = models.Package.from_archive(report.destination)
         package.init_unit(self.conduit)
 
-        # Move the package into its proper place
-        shutil.move(report.destination, package.storage_path)
+        # Copy the package from working directory into its proper place
+        shutil.copy(report.destination, package.storage_path)
 
         package.save_unit(self.conduit)
 

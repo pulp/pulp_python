@@ -4,7 +4,6 @@ This module contains tests for the pulp_python.plugins.distributors.steps module
 from gettext import gettext as _
 import os
 import unittest
-
 from xml.etree import cElementTree as ElementTree
 
 import mock
