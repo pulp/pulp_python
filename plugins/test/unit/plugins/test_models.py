@@ -1,11 +1,11 @@
 """
 This modules contains tests for pulp_python.plugins.models.
 """
+from gettext import gettext as _
 import hashlib
 import re
 import tarfile
 import unittest
-from gettext import gettext as _
 
 import mock
 

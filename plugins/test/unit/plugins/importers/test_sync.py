@@ -1,11 +1,11 @@
 """
 This module contains tests for the pulp_python.plugins.importers.sync module.
 """
+from cStringIO import StringIO
+from gettext import gettext as _
 import os
 import types
 import unittest
-from cStringIO import StringIO
-from gettext import gettext as _
 
 import mock
 from pulp.server.db.model import criteria
@@ -683,8 +683,8 @@ class TestDownloadPackagesStep(unittest.TestCase):
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.save_unit')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    @mock.patch('pulp_python.plugins.importers.sync.shutil.move')
-    def test_download_succeeded_checksum_bad(self, move, super_download_succeeded,
+    @mock.patch('pulp_python.plugins.importers.sync.shutil.copy')
+    def test_download_succeeded_checksum_bad(self, copy, super_download_succeeded,
                                              download_failed, save_unit, checksum):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is
@@ -709,16 +709,16 @@ class TestDownloadPackagesStep(unittest.TestCase):
         download_failed.assert_called_once_with(report)
         # Make sure the checksum was calculated with the correct data
         checksum.assert_called_once_with(report.destination, 'md5')
-        # move and save_unit should not have been called since the download failed
-        self.assertEqual(move.call_count, 0)
+        # copy and save_unit should not have been called since the download failed
+        self.assertEqual(copy.call_count, 0)
         self.assertEqual(save_unit.call_count, 0)
 
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    @mock.patch('pulp_python.plugins.importers.sync.shutil.move')
-    def test_download_succeeded_checksum_good(self, move, super_download_succeeded, download_failed,
+    @mock.patch('pulp_python.plugins.importers.sync.shutil.copy')
+    def test_download_succeeded_checksum_good(self, copy, super_download_succeeded, download_failed,
                                               from_archive, checksum):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is correct.
@@ -740,8 +740,8 @@ class TestDownloadPackagesStep(unittest.TestCase):
         # The Package's init_unit should have been handed the conduit
         package = from_archive.return_value
         package.init_unit.assert_called_once_with(conduit)
-        # The unit should have been moved to the storage path
-        move.assert_called_once_with(report.destination, package.storage_path)
+        # The unit should have been copied to the storage path
+        copy.assert_called_once_with(report.destination, package.storage_path)
         # The unit should have been saved to the DB
         package.save_unit.assert_called_once_with(conduit)
         # The superclass success method should have been called.

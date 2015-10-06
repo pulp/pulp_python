@@ -1,6 +1,6 @@
+from gettext import gettext as _
 import shutil
 import tempfile
-from gettext import gettext as _
 
 from pulp.plugins.importer import Importer
 from pulp.server.db.model import criteria
