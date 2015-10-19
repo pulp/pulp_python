@@ -24,7 +24,7 @@ if exit_code != 0:
 
 # Check the code for PEP-257 compliance
 # We should remove some of these over time
-pep257_fail_ignore_codes = 'D100,D103,D200,D202,D203,D205,D400,D401,D402'
+pep257_fail_ignore_codes = 'D100,D103,D104,D200,D202,D203,D205,D400,D401,D402'
 
 print "checking pep257 for failures, ignoring %s" % pep257_fail_ignore_codes
 exit_code = subprocess.call(['pep257', '--ignore=' + pep257_fail_ignore_codes])
