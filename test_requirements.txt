@@ -2,7 +2,7 @@ coverage
 coveralls
 flake8
 flake8-import-order
-mock
+mock<1.1
 nose
 nosexcover
 pep257
