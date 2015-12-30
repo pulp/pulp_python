@@ -1,9 +1,10 @@
 from gettext import gettext as _
+from itertools import chain
 import shutil
 import tempfile
 
 from pulp.plugins.importer import Importer
-from pulp.server.db.model import criteria
+from pulp.server.controllers import repository as repo_controller
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
@@ -65,11 +66,12 @@ class PythonImporter(Importer):
         :rtype:                list
         """
         if units is None:
-            search = criteria.UnitAssociationCriteria(type_ids=[constants.PACKAGE_TYPE_ID])
-            units = import_conduit.get_source_units(criteria=search)
+            units = chain(*repo_controller.get_unit_model_querysets(source_repo.repo_obj.repo_id,
+                                                                    models.Package))
 
+        units = list(units)
         for u in units:
-            import_conduit.associate_unit(u)
+            repo_controller.associate_single_unit(dest_repo.repo_obj, u)
 
         return units
 
@@ -181,11 +183,9 @@ class PythonImporter(Importer):
         :rtype:           dict
         """
         package = models.Package.from_archive(file_path)
-        package.init_unit(conduit)
-
-        shutil.move(file_path, package.storage_path)
-
-        package.save_unit(conduit)
+        package.save()
+        package.import_content(file_path)
+        repo_controller.associate_single_unit(repo.repo_obj, package)
 
         return {'success_flag': True, 'summary': {}, 'details': {}}
 

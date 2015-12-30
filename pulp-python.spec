@@ -56,13 +56,10 @@ pushd plugins
 %{__python} setup.py install -O1 --skip-build --root %{buildroot}
 popd
 
-mkdir -p %{buildroot}/%{_usr}/lib/pulp/plugins/types
 mkdir -p %{buildroot}/%{_var}/lib/pulp/published/python
 
 cp -R plugins/etc/httpd %{buildroot}/%{_sysconfdir}/
 cp plugins/etc/pulp/vhosts80/pulp_python.conf %{buildroot}/%{_sysconfdir}/pulp/vhosts80/
-# Types
-cp -R plugins/types/* %{buildroot}/%{_usr}/lib/pulp/plugins/types/
 
 # Remove tests
 rm -rf %{buildroot}/%{python_sitelib}/test
@@ -110,7 +107,6 @@ to provide Python package support.
 %{python_sitelib}/pulp_python/plugins/
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/pulp_python.conf
 %config(noreplace) %{_sysconfdir}/pulp/vhosts80/pulp_python.conf
-%{_usr}/lib/pulp/plugins/types/python.json
 %{python_sitelib}/pulp_python_plugins*.egg-info
 
 %defattr(-,apache,apache,-)

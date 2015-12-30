@@ -1,11 +1,14 @@
 from gettext import gettext as _
+import itertools
 import logging
 import os
 from xml.etree import cElementTree as ElementTree
 
 from pulp.plugins.util.publish_step import AtomicDirectoryPublishStep, PluginStep
+from pulp.server.controllers import repository as repo_controller
 
 from pulp_python.common import constants
+from pulp_python.plugins import models
 from pulp_python.plugins.distributors import configuration
 
 
@@ -30,7 +33,7 @@ class PublishContentStep(PluginStep):
         """
         Publish all the python files themselves by creating the symlinks to the storage paths.
         """
-        for name, packages in _get_packages(self.get_conduit()).items():
+        for name, packages in _get_packages(self.get_conduit().repo_id).items():
             for package in packages:
                 relative_path = _get_package_path(name, package['filename'])
                 symlink_path = os.path.join(self.parent.web_working_dir, relative_path)
@@ -62,7 +65,7 @@ class PublishMetadataStep(PluginStep):
         os.makedirs(simple_path)
         simple_index_path = os.path.join(simple_path, 'index.html')
 
-        packages = _get_packages(self.get_conduit())
+        packages = _get_packages(self.get_conduit().repo_id)
 
         with open(simple_index_path, 'w') as index:
             html = ElementTree.Element('html')
@@ -168,27 +171,27 @@ def _get_package_path(name, filename):
     return os.path.join('packages', 'source', name[0], name, filename)
 
 
-def _get_packages(conduit):
+def _get_packages(repo_id):
     """
     Build and return a data structure of the available packages. The keys each index a list of
     dictionaries. The inner dictionaries are of the form
     {'version': VERSION, 'filename': FILENAME, 'checksum': MD5SUM, 'checksum_type': TYPE,
      'storage_path': PATH}
 
-    :param conduit: A SingleRepoUnitsMixin object configured for the repo you are publishing.
-    :type  conduit: pulp.plugins.conduits.mixins.SingleRepoUnitsMixin
+    :param repo_id: ID of the repo being published.
+    :type  repo_id: basestring
     :return:        A dictionary of all the packages in the repo to be published
     :rtype:         dict
     """
     packages = {}
-    for p in conduit.get_units():
-        name = p.unit_key['name']
-        if name not in packages:
-            packages[name] = []
-        packages[name].append(
-            {'version': p.unit_key['version'],
-             'filename': p.metadata['_filename'],
-             'checksum': p.metadata['_checksum'],
-             'checksum_type': p.metadata['_checksum_type'],
+    fields = ('version', '_filename', '_checksum', '_checksum_type', 'name', '_storage_path')
+    unit_querysets = repo_controller.get_unit_model_querysets(repo_id, models.Package)
+    unit_querysets = (q.only(*fields) for q in unit_querysets)
+    for p in itertools.chain(*unit_querysets):
+        packages.setdefault(p.name, []).append(
+            {'version': p.version,
+             'filename': p._filename,
+             'checksum': p._checksum,
+             'checksum_type': p._checksum_type,
              'storage_path': p.storage_path})
     return packages

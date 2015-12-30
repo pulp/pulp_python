@@ -9,7 +9,6 @@ import unittest
 
 import mock
 
-from pulp_python.common import constants
 from pulp_python.plugins import models
 
 
@@ -50,19 +49,28 @@ Classifier: Programming Language :: Python :: 2.7
 Classifier: Topic :: Software Development :: Libraries :: Python Modules"""
 
 
+def make_package():
+    return models.Package(
+        name='foo',
+        version='1.0.0',
+        author='Mr Foo',
+        author_email='mrfoo@foo.pulpproject.org',
+        description='Foo for you.',
+        home_page='http://foo.pulpproject.org',
+        license='GPL2',
+        platform='all',
+        summary='Foo!',
+        _checksum='abc123',
+        _checksum_type='md5',
+        _filename='foo-1.0.0.tar.gz',
+        _metadata_file='somefile',
+    )
+
+
 class TestPackage(unittest.TestCase):
     """
     This class contains tests for the Package class.
     """
-    def test_class_attributes(self):
-        """
-        Assert correct class attributes.
-        """
-        self.assertEqual(models.Package.TYPE, constants.PACKAGE_TYPE_ID)
-        self.assertEqual(
-            models.Package._ATTRS, ('name', 'version', 'summary', 'home_page', 'author',
-                                    'author_email', 'license', 'description', 'platform',
-                                    '_filename', '_checksum', '_checksum_type', '_metadata_file'))
 
     @mock.patch('pulp_python.plugins.models.Package.checksum', return_value='sum')
     @mock.patch('pulp_python.plugins.models.Package._compression_type', return_value='.gz')
@@ -223,7 +231,6 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
-        self.assertEqual(package._unit, None)
         checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
@@ -280,7 +287,6 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
-        self.assertEqual(package._unit, None)
         checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
@@ -337,7 +343,6 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
-        self.assertEqual(package._unit, None)
         checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
@@ -393,7 +398,6 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package._filename, 'nectar-1.3.1.tar.gz')
         self.assertEqual(package._checksum, 'sum')
         self.assertEqual(package._checksum_type, 'sha512')
-        self.assertEqual(package._unit, None)
         checksum.assert_called_once_with(path)
         tarfile_open.assert_called_once_with(path)
         _compression_type.assert_called_once_with(path)
@@ -445,72 +449,6 @@ class TestPackage(unittest.TestCase):
         _compression_type.assert_called_once_with(path)
         tarfile_open.return_value.extractfile.assert_called_once_with(members[-1])
         tarfile_open.return_value.close.assert_called_once_with()
-
-    def test_init_unit(self):
-        """
-        Test the init_unit() method.
-        """
-        pulp_unit = mock.MagicMock()
-        conduit = mock.MagicMock()
-        conduit.init_unit.return_value = pulp_unit
-        name = 'nectar'
-        version = '1.3.1'
-        summary = 'a summary'
-        home_page = 'http://github.com/pulp/nectar'
-        author = 'The Pulp Team'
-        author_email = 'pulp-list@redhat.com'
-        license = 'GPLv2'
-        description = 'a description'
-        platform = 'Linux'
-        _filename = 'nectar-1.3.1.tar.gz'
-        _checksum = 'some_sum'
-        _checksum_type = 'some-type'
-        _metadata_file = 'nectar-1.3.1/PKG-INFO'
-        pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename, _checksum, _checksum_type,
-                            _metadata_file)
-
-        pp.init_unit(conduit)
-
-        conduit.init_unit.assert_called_once_with(
-            models.Package.TYPE, {'name': name, 'version': version},
-            {'summary': summary, 'home_page': home_page, 'author': author,
-             'author_email': author_email, 'license': license, 'description': description,
-             'platform': platform, '_filename': _filename, '_checksum': _checksum,
-             '_checksum_type': _checksum_type, '_metadata_file': _metadata_file},
-            _filename)
-        self.assertEqual(pp._unit, pulp_unit)
-
-    def test_save_unit(self):
-        """
-        Test the save_unit() method.
-        """
-        conduit = mock.MagicMock()
-        pp = models.Package(
-            'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-            'description', 'platform', '_filename', '_checksum', '_checksum_type',
-            '_metadata_file')
-        pp._unit = mock.MagicMock()
-
-        pp.save_unit(conduit)
-
-        conduit.save_unit.assert_called_once_with(pp._unit)
-
-    def test_storage_path(self):
-        """
-        Test the storage_path property.
-        """
-        pp = models.Package(
-            'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-            'description', 'platform', '_filename', '_checksum', '_checksum_type',
-            '_metadata_file')
-        pp._unit = mock.MagicMock()
-        path = '/some/path.tar.gz'
-        pp._unit.storage_path.return_value = path
-
-        sp = pp.storage_path()
-
-        self.assertEqual(sp, path)
 
     @mock.patch('__builtin__.open')
     def test_checksum_default_sum(self, mock_open):
@@ -647,63 +585,10 @@ class TestPackage(unittest.TestCase):
         for key, value in expected_value_map.items():
             self.assertEqual(models.Package._metadata_label(key), value)
 
-    def test___init__(self):
-        """
-        Assert correct behavior with the __init__() method.
-        """
-        name = 'nectar'
-        version = '1.3.1'
-        summary = 'a summary'
-        home_page = 'http://github.com/pulp/nectar'
-        author = 'The Pulp Team'
-        author_email = 'pulp-list@redhat.com'
-        license = 'GPLv2'
-        description = 'a description'
-        platform = 'Linux'
-        _filename = 'nectar-1.3.1.tar.gz'
-        _checksum = 'abcde'
-        _checksum_type = 'some_type'
-        _metadata_file = 'nectar-1.3.1/PKG-INFO'
-
-        pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename, _checksum, _checksum_type,
-                            _metadata_file)
-
-        self.assertEqual(pp.name, name)
-        self.assertEqual(pp.version, version)
-        self.assertEqual(pp.summary, summary)
-        self.assertEqual(pp.home_page, home_page)
-        self.assertEqual(pp.author, author)
-        self.assertEqual(pp.author_email, author_email)
-        self.assertEqual(pp.license, license)
-        self.assertEqual(pp.description, description)
-        self.assertEqual(pp.platform, platform)
-        self.assertEqual(pp._filename, _filename)
-        self.assertEqual(pp._checksum, _checksum)
-        self.assertEqual(pp._checksum_type, _checksum_type)
-        self.assertEqual(pp._metadata_file, _metadata_file)
-        self.assertEqual(pp._unit, None)
-
     def test___repr__(self):
         """
         Assert correct behavior with the __repr__() method.
         """
-        name = 'nectar'
-        version = '1.3.1'
-        summary = 'a summary'
-        home_page = 'http://github.com/pulp/nectar'
-        author = 'The Pulp Team'
-        author_email = 'pulp-list@redhat.com'
-        license = 'GPLv2'
-        description = 'a description'
-        platform = 'Linux'
-        _filename = 'nectar-1.3.1.tar.gz'
-        _checksum = 'abcde'
-        _checksum_type = 'some_type'
-        _metadata_file = 'nectar-1.3.1/PKG-INFO'
+        pp = make_package()
 
-        pp = models.Package(name, version, summary, home_page, author, author_email, license,
-                            description, platform, _filename, _checksum, _checksum_type,
-                            _metadata_file)
-
-        self.assertEqual(repr(pp), 'Python Package: nectar-1.3.1')
+        self.assertEqual(repr(pp), 'Package(name=foo, version=1.0.0)')
