@@ -1,9 +1,0 @@
-{"types": [
-    {
-        "id": "python_package",
-        "display_name": "Python Package",
-        "description": "A Python package.",
-        "unit_key": ["name", "version"],
-        "search_indexes": []
-    }
-]}

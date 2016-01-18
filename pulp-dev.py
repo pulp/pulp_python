@@ -29,7 +29,6 @@ LINKS = (
     ('plugins/etc/pulp/vhosts80/pulp_python.conf', '/etc/pulp/vhosts80/pulp_python.conf'),
     ('plugins/etc/pulp/server/plugins.conf.d/python_distributor.json',
      '/etc/pulp/server/plugins.conf.d/python_distributor.json'),
-    ('plugins/types/python.json', DIR_PLUGINS + '/types/python.json'),
 )
 
 

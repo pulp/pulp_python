@@ -29,44 +29,43 @@ class TestPythonImporter(unittest.TestCase):
     """
     This class contains tests for the PythonImporter class.
     """
-    def test_import_units_units_none(self):
+    @mock.patch('pulp.server.controllers.repository.get_unit_model_querysets', spec_set=True)
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
+    def test_import_units_units_none(self, mock_associate, mock_get):
         """
         Assert correct behavior when units == None.
         """
         python_importer = importer.PythonImporter()
-        import_conduit = mock.MagicMock()
+        dest_repo = mock.MagicMock()
+        source_repo = mock.MagicMock()
         units = ['unit_a', 'unit_b', 'unit_3']
-        import_conduit.get_source_units.return_value = units
+        mock_get.return_value = [units]
 
-        imported_units = python_importer.import_units(mock.MagicMock(), mock.MagicMock(),
-                                                      import_conduit, mock.MagicMock(), units=None)
+        imported_units = python_importer.import_units(source_repo, dest_repo, mock.MagicMock(),
+                                                      mock.MagicMock(), units=None)
 
-        # Assert that the correct criteria was used
-        criteria = import_conduit.get_source_units.mock_calls[0][2]['criteria']
-        self.assertEqual(criteria['type_ids'], [constants.PACKAGE_TYPE_ID])
-        import_conduit.get_source_units.assert_called_once_with(criteria=criteria)
+        mock_get.assert_called_once_with(source_repo.repo_obj.repo_id, models.Package)
         # Assert that the units were associated correctly
-        associate_unit_call_args = [c[1] for c in import_conduit.associate_unit.mock_calls]
-        self.assertEqual(associate_unit_call_args, [(u,) for u in units])
+        associate_unit_call_args = [c[1] for c in mock_associate.mock_calls]
+        self.assertEqual(associate_unit_call_args, [(dest_repo.repo_obj, u) for u in units])
         # Assert that the units were returned
         self.assertEqual(imported_units, units)
 
-    def test_import_units_units_not_none(self):
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
+    def test_import_units_units_not_none(self, mock_associate):
         """
         Assert correct behavior when units != None.
         """
         python_importer = importer.PythonImporter()
-        import_conduit = mock.MagicMock()
+        dest_repo = mock.MagicMock()
         units = ['unit_a', 'unit_b', 'unit_3']
 
-        imported_units = python_importer.import_units(mock.MagicMock(), mock.MagicMock(),
-                                                      import_conduit, mock.MagicMock(), units=units)
+        imported_units = python_importer.import_units(mock.MagicMock(), dest_repo, mock.MagicMock(),
+                                                      mock.MagicMock(), units=units)
 
-        # Assert that no criteria was used
-        self.assertEqual(import_conduit.get_source_units.call_count, 0)
         # Assert that the units were associated correctly
-        associate_unit_call_args = [c[1] for c in import_conduit.associate_unit.mock_calls]
-        self.assertEqual(associate_unit_call_args, [(u,) for u in units])
+        associate_unit_call_args = [c[1] for c in mock_associate.mock_calls]
+        self.assertEqual(associate_unit_call_args, [(dest_repo.repo_obj, u) for u in units])
         # Assert that the units were returned
         self.assertEqual(imported_units, units)
 
@@ -143,26 +142,14 @@ class TestPythonImporter(unittest.TestCase):
         # And, of course, assert that the sync report was returned
         self.assertEqual(return_value, sync_report)
 
+    @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
     @mock.patch('pulp_python.plugins.models.Package.from_archive')
-    @mock.patch('pulp_python.plugins.models.Package.init_unit', autospec=True)
-    @mock.patch('pulp_python.plugins.models.Package.save_unit', autospec=True)
-    @mock.patch('shutil.move')
-    def test_upload_unit(self, move, save_unit, init_unit, from_archive):
+    def test_upload_unit(self, from_archive, mock_associate, mock_rebuild):
         """
         Assert correct operation of upload_unit().
         """
-        package = models.Package(
-            'name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-            'description', 'platform', '_filename', '_checksum', '_checksum_type', '_metadata_file')
-        from_archive.return_value = package
-        storage_path = '/some/path/name-version.tar.bz2'
-
-        def init_unit_side_effect(self, conduit):
-            class Unit(object):
-                def __init__(self, *args, **kwargs):
-                    self.storage_path = storage_path
-            self._unit = Unit()
-        init_unit.side_effect = init_unit_side_effect
+        package = from_archive.return_value
 
         python_importer = importer.PythonImporter()
         repo = mock.MagicMock()
@@ -178,9 +165,9 @@ class TestPythonImporter(unittest.TestCase):
 
         self.assertEqual(report, {'success_flag': True, 'summary': {}, 'details': {}})
         from_archive.assert_called_once_with(file_path)
-        init_unit.assert_called_once_with(package, conduit)
-        save_unit.assert_called_once_with(package, conduit)
-        move.assert_called_once_with(file_path, storage_path)
+        package.save.assert_called_once_with()
+        package.import_content.assert_called_once_with(file_path)
+        mock_associate.assert_called_once_with(repo.repo_obj, package)
 
     def test_validate_config(self):
         """

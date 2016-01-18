@@ -3,23 +3,58 @@ import hashlib
 import re
 import tarfile
 
+from mongoengine import StringField
+from pulp.server.db.model import FileContentUnit
+
 from pulp_python.common import constants
 
 
 DEFAULT_CHECKSUM_TYPE = 'sha512'
 
 
-class Package(object):
+# These are required to be in the PKG-INFO file.
+REQUIRED_ATTRS = ('name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
+                  'description', 'platform')
+
+
+class Package(FileContentUnit):
     """
     This class represents a Python package.
     """
 
-    TYPE = constants.PACKAGE_TYPE_ID
-    # The full list of supported attributes. Attributes beginning with underscore are specific to
-    # this module and are not found in PKG-INFO.
-    _ATTRS = ('name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-              'description', 'platform', '_filename', '_checksum', '_checksum_type',
-              '_metadata_file')
+    # unit key
+    name = StringField(required=True)
+    version = StringField(required=True)
+
+    author = StringField()
+    author_email = StringField()
+    description = StringField()
+    home_page = StringField()
+    license = StringField()
+    platform = StringField()
+    summary = StringField()
+
+    _checksum = StringField()
+    _checksum_type = StringField(default=DEFAULT_CHECKSUM_TYPE)
+    _filename = StringField()
+    _metadata_file = StringField()
+
+    # For backward compatibility
+    _ns = StringField(default='units_python_package')
+    _content_type_id = StringField(required=True, default=constants.PACKAGE_TYPE_ID)
+
+    unit_key_fields = ('name', 'version')
+
+    meta = {
+        'allow_inheritance': False,
+        'collection': 'units_python_package',
+        'indexes': [
+            {
+                'fields': unit_key_fields,
+                'unique': True
+            },
+        ],
+    }
 
     @classmethod
     def from_archive(cls, archive_path):
@@ -34,7 +69,7 @@ class Package(object):
         :type  archive_path: basestring
         :return:             An instance of Package that represents the package found at
                              archive_path.
-        :rtype:              pulp.common.models.Package
+        :rtype:              pulp_python.plugins.models.Package
         :raises:             ValueError if archive_path does not point to a valid Python tarball
                              created with setup.py sdist.
         :raises:             IOError if the archive_path does not exist.
@@ -63,17 +98,16 @@ class Package(object):
 
             # Build a list of tuples of all the attributes found in the metadata. Ignore attributes
             # with a leading underscore, as they are not part of the metadata.
+            attrs = dict()
             try:
-                required_attrs = [attr for attr in cls._ATTRS if attr[0] != '_']
-                attrs = dict()
-                for attr in required_attrs:
+                for attr in REQUIRED_ATTRS:
                     attrs[attr] = re.search('^%s: (?P<field>.*?)\s*$' % cls._metadata_label(attr),
                                             metadata, flags=re.MULTILINE).group('field')
             except AttributeError:
                 msg = _('The PKG-INFO file is missing required attributes. Please ensure that the '
                         'following attributes are all present: %(attrs)s')
                 msg = msg % {
-                    'attrs': ', '.join([cls._metadata_label(attr) for attr in required_attrs])}
+                    'attrs': ', '.join([cls._metadata_label(attr) for attr in REQUIRED_ATTRS])}
                 raise ValueError(msg)
 
             # Add the filename, checksum, and checksum_type to the attrs
@@ -86,43 +120,6 @@ class Package(object):
         finally:
             if 'package_archive' in locals():
                 package_archive.close()
-
-    def init_unit(self, conduit):
-        """
-        Use the given conduit's init_unit() method to initialize this Unit and store the underlying
-        Pulp unit as self._unit.
-
-        :param conduit: A conduit with a suitable init_unit() to create a Pulp Unit.
-        :type  conduit: pulp.plugins.conduits.mixins.AddUnitMixin
-        """
-        relative_path = self._filename
-        unit_key = {'name': self.name, 'version': self.version}
-        metadata = []
-        for attr in self._ATTRS:
-            if attr in unit_key:
-                continue
-            metadata.append((attr, getattr(self, attr)))
-        metadata = dict(metadata)
-        self._unit = conduit.init_unit(self.TYPE, unit_key, metadata, relative_path)
-
-    def save_unit(self, conduit):
-        """
-        Use the given conduit's save_unit() method to save self._unit.
-
-        :param conduit: A conduit with a suitable save_unit() to save self._unit.
-        :type  conduit: pulp.plugins.conduits.mixins.AddUnitMixin
-        """
-        conduit.save_unit(self._unit)
-
-    @property
-    def storage_path(self):
-        """
-        Return the storage path for self._unit.
-
-        :return: The Unit storage path.
-        :rtype:  basestring
-        """
-        return self._unit.storage_path
 
     @staticmethod
     def checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
@@ -183,48 +180,9 @@ class Package(object):
         label = attribute[0].upper() + attribute[1:]
         return label.replace('_', '-')
 
-    def __init__(self, name, version, summary, home_page, author, author_email, license,
-                 description, platform, _filename, _checksum, _checksum_type, _metadata_file):
-        """
-        Initialize self with the given parameters as its attributes.
-
-        :param name:           The name of the package.
-        :type  name:           basestring
-        :param version:        The package's version.
-        :type  version:        basestring
-        :param summary:        A paragraph summarizing the package.
-        :type  summary:        basestring
-        :param home_page:      A URL for the package's website.
-        :type  home_page:      basestring
-        :param author:         The author's name.
-        :type  author:         basestring
-        :param author_email:   The author's e-mail address.
-        :type  author_email:   basestring
-        :param license:        The package's license.
-        :type  license:        basestring
-        :param description:    A description of the package.
-        :type  description:    basestring
-        :param platform:       A list of platforms that the package is intended to be used on.
-        :type  platform:       basestring
-        :param _filename:      The package filename.
-        :type  _filename:      basestring
-        :param _checksum:      The checksum of the package.
-        :type  _checksum:      basestring
-        :param _checksum_type: The name of the algorithm used to calculate the checksum.
-        :type  _checksum_type: basestring
-        :param _metadata_file: The path of the metadata file in the package
-        :type  _metadata_file: basestring
-        """
-        for attr in self._ATTRS:
-            setattr(self, attr, locals()[attr])
-
-        self._unit = None
-
     def __repr__(self):
         """
-        Return a string representation of self.
-
         :return: A string representing self.
         :rtype:  basestring
         """
-        return 'Python Package: %(name)s-%(version)s' % {'name': self.name, 'version': self.version}
+        return 'Package(name={}, version={})'.format(self.name, self.version)

@@ -1,18 +1,20 @@
 """
 This module contains the necessary means for a necessary means for syncing packages from PyPI.
 """
+import contextlib
 from cStringIO import StringIO
 from gettext import gettext as _
 import json
 import logging
 import os
-import shutil
 from urlparse import urljoin
 
+import mongoengine
 from nectar import request
 from pulp.common.plugins import importer_constants
 from pulp.plugins.util import publish_step
-from pulp.server.db.model import criteria
+from pulp.plugins.util.publish_step import GetLocalUnitsStep
+from pulp.server.controllers import repository as repo_controller
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
@@ -23,10 +25,17 @@ _logger = logging.getLogger(__name__)
 
 class DownloadMetadataStep(publish_step.DownloadStep):
     """
-    This DownloadStep subclass contains the code to process the downloaded manifests and decide what
-    to download from the feed. It does this as it gets each metadata file to spread the load on the
-    database.
+    This DownloadStep subclass contains the code to process the downloaded manifests and determine
+    what is available from the feed. It does this as it gets each metadata file to spread the load
+    on the database.
     """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Injects download requests into the call to the parent class's __init__
+        """
+        kwargs['downloads'] = self.generate_download_requests()
+        super(DownloadMetadataStep, self).__init__(*args, **kwargs)
 
     def download_failed(self, report):
         """
@@ -44,75 +53,61 @@ class DownloadMetadataStep(publish_step.DownloadStep):
     def download_succeeded(self, report):
         """
         This method is called by Nectar for each package metadata file after it is successfully
-        downloaded. It reads the manifest, and queries Pulp to find out which packages need to be
-        downloaded. It will add any packages that need to be downloaded to the SyncStep's
-        _packages_to_download attribute. Each package to download is a dictionary with the following
-        keys: name, version, url, and checksum. Each key indexes a basestring, and the checksum is
-        an md5 checksum as provided by PyPI.
+        downloaded. It reads the manifest and adds each available unit to the parent step's
+        "available_units" attribute.
+
+        It also adds each unit's download URL to the parent step's "unit_urls" attribute. Each key
+        is a models.Package object.
 
         :param report: The report that details the download
         :type  report: nectar.report.DownloadReport
         """
         _logger.info(_('Processing metadata retrieved from %(url)s.') % {'url': report.url})
-        report.destination.seek(0)
-        self.parent.parent._packages_to_download.extend(
-            self._process_manifest(report.destination.read(), self.conduit))
-        report.destination.close()
+        with contextlib.closing(report.destination) as destination:
+            destination.seek(0)
+            self._process_manifest(destination.read())
 
         super(DownloadMetadataStep, self).download_succeeded(report)
 
-    @staticmethod
-    def _process_manifest(manifest, conduit):
+    def generate_download_requests(self):
+        """
+        For each package name that the user has requested, yield a Nectar DownloadRequest for its
+        metadata file in JSON format.
+
+        :return: A generator that yields DownloadRequests for the metadata files.
+        :rtype:  generator
+        """
+        # We need to retrieve the manifests for each of our packages
+        manifest_urls = [urljoin(self.parent._feed_url, 'pypi/%s/json/' % pn)
+                         for pn in self.parent._package_names]
+        for u in manifest_urls:
+            if self.canceled:
+                return
+            yield request.DownloadRequest(u, StringIO(), {})
+
+    def _process_manifest(self, manifest):
         """
         This method reads the given package manifest to determine which versions of the package are
-        available at the feed repo. It then compares these versions to the versions that are in the
-        repository that is being synchronized, as well as to the versions that are available in
-        Pulp. For packages that are in Pulp but are not in the repository, it will create the
-        association without downloading the packages. For package versions which are not available
-        in Pulp, it will return a list of dictionaries describing the missing packages so that the
-        DownloadPackagesStep can retrieve them later. Each dictionary has the following keys: name,
-        version, url, and checksum. The checksum is given in md5, as per the upstream PyPI feed.
+        available at the feed repo. It reads the manifest and adds each available unit to the parent
+        step's "available_units" attribute.
+
+        It also adds each unit's download URL to the parent step's "unit_urls" attribute. Each key
 
         :param manifest: A package manifest in JSON format, describing the versions of a package
                          that are available for download.
         :type  manifest: basestring
-        :param conduit:  The sync conduit. This is used to query Pulp for available packages.
-        :type  conduit:  pulp.plugins.conduits.repo_sync.RepoSyncConduit
-        :return:         A list of dictionaries, describing the packages that need to be downloaded.
-        :rtype:          list
         """
         manifest = json.loads(manifest)
         name = manifest['info']['name']
-        all_versions = set(manifest['releases'].keys())
-
-        # Find the versions that we have in Pulp
-        search = criteria.Criteria(filters={'name': name}, fields=['name', 'version'])
-        versions_in_pulp = set(
-            [u.unit_key['version'] for u in
-             conduit.search_all_units(constants.PACKAGE_TYPE_ID, criteria=search)])
-
-        # Find the versions that we have in the repo already
-        search = criteria.UnitAssociationCriteria(unit_filters={'name': name},
-                                                  unit_fields=['name', 'version'])
-        versions_in_repo = set([u.unit_key['version'] for u in
-                                conduit.get_units(criteria=search)])
-
-        # These versions are in Pulp, but are not associated with this repository. Associate them.
-        versions_to_associate = list(versions_in_pulp - versions_in_repo)
-        if versions_to_associate:
-            conduit.associate_existing(
-                constants.PACKAGE_TYPE_ID,
-                [{'name': name, 'version': v} for v in versions_to_associate])
-
-        # We don't have these versions in Pulp yet. Let's download them!
-        versions_to_dl = all_versions - versions_in_pulp
-        packages_to_dl = []
-        for v in versions_to_dl:
-            for package in manifest['releases'][v]:
+        for version, packages in manifest['releases'].items():
+            for package in packages:
                 if package['packagetype'] == 'sdist' and package['filename'][-4:] != '.zip':
-                    packages_to_dl.append({'name': name, 'version': v, 'url': package['url'],
-                                           'checksum': package['md5_digest']})
-        return packages_to_dl
+                    unit = models.Package(name=name, version=version,
+                                          _checksum=package['md5_digest'],
+                                          _checksum_type='md5')
+                    url = package['url']
+                    self.parent.available_units.append(unit)
+                    self.parent.unit_urls[unit] = url
 
 
 class DownloadPackagesStep(publish_step.DownloadStep):
@@ -141,68 +136,23 @@ class DownloadPackagesStep(publish_step.DownloadStep):
         """
         _logger.info(_('Processing package retrieved from %(url)s.') % {'url': report.url})
 
-        checksum = models.Package.checksum(report.destination, 'md5')
-        if checksum != report.data['checksum']:
+        checksum = models.Package.checksum(report.destination, report.data._checksum_type)
+        if checksum != report.data._checksum:
             report.state = 'failed'
-            report.error_report = {'expected_checksum': report.data['checksum'],
+            report.error_report = {'expected_checksum': report.data._checksum,
                                    'actual_checksum': checksum}
             return self.download_failed(report)
 
         package = models.Package.from_archive(report.destination)
-        package.init_unit(self.conduit)
+        try:
+            package.save()
+            package.import_content(report.destination)
+        except mongoengine.NotUniqueError:
+            package = models.Package.objects.get(name=package.name, version=package.version)
 
-        # Copy the package from working directory into its proper place
-        shutil.copy(report.destination, package.storage_path)
-
-        package.save_unit(self.conduit)
+        repo_controller.associate_single_unit(self.get_repo().repo_obj, package)
 
         super(DownloadPackagesStep, self).download_succeeded(report)
-
-
-class GetMetadataStep(publish_step.PluginStep):
-    """
-    This step creates all the required download requests for each package that the user has asked us
-    to synchronize.
-    """
-
-    def __init__(self, repo, conduit, config, working_dir):
-        """
-        Initialize the GetMetadataStep, adding a child step that actually does the Metadata
-        downloading and processing.
-
-        :param repo:        metadata describing the repository
-        :type  repo:        pulp.plugins.model.Repository
-        :param conduit:     provides access to relevant Pulp functionality
-        :type  conduit:     pulp.plugins.conduits.repo_sync.RepoSyncConduit
-        :param config:      plugin configuration
-        :type  config:      pulp.plugins.config.PluginCallConfiguration
-        :param working_dir: The working directory path that can be used for temporary storage
-        :type  working_dir: basestring
-        """
-        super(GetMetadataStep, self).__init__('sync_step_metadata', repo, conduit, config,
-                                              working_dir, constants.IMPORTER_TYPE_ID)
-        self.description = _('Downloading and processing metadata.')
-
-        # This step does the real work
-        self.add_child(
-            DownloadMetadataStep(
-                'sync_step_download_metadata', downloads=self.generate_download_requests(),
-                repo=repo, config=config, conduit=conduit, working_dir=working_dir,
-                description=_('Downloading Python metadata.')))
-
-    def generate_download_requests(self):
-        """
-        For each package name that the user has requested, yield a Nectar DownloadRequest for its
-        metadata file in JSON format.
-
-        :return: A generator that yields DownloadReqests for the metadata files.
-        :rtype:  generator
-        """
-        # We need to retrieve the manifests for each of our packages
-        manifest_urls = [urljoin(self.parent._feed_url, 'pypi/%s/json/' % pn)
-                         for pn in self.parent._package_names]
-        for u in manifest_urls:
-            yield request.DownloadRequest(u, StringIO(), {})
 
 
 class SyncStep(publish_step.PluginStep):
@@ -233,28 +183,38 @@ class SyncStep(publish_step.PluginStep):
         if self._package_names:
             self._package_names = self._package_names.split(',')
 
-        # Populated by the GetMetadataStep
-        self._packages_to_download = []
+        # these are populated by DownloadMetadataStep
+        self.available_units = []
+        self.unit_urls = {}
 
-        self.add_child(GetMetadataStep(repo, conduit, config, working_dir))
+        self.add_child(
+            DownloadMetadataStep(
+                'sync_step_download_metadata',
+                repo=repo, config=config, conduit=conduit, working_dir=self.get_working_dir(),
+                description=_('Downloading Python metadata.')))
+
+        self.get_local_units_step = GetLocalUnitsStep(constants.IMPORTER_TYPE_ID,
+                                                      available_units=self.available_units)
+        self.add_child(self.get_local_units_step)
 
         self.add_child(
             DownloadPackagesStep(
                 'sync_step_download_packages', downloads=self.generate_download_requests(),
-                repo=repo, config=config, conduit=conduit, working_dir=working_dir,
+                repo=repo, config=config, conduit=conduit, working_dir=self.get_working_dir(),
                 description=_('Downloading and processing Python packages.')))
 
     def generate_download_requests(self):
         """
-        For each package that is listed in self._packages_to_download, yield a Nectar
+        For each package that wasn't available locally, yield a Nectar
         DownloadRequest for its url attribute.
 
         :return: A generator that yields DownloadReqests for the Package files.
         :rtype:  generator
         """
-        for p in self._packages_to_download:
-            yield request.DownloadRequest(p['url'], os.path.join(self.working_dir,
-                                                                 os.path.basename(p['url'])), p)
+        for p in self.get_local_units_step.units_to_download:
+            url = self.unit_urls.pop(p)
+            destination = os.path.join(self.get_working_dir(), os.path.basename(url))
+            yield request.DownloadRequest(url, destination, p)
 
     def sync(self):
         """
@@ -264,4 +224,5 @@ class SyncStep(publish_step.PluginStep):
         :rtype:  pulp.plugins.model.SyncReport
         """
         self.process_lifecycle()
+        repo_controller.rebuild_content_unit_counts(self.get_repo().repo_obj)
         return self._build_final_report()

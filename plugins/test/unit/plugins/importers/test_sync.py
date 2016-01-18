@@ -3,14 +3,15 @@ This module contains tests for the pulp_python.plugins.importers.sync module.
 """
 from cStringIO import StringIO
 from gettext import gettext as _
-import os
 import types
 import unittest
 
 import mock
-from pulp.server.db.model import criteria
+import mongoengine
+from pulp.plugins.util.publish_step import GetLocalUnitsStep
 
 from pulp_python.common import constants
+from pulp_python.plugins import models
 from pulp_python.plugins.importers import sync
 
 
@@ -450,6 +451,31 @@ class TestDownloadMetadataStep(unittest.TestCase):
     """
     This class tests the DownloadMetadataStep class.
     """
+
+    def test_generate_download_requests(self):
+        step = sync.DownloadMetadataStep('sync_step_download_metadata')
+        step.parent = mock.MagicMock()
+        step.parent._feed_url = 'http://pulpproject.org/'
+        step.parent._package_names = ['foo']
+
+        requests = list(step.generate_download_requests())
+
+        self.assertEqual(len(requests), 1)
+        request = requests[0]
+        self.assertEqual(request.url, 'http://pulpproject.org/pypi/foo/json/')
+        self.assertEqual(type(request.destination), type(StringIO()))
+
+    def test_generate_download_requests_canceled(self):
+        step = sync.DownloadMetadataStep('sync_step_download_metadata')
+        step.parent = mock.MagicMock()
+        step.parent._feed_url = 'http://pulpproject.org/'
+        step.parent._package_names = ['foo']
+        step.canceled = True
+
+        requests = list(step.generate_download_requests())
+
+        self.assertEqual(len(requests), 0)
+
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_failed')
     def test_download_failed(self, super_download_failed):
         """
@@ -471,229 +497,61 @@ class TestDownloadMetadataStep(unittest.TestCase):
         Ensure the download_succeeded() method properly handles the downloaded metadata.
         """
         report = mock.MagicMock()
-        conduit = mock.MagicMock()
-        step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=conduit)
+        step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
         # Let's start with some packages to download to make sure the handler adds to it correctly
-        step.parent.parent._packages_to_download = [{'a': 1}]
         report.destination.read.return_value = NUMPY_MANIFEST
-        _process_manifest.return_value = [{'b': 2}, {'c': 3}]
 
         step.download_succeeded(report)
 
         report.destination.close.assert_called_once_with()
         super_download_succeeded.assert_called_once_with(report)
-        _process_manifest.assert_called_once_with(NUMPY_MANIFEST, conduit)
-        self.assertEqual(step.parent.parent._packages_to_download, [{'a': 1}, {'b': 2}, {'c': 3}])
+        _process_manifest.assert_called_once_with(NUMPY_MANIFEST)
 
-    def test__process_manifest_associates_existing_versions(self):
-        """
-        Ensure that _process_manifest() associates packages that we already have in Pulp, rather
-        than scheduling them to be downloaded.
-        """
-        conduit = mock.MagicMock()
-
-        class FakeUnit(object):
-            def __init__(self, version):
-                self.unit_key = {'version': version}
-
-        versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1']
-        conduit.get_units.return_value = []
-        conduit.search_all_units.return_value = [FakeUnit(v) for v in versions]
-
-        packages_to_dl = sync.DownloadMetadataStep._process_manifest(NUMPY_MANIFEST, conduit)
-
-        # There should have been no packages to download, since they were all already in Pulp.
-        self.assertEqual(packages_to_dl, [])
-        # Make sure the correct call to search_all_units was made
-        search = criteria.Criteria(filters={'name': 'numpy'}, fields=['name', 'version'])
-        # Because the Criteria object is stupid, we'll have the fake the id being the same as the
-        # one that was actually used
-        search._id = conduit.search_all_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.search_all_units.mock_calls[0][2]['criteria'].id
-        conduit.search_all_units.assert_called_once_with(constants.PACKAGE_TYPE_ID, criteria=search)
-        # The repo should have been searched for available versions as well
-        search = criteria.UnitAssociationCriteria(unit_filters={'name': 'numpy'},
-                                                  unit_fields=['name', 'version'])
-        # Again, because the Criteria object is stupid, we'll have the fake the id being the same as
-        # the one that was actually used
-        search._id = conduit.get_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.get_units.mock_calls[0][2]['criteria'].id
-        conduit.get_units.assert_called_once_with(criteria=search)
-        # All of the versions should have been added to the repo
-        self.assertEqual(conduit.associate_existing.call_count, 1)
-        self.assertEqual(conduit.associate_existing.mock_calls[0][1][0], constants.PACKAGE_TYPE_ID)
-        self.assertEqual(
-            set([u['version'] for u in conduit.associate_existing.mock_calls[0][1][1]]),
-            set(versions))
-        self.assertEqual(
-            set([u['name'] for u in conduit.associate_existing.mock_calls[0][1][1]]),
-            set(['numpy']))
-        self.assertEqual(
-            len([u['version'] for u in conduit.associate_existing.mock_calls[0][1][1]]), 5)
-
-    def test__process_manifest_downloads_missing_versions(self):
+    def test__process_manifest_ignores_bdist_and_wheel(self):
         """
         Ensure that _process_manifest() downloads versions that we are missing in Pulp. This test
         also ensures that we do not download bdist or wheel archives, and that their presence in the
         metadata does not cause any issues for the importer by using a manifest that does contain
         those types of archives. Support for those archive types may be added at a later date.
         """
-        conduit = mock.MagicMock()
-        conduit.get_units.return_value = []
-        conduit.search_all_units.return_value = []
+        step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
+        step.parent = mock.MagicMock()
+        step.parent.available_units = []
 
-        packages_to_dl = sync.DownloadMetadataStep._process_manifest(NUMPY_MANIFEST, conduit)
+        step._process_manifest(NUMPY_MANIFEST)
 
-        # It should have marked all tarball packages for download
-        expected_packages_to_dl = [
-            {'name': 'numpy', 'version': '1.8.0',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.8.0.tar.gz',
-             'checksum': '2a4b0423a758706d592abb6721ec8dcd'},
-            {'name': 'numpy', 'version': '1.8.1',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.8.1.tar.gz',
-             'checksum': 'be95babe263bfa3428363d6db5b64678'},
-            {'name': 'numpy', 'version': '1.8.2',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.8.2.tar.gz',
-             'checksum': 'cdd1a0d14419d8a8253400d8ca8cba42'},
-            {'name': 'numpy', 'version': '1.9.0',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.9.0.tar.gz',
-             'checksum': '510cee1c6a131e0a9eb759aa2cc62609'},
-            {'name': 'numpy', 'version': '1.9.1',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.9.1.tar.gz',
-             'checksum': '78842b73560ec378142665e712ae4ad9'}]
-        # The packages_to_dl list is not sorted in an easily predictable way. Since the order is not
-        # meaningful, let's sort it by version to make the assertion easier.
-        packages_to_dl = sorted(packages_to_dl, key=lambda k: k['version'])
-        self.assertEqual(packages_to_dl, expected_packages_to_dl)
-        # Make sure the correct call to search_all_units was made
-        search = criteria.Criteria(filters={'name': 'numpy'}, fields=['name', 'version'])
-        # Because the Criteria object is stupid, we'll have the fake the id being the same as the
-        # one that was actually used
-        search._id = conduit.search_all_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.search_all_units.mock_calls[0][2]['criteria'].id
-        conduit.search_all_units.assert_called_once_with(constants.PACKAGE_TYPE_ID, criteria=search)
-        # The repo should have been searched for available versions as well
-        search = criteria.UnitAssociationCriteria(unit_filters={'name': 'numpy'},
-                                                  unit_fields=['name', 'version'])
-        # Again, because the Criteria object is stupid, we'll have the fake the id being the same as
-        # the one that was actually used
-        search._id = conduit.get_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.get_units.mock_calls[0][2]['criteria'].id
-        conduit.get_units.assert_called_once_with(criteria=search)
-        # Since there were no existing versions, no calls should have been made to associate
-        # existing
-        self.assertEqual(conduit.associate_existing.call_count, 0)
-
-    def test__process_manifest_mixed_case(self):
-        """
-        Test _process_manifest() when there are both packages that just need to be associated, and
-        packages that need to be downloaded.
-        """
-        conduit = mock.MagicMock()
-
-        class FakeUnit(object):
-            def __init__(self, version):
-                self.unit_key = {'version': version}
-
-        # Let's fake 1.8.0, 1.8.1, and 1.9.0 as all being in Pulp, but also 1.9.0 not being in the
-        # repo that is being sync'd. This should cause Pulp to download 1.8.2 and 1.9.1, and it
-        # should add an assocation for the existing 1.9.0 to the repo.
-        versions = ['1.8.0', '1.8.1', '1.9.0']
-        conduit.get_units.return_value = [FakeUnit(v) for v in ['1.8.0', '1.8.1']]
-        conduit.search_all_units.return_value = [FakeUnit(v) for v in versions]
-
-        packages_to_dl = sync.DownloadMetadataStep._process_manifest(NUMPY_MANIFEST, conduit)
-
-        # 1.8.2 and 1.9.1 should have been marked for download
-        expected_packages_to_dl = [
-            {'name': 'numpy', 'version': '1.8.2',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.8.2.tar.gz',
-             'checksum': 'cdd1a0d14419d8a8253400d8ca8cba42'},
-            {'name': 'numpy', 'version': '1.9.1',
-             'url': 'https://pypi.python.org/packages/source/n/numpy/numpy-1.9.1.tar.gz',
-             'checksum': '78842b73560ec378142665e712ae4ad9'}]
-        # The packages_to_dl list is not sorted in an easily predictable way. Since the order is not
-        # meaningful, let's sort it by version to make the assertion easier.
-        packages_to_dl = sorted(packages_to_dl, key=lambda k: k['version'])
-        self.assertEqual(packages_to_dl, expected_packages_to_dl)
-        # Make sure the correct call to search_all_units was made
-        search = criteria.Criteria(filters={'name': 'numpy'}, fields=['name', 'version'])
-        # Because the Criteria object is stupid, we'll have the fake the id being the same as the
-        # one that was actually used
-        search._id = conduit.search_all_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.search_all_units.mock_calls[0][2]['criteria'].id
-        conduit.search_all_units.assert_called_once_with(constants.PACKAGE_TYPE_ID, criteria=search)
-        # The repo should have been searched for available versions as well
-        search = criteria.UnitAssociationCriteria(unit_filters={'name': 'numpy'},
-                                                  unit_fields=['name', 'version'])
-        # Again, because the Criteria object is stupid, we'll have the fake the id being the same as
-        # the one that was actually used
-        search._id = conduit.get_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.get_units.mock_calls[0][2]['criteria'].id
-        conduit.get_units.assert_called_once_with(criteria=search)
-        # 1.9.0 should have been added to the repo
-        conduit.associate_existing.assert_called_once_with(constants.PACKAGE_TYPE_ID,
-                                                           [{'name': 'numpy', 'version': '1.9.0'}])
-
-    def test__process_manifest_nothing_to_do(self):
-        """
-        Test the _process_manifest() method when there is nothing to do. It should return an empty
-        list, and make no associations.
-        """
-        conduit = mock.MagicMock()
-
-        class FakeUnit(object):
-            def __init__(self, version):
-                self.unit_key = {'version': version}
-
-        # Let's fake all the versions already being in Pulp and also in the repo. There should be
-        # nothing to download, and no associations to make.
-        versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1']
-        conduit.get_units.return_value = [FakeUnit(v) for v in versions]
-        conduit.search_all_units.return_value = [FakeUnit(v) for v in versions]
-
-        packages_to_dl = sync.DownloadMetadataStep._process_manifest(NUMPY_MANIFEST, conduit)
-
-        self.assertEqual(packages_to_dl, [])
-        # Make sure the correct call to search_all_units was made
-        search = criteria.Criteria(filters={'name': 'numpy'}, fields=['name', 'version'])
-        # Because the Criteria object is stupid, we'll have the fake the id being the same as the
-        # one that was actually used
-        search._id = conduit.search_all_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.search_all_units.mock_calls[0][2]['criteria'].id
-        conduit.search_all_units.assert_called_once_with(constants.PACKAGE_TYPE_ID, criteria=search)
-        # The repo should have been searched for available versions as well
-        search = criteria.UnitAssociationCriteria(unit_filters={'name': 'numpy'},
-                                                  unit_fields=['name', 'version'])
-        # Again, because the Criteria object is stupid, we'll have the fake the id being the same as
-        # the one that was actually used
-        search._id = conduit.get_units.mock_calls[0][2]['criteria']._id
-        search.id = conduit.get_units.mock_calls[0][2]['criteria'].id
-        conduit.get_units.assert_called_once_with(criteria=search)
-        # No associations should have been made
-        self.assertEqual(conduit.associate_existing.call_count, 0)
+        # It should have marked all tarball packages for download. These are the checksums for only
+        # the non-bdist and non-wheel packages.
+        expected_checksums = set([
+            '2a4b0423a758706d592abb6721ec8dcd',
+            'be95babe263bfa3428363d6db5b64678',
+            'cdd1a0d14419d8a8253400d8ca8cba42',
+            '510cee1c6a131e0a9eb759aa2cc62609',
+            '78842b73560ec378142665e712ae4ad9'
+        ])
+        available_unit_checksums = set(u._checksum for u in step.parent.available_units)
+        self.assertEqual(available_unit_checksums, expected_checksums)
 
 
 class TestDownloadPackagesStep(unittest.TestCase):
     """
     This class tests the DownloadPackagesStep class.
     """
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
-    @mock.patch('pulp_python.plugins.importers.sync.models.Package.save_unit')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    @mock.patch('pulp_python.plugins.importers.sync.shutil.copy')
-    def test_download_succeeded_checksum_bad(self, copy, super_download_succeeded,
-                                             download_failed, save_unit, checksum):
+    def test_download_succeeded_checksum_bad(self, super_download_succeeded,
+                                             download_failed, checksum, mock_from_archive):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is
         incorrect.
         """
         report = mock.MagicMock()
-        report.data = {'checksum': 'expected checksum'}
-        conduit = mock.MagicMock()
-        step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=conduit)
+        report.data = models.Package(name='foo', version='1.0.0', _checksum='expected checksum',
+                                     _checksum_type='md5')
+        step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         checksum.return_value = 'bad checksum'
 
         step.download_succeeded(report)
@@ -709,24 +567,24 @@ class TestDownloadPackagesStep(unittest.TestCase):
         download_failed.assert_called_once_with(report)
         # Make sure the checksum was calculated with the correct data
         checksum.assert_called_once_with(report.destination, 'md5')
-        # copy and save_unit should not have been called since the download failed
-        self.assertEqual(copy.call_count, 0)
-        self.assertEqual(save_unit.call_count, 0)
+        # from_archive should not have been called since the download failed
+        self.assertEqual(mock_from_archive.call_count, 0)
 
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    @mock.patch('pulp_python.plugins.importers.sync.shutil.copy')
-    def test_download_succeeded_checksum_good(self, copy, super_download_succeeded, download_failed,
-                                              from_archive, checksum):
+    def test_download_succeeded_checksum_good(self, super_download_succeeded, download_failed,
+                                              from_archive, checksum, mock_associate):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is correct.
         """
         report = mock.MagicMock()
-        report.data = {'checksum': 'good checksum'}
-        conduit = mock.MagicMock()
-        step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=conduit)
+        report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
+                                     _checksum_type='md5')
+        step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
+        step.parent = mock.MagicMock()
         checksum.return_value = 'good checksum'
 
         step.download_succeeded(report)
@@ -737,90 +595,39 @@ class TestDownloadPackagesStep(unittest.TestCase):
         checksum.assert_called_once_with(report.destination, 'md5')
         # The from_archive method should have been given the destination
         from_archive.assert_called_once_with(report.destination)
-        # The Package's init_unit should have been handed the conduit
-        package = from_archive.return_value
-        package.init_unit.assert_called_once_with(conduit)
-        # The unit should have been copied to the storage path
-        copy.assert_called_once_with(report.destination, package.storage_path)
-        # The unit should have been saved to the DB
-        package.save_unit.assert_called_once_with(conduit)
-        # The superclass success method should have been called.
-        super_download_succeeded.assert_called_once_with(report)
+        from_archive.return_value.save.assert_called_once_with()
+        from_archive.return_value.import_content.assert_called_once_with(report.destination)
+        mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
+                                               from_archive.return_value)
 
-
-class TestGetMetadataStep(unittest.TestCase):
-    """
-    This class contains tests for the GetMetadataStep class.
-    """
-    @mock.patch('pulp_python.plugins.importers.sync.DownloadMetadataStep.__init__',
-                side_effect=sync.DownloadMetadataStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.GetMetadataStep.add_child',
-                side_effect=sync.GetMetadataStep.add_child, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.GetMetadataStep.generate_download_requests',
-                autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.publish_step.PluginStep.__init__',
-                side_effect=sync.publish_step.PluginStep.__init__, autospec=True)
-    def test___init__(self, super___init__, generate_download_requests, add_child,
-                      download___init__):
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.objects')
+    @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
+    def test_download_succeeded_not_unique(self, super_download_succeeded, mock_objects,
+                                           from_archive, checksum, mock_associate):
         """
-        Assert that __init__() properly initializes the object.
+        Test the download_succeeded() method when the checksum of the downloaded package is correct.
         """
-        repo = mock.MagicMock()
-        conduit = mock.MagicMock()
-        config = mock.MagicMock()
-        working_dir = '/some/dir'
-
-        step = sync.GetMetadataStep(repo, conduit, config, working_dir)
-
-        # The superclass's __init__ gets called through super(), and also when the
-        # DownloadMetadataStep is constructed, so there are two calls. We'll assert the second call
-        # through the more specific download___init__ mock.
-        self.assertEqual(super___init__.call_count, 2)
-        self.assertEqual(
-            super___init__.mock_calls[0][1],
-            (step, 'sync_step_metadata', repo, conduit, config, working_dir,
-             constants.IMPORTER_TYPE_ID))
-        # Now let's check the download___init__ mock.
-        download_step = super___init__.mock_calls[1][1][0]
-        self.assertEqual(download___init__.call_count, 1)
-        self.assertEqual(
-            download___init__.mock_calls[0][1],
-            (download_step, 'sync_step_download_metadata',))
-        downloads = generate_download_requests.return_value
-        self.assertEqual(
-            download___init__.mock_calls[0][2],
-            {'downloads': downloads, 'repo': repo, 'conduit': conduit, 'config': config,
-             'working_dir': working_dir, 'description': _('Downloading Python metadata.')})
-        self.assertEqual(step.description, _('Downloading and processing metadata.'))
-        add_child.assert_called_once_with(step, download_step)
-
-    def test_generate_download_requests(self):
-        """
-        Assert that generate_download_requests returns the proper objects.
-        """
-        repo = mock.MagicMock()
-        conduit = mock.MagicMock()
-        config = mock.MagicMock()
-        working_dir = '/some/dir'
-        step = sync.GetMetadataStep(repo, conduit, config, working_dir)
+        report = mock.MagicMock()
+        report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
+                                     _checksum_type='md5')
+        step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
-        step.parent._feed_url = 'http://example.com'
-        step.parent._package_names = ['numpy', 'scipy']
+        checksum.return_value = 'good checksum'
+        package = from_archive.return_value
+        package.name = 'foo'
+        package.version = '1.0.0'
+        package.save.side_effect = mongoengine.NotUniqueError
 
-        requests = step.generate_download_requests()
+        step.download_succeeded(report)
 
-        self.assertTrue(isinstance(requests, types.GeneratorType))
-        # For the remainder of our tests, it will be more useful if requests is a list
-        requests = list(requests)
-        self.assertEqual(len(requests), 2)
-        request_urls = [r.url for r in requests]
-        self.assertEqual(
-            request_urls,
-            ['http://example.com/pypi/numpy/json/', 'http://example.com/pypi/scipy/json/'])
-        # A StringIO should have been used for the destination, and the data should be an empty dict
-        for r in requests:
-            self.assertEqual(type(r.destination), type(StringIO()))
-            self.assertEqual(r.data, {})
+        package.save.assert_called_once_with()
+        self.assertEqual(package.import_content.call_count, 0)
+        mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
+                                               mock_objects.get.return_value)
+        mock_objects.get.assert_called_once_with(name='foo', version='1.0.0')
 
 
 class TestSyncStep(unittest.TestCase):
@@ -829,14 +636,12 @@ class TestSyncStep(unittest.TestCase):
     """
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.__init__',
                 side_effect=sync.DownloadPackagesStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.GetMetadataStep.__init__',
-                side_effect=sync.GetMetadataStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.PluginStep.__init__',
                 side_effect=sync.publish_step.PluginStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep.generate_download_requests',
                 autospec=True)
     def test___init___no_packages(self, generate_download_requests, super___init__,
-                                  get_metadata___init__, download_packages___init__):
+                                  download_packages___init__):
         """
         Test the __init__() method when the user has not specified any packages to sync.
         """
@@ -867,31 +672,28 @@ class TestSyncStep(unittest.TestCase):
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
         self.assertEqual(step._package_names, [])
-        # _packages_to_download should have been initialized to the empty list
-        self.assertEqual(step._packages_to_download, [])
-        # Two child steps should have been added
-        self.assertEqual(len(step.children), 2)
-        self.assertEqual(type(step.children[0]), sync.GetMetadataStep)
-        self.assertEqual(type(step.children[1]), sync.DownloadPackagesStep)
+        self.assertEqual(step.available_units, [])
+        self.assertEqual(step.unit_urls, {})
+        # Three child steps should have been added
+        self.assertEqual(len(step.children), 3)
+        self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
+        self.assertEqual(type(step.children[1]), GetLocalUnitsStep)
+        self.assertEqual(type(step.children[2]), sync.DownloadPackagesStep)
         # Make sure the steps were initialized properly
-        get_metadata___init__.assert_called_once_with(step.children[0], repo, conduit, config,
-                                                      working_dir)
         downloads = generate_download_requests.return_value
         download_packages___init__.assert_called_once_with(
-            step.children[1], 'sync_step_download_packages', downloads=downloads, repo=repo,
+            step.children[2], 'sync_step_download_packages', downloads=downloads, repo=repo,
             config=config, conduit=conduit, working_dir=working_dir,
             description=_('Downloading and processing Python packages.'))
 
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.__init__',
                 side_effect=sync.DownloadPackagesStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.GetMetadataStep.__init__',
-                side_effect=sync.GetMetadataStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.PluginStep.__init__',
                 side_effect=sync.publish_step.PluginStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep.generate_download_requests',
                 autospec=True)
     def test___init___one_package(self, generate_download_requests, super___init__,
-                                  get_metadata___init__, download_packages___init__):
+                                  download_packages___init__):
         """
         Test the __init__() method when the user has specified one package to sync.
         """
@@ -922,31 +724,28 @@ class TestSyncStep(unittest.TestCase):
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
         self.assertEqual(step._package_names, ['numpy'])
-        # _packages_to_download should have been initialized to the empty list
-        self.assertEqual(step._packages_to_download, [])
-        # Two child steps should have been added
-        self.assertEqual(len(step.children), 2)
-        self.assertEqual(type(step.children[0]), sync.GetMetadataStep)
-        self.assertEqual(type(step.children[1]), sync.DownloadPackagesStep)
+        self.assertEqual(step.available_units, [])
+        self.assertEqual(step.unit_urls, {})
+        # Three child steps should have been added
+        self.assertEqual(len(step.children), 3)
+        self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
+        self.assertEqual(type(step.children[1]), GetLocalUnitsStep)
+        self.assertEqual(type(step.children[2]), sync.DownloadPackagesStep)
         # Make sure the steps were initialized properly
-        get_metadata___init__.assert_called_once_with(step.children[0], repo, conduit, config,
-                                                      working_dir)
         downloads = generate_download_requests.return_value
         download_packages___init__.assert_called_once_with(
-            step.children[1], 'sync_step_download_packages', downloads=downloads, repo=repo,
+            step.children[2], 'sync_step_download_packages', downloads=downloads, repo=repo,
             config=config, conduit=conduit, working_dir=working_dir,
             description=_('Downloading and processing Python packages.'))
 
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.__init__',
                 side_effect=sync.DownloadPackagesStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.GetMetadataStep.__init__',
-                side_effect=sync.GetMetadataStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.PluginStep.__init__',
                 side_effect=sync.publish_step.PluginStep.__init__, autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep.generate_download_requests',
                 autospec=True)
     def test___init___three_packages(self, generate_download_requests, super___init__,
-                                     get_metadata___init__, download_packages___init__):
+                                     download_packages___init__):
         """
         Test the __init__() method when the user has specified three packages to sync.
         """
@@ -977,18 +776,17 @@ class TestSyncStep(unittest.TestCase):
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
         self.assertEqual(step._package_names, ['numpy', 'scipy', 'django'])
-        # _packages_to_download should have been initialized to the empty list
-        self.assertEqual(step._packages_to_download, [])
-        # Two child steps should have been added
-        self.assertEqual(len(step.children), 2)
-        self.assertEqual(type(step.children[0]), sync.GetMetadataStep)
-        self.assertEqual(type(step.children[1]), sync.DownloadPackagesStep)
+        self.assertEqual(step.available_units, [])
+        self.assertEqual(step.unit_urls, {})
+        # Three child steps should have been added
+        self.assertEqual(len(step.children), 3)
+        self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
+        self.assertEqual(type(step.children[1]), GetLocalUnitsStep)
+        self.assertEqual(type(step.children[2]), sync.DownloadPackagesStep)
         # Make sure the steps were initialized properly
-        get_metadata___init__.assert_called_once_with(step.children[0], repo, conduit, config,
-                                                      working_dir)
         downloads = generate_download_requests.return_value
         download_packages___init__.assert_called_once_with(
-            step.children[1], 'sync_step_download_packages', downloads=downloads, repo=repo,
+            step.children[2], 'sync_step_download_packages', downloads=downloads, repo=repo,
             config=config, conduit=conduit, working_dir=working_dir,
             description=_('Downloading and processing Python packages.'))
 
@@ -1001,8 +799,10 @@ class TestSyncStep(unittest.TestCase):
         config = mock.MagicMock()
         working_dir = '/some/dir'
         step = sync.SyncStep(repo, conduit, config, working_dir)
-        step._packages_to_download = [{'url': 'http://example.com/cool.tar.gz'},
-                                      {'url': 'http://example.com/beats.tar.gz'}]
+        u1 = models.Package(name='foo', version='1.2.0')
+        u2 = models.Package(name='foo', version='1.3.0')
+        step.get_local_units_step.units_to_download.extend([u1, u2])
+        step.unit_urls.update({u1: 'http://u1/foo-1.2.0.tar.gz', u2: 'http://u2/foo-1.3.0.tar.gz'})
 
         requests = step.generate_download_requests()
 
@@ -1013,20 +813,20 @@ class TestSyncStep(unittest.TestCase):
         request_urls = [r.url for r in requests]
         self.assertEqual(
             request_urls,
-            ['http://example.com/cool.tar.gz', 'http://example.com/beats.tar.gz'])
+            ['http://u1/foo-1.2.0.tar.gz', 'http://u2/foo-1.3.0.tar.gz'])
         # The destinations should both have been paths
         request_destinations = [r.destination for r in requests]
-        expected_destinations = [
-            os.path.join(working_dir, '%s.tar.gz' % f) for f in ['cool', 'beats']]
-        self.assertEqual(request_destinations, expected_destinations)
+        self.assertEqual(request_destinations, ['/some/dir/foo-1.2.0.tar.gz',
+                                                '/some/dir/foo-1.3.0.tar.gz'])
         requests_data = [r.data for r in requests]
-        self.assertEqual(requests_data, step._packages_to_download)
+        self.assertEqual(requests_data, step.get_local_units_step.units_to_download)
 
+    @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep._build_final_report',
                 autospec=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep.process_lifecycle',
                 autospec=True)
-    def test_sync(self, process_lifecycle, _build_final_report):
+    def test_sync(self, process_lifecycle, _build_final_report, mock_rebuild):
         """
         Ensure that sync() makes the correct calls.
         """
@@ -1040,3 +840,4 @@ class TestSyncStep(unittest.TestCase):
 
         process_lifecycle.assert_called_once_with(step)
         _build_final_report.assert_called_once_with(step)
+        mock_rebuild.assert_called_once_with(repo.repo_obj)
