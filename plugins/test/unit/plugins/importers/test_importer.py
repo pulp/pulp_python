@@ -165,8 +165,7 @@ class TestPythonImporter(unittest.TestCase):
 
         self.assertEqual(report, {'success_flag': True, 'summary': {}, 'details': {}})
         from_archive.assert_called_once_with(file_path)
-        package.save.assert_called_once_with()
-        package.import_content.assert_called_once_with(file_path)
+        package.save_and_import_content.assert_called_once_with(file_path)
         mock_associate.assert_called_once_with(repo.repo_obj, package)
 
     def test_validate_config(self):

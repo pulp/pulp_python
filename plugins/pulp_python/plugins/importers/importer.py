@@ -183,8 +183,7 @@ class PythonImporter(Importer):
         :rtype:           dict
         """
         package = models.Package.from_archive(file_path)
-        package.save()
-        package.import_content(file_path)
+        package.save_and_import_content(file_path)
         repo_controller.associate_single_unit(repo.repo_obj, package)
 
         return {'success_flag': True, 'summary': {}, 'details': {}}

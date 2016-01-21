@@ -145,8 +145,7 @@ class DownloadPackagesStep(publish_step.DownloadStep):
 
         package = models.Package.from_archive(report.destination)
         try:
-            package.save()
-            package.import_content(report.destination)
+            package.save_and_import_content(report.destination)
         except mongoengine.NotUniqueError:
             package = models.Package.objects.get(name=package.name, version=package.version)
 
