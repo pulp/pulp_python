@@ -595,8 +595,8 @@ class TestDownloadPackagesStep(unittest.TestCase):
         checksum.assert_called_once_with(report.destination, 'md5')
         # The from_archive method should have been given the destination
         from_archive.assert_called_once_with(report.destination)
-        from_archive.return_value.save.assert_called_once_with()
-        from_archive.return_value.import_content.assert_called_once_with(report.destination)
+        from_archive.return_value.save_and_import_content\
+            .assert_called_once_with(report.destination)
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                from_archive.return_value)
 
@@ -619,11 +619,11 @@ class TestDownloadPackagesStep(unittest.TestCase):
         package = from_archive.return_value
         package.name = 'foo'
         package.version = '1.0.0'
-        package.save.side_effect = mongoengine.NotUniqueError
+        package.save_and_import_content.side_effect = mongoengine.NotUniqueError
 
         step.download_succeeded(report)
 
-        package.save.assert_called_once_with()
+        package.save_and_import_content.assert_called()
         self.assertEqual(package.import_content.call_count, 0)
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                mock_objects.get.return_value)
