@@ -60,8 +60,6 @@ mkdir -p %{buildroot}/%{_var}/lib/pulp/published/python
 
 cp -R plugins/etc/httpd %{buildroot}/%{_sysconfdir}/
 
-# Remove tests
-rm -rf %{buildroot}/%{python_sitelib}/test
 
 %clean
 rm -rf %{buildroot}
