@@ -136,6 +136,98 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Thu Jan 28 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.1.alpha
+- Ensure file objects are cleaned up on error (pcreech@redhat.com)
+- converted to use mongoengine (mhrivnak@redhat.com)
+- Convert shebang to python2 (ipanova@redhat.com)
+- Merge branch '1.0-dev' (dkliban@redhat.com)
+- Adds fc23 to dist_list.txt config and removes fc21. (dkliban@redhat.com)
+- Merge branch 'pr/51' (ipanova@redhat.com)
+- 1349 - Handles repo.working_dir None (vjancik@redhat.com)
+- Merge branch '1.0-dev' (ipanova@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (ipanova@redhat.com)
+- Merge branch '1.0-release' into 1.0-testing (ipanova@redhat.com)
+- Adjusting documentation for the package_names config key.
+  (ipanova@redhat.com)
+- Limit Mock to <1.1 in test_requirement.txt. (rbarlow@redhat.com)
+- Don't test pulp_python against pypi in Travis. (rbarlow@redhat.com)
+- Ignore D104 in our pep257 checks. (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (ipanova@redhat.com)
+- Enable auto-publish by default. (ipanova@redhat.com)
+- Merge branch '1.0-dev' (ipanova@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (ipanova@redhat.com)
+- Removing shutil.move and copytree where /var/cache/pulp is involved
+  (ipanova@redhat.com)
+- Automatic commit of package [pulp-python] release [1.0.1-1]. (pulp-
+  infra@redhat.com)
+- Bumping version for 1.0.1 release (dkliban@redhat.com)
+- Automatic commit of package [pulp-python] release [1.0.1-0.2.rc]. (pulp-
+  infra@redhat.com)
+- Bumping version for 1.0.1 RC1 (dkliban@redhat.com)
+- Automatic commit of package [pulp-python] release [1.0.1-0.1.beta]. (pulp-
+  infra@redhat.com)
+- Bumping build number for 1.0.1 beta (dkliban@redhat.com)
+- Merge branch '1.0-dev' (dkliban@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (dkliban@redhat.com)
+- Removed fc20 from dist_list.txt (dkliban@redhat.com)
+- Merge branch '1.0-dev' (dkliban@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (dkliban@redhat.com)
+- Added fc22 to dist_list.txt (dkliban@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (rbarlow@redhat.com)
+- Add Graham Forest to the AUTHORS file. (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (rbarlow@redhat.com)
+- Add release notes for 1.0.1. (rbarlow@redhat.com)
+- Automatic commit of package [pulp-python] release [1.0.1-0.0.beta]. (pulp-
+  infra@redhat.com)
+- Set the version to 1.0.2-0.0.alpha. (rbarlow@redhat.com)
+- Set the version to 1.0.1-0.0.beta. (rbarlow@redhat.com)
+- Use the PKG-INFO file with the shortest path (graham@urbanairship.com)
+- Add DOS line ending support (graham@urbanairship.com)
+- Add nosexcover to test_requirements.txt. (rbarlow@redhat.com)
+- Merge pull request #40 from urbanairship/dos-line-ending-support
+  (rbarlow@redhat.com)
+- Modify test requirements. (rbarlow@redhat.com)
+- Use the PKG-INFO file with the shortest path (graham@urbanairship.com)
+- Add DOS line ending support (graham@urbanairship.com)
+- Bump the version requirement & the base version of pulp-python
+  (bcourt@redhat.com)
+- Rename .rst (ryan@ryanhiebert.com)
+- Fix import ordering (cduryee@redhat.com)
+- re-apply 2.7 specific changes (bcourt@redhat.com)
+- Update the .travis.yml & run-tests to maintain Pulp 2.6 Compatibility Fix
+  .travis.yaml to not use the --cover-min-percentage flag which is not
+  available in 2.6.0 Put back the line in the .travis.yaml to load okaara,
+  pymongo, and iniparse Add mongoengine to the .travis.yml file
+  (bcourt@redhat.com)
+- Merge branch '1.0-release' into 1.0-testing (bcourt@redhat.com)
+- Set the version to 1.0.0-1. (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (bmbouter@gmail.com)
+- Merge branch '1.0-testing' into 1.0-dev (bmbouter@gmail.com)
+- Adds exlinks references, and adds a Bugs release note for 1.0.0
+  (bmbouter@gmail.com)
+- Automatic commit of package [pulp-python] release [1.0.0-0.3.rc]. (pulp-
+  infra@redhat.com)
+- Merge remote-tracking branch 'origin/1.0-dev' (cduryee@redhat.com)
+- Merge remote-tracking branch 'origin/1.0-testing' into 1.0-dev
+  (cduryee@redhat.com)
+- Merge pull request #34 from rbarlow/rc2 (cduryee@redhat.com)
+- Set the version to 1.0.0-0.3.rc. (rbarlow@redhat.com)
+- Add an empty /etc/pulp/vhosts80/pulp_python.conf. (rbarlow@redhat.com)
+- Automatic commit of package [pulp-python] release [1.0.0-0.2.rc]. (pulp-
+  infra@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch 'rc' into 1.0-testing (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Set the version to 1.0.0-0.2.rc. (rbarlow@redhat.com)
+- Ensure that documented examples use correct package names.
+  (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+- Merge branch '1.0-dev' (rbarlow@redhat.com)
+
 * Tue Mar 24 2015 Randy Barlow <rbarlow@redhat.com> 1.0.0-0.1.beta
 - Added ability to synchronize with PyPI.
 
