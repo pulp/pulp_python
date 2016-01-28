@@ -14,7 +14,7 @@ BuildArch:      noarch
 BuildRequires:  python-setuptools
 
 # This is the minimum platform version we require to function.
-%define pulp_version 2.7
+%define pulp_version 2.8
 
 %description
 Provides a collection of platform plugins and client extensions support for Python packages.
@@ -59,7 +59,6 @@ popd
 mkdir -p %{buildroot}/%{_var}/lib/pulp/published/python
 
 cp -R plugins/etc/httpd %{buildroot}/%{_sysconfdir}/
-cp plugins/etc/pulp/vhosts80/pulp_python.conf %{buildroot}/%{_sysconfdir}/pulp/vhosts80/
 
 # Remove tests
 rm -rf %{buildroot}/%{python_sitelib}/test
@@ -106,7 +105,6 @@ to provide Python package support.
 %defattr(-,root,root,-)
 %{python_sitelib}/pulp_python/plugins/
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/pulp_python.conf
-%config(noreplace) %{_sysconfdir}/pulp/vhosts80/pulp_python.conf
 %{python_sitelib}/pulp_python_plugins*.egg-info
 
 %defattr(-,apache,apache,-)
