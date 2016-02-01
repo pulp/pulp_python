@@ -26,7 +26,6 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 LINKS = (
     ('plugins/etc/httpd/conf.d/pulp_python.conf', '/etc/httpd/conf.d/pulp_python.conf'),
-    ('plugins/etc/pulp/vhosts80/pulp_python.conf', '/etc/pulp/vhosts80/pulp_python.conf'),
     ('plugins/etc/pulp/server/plugins.conf.d/python_distributor.json',
      '/etc/pulp/server/plugins.conf.d/python_distributor.json'),
 )
