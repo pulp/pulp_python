@@ -48,12 +48,7 @@ class Package(FileContentUnit):
     meta = {
         'allow_inheritance': False,
         'collection': 'units_python_package',
-        'indexes': [
-            {
-                'fields': unit_key_fields,
-                'unique': True
-            },
-        ],
+        'indexes': [],
     }
 
     @classmethod
