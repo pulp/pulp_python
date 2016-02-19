@@ -132,6 +132,18 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Fri Feb 19 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.2.beta
+- This uniqueness contstraint is now enforced by the platform for all content
+  units. (dkliban@redhat.com)
+- Do not install plugin tests. (rbarlow@redhat.com)
+- Do not package tests. (rbarlow@redhat.com)
+- Fix broken http config (pcreech@redhat.com)
+- Merge branch 'rm_empty_conf' (rbarlow@redhat.com)
+- Merge branch 'rm_empty_errors' (rbarlow@redhat.com)
+- Bumping version to 1.1.0-0.2.beta (dkliban@redhat.com)
+- Now that #293 is fixed, we don't need this empty config. (rbarlow@redhat.com)
+- Remove an empty and unused errors.py. (rbarlow@redhat.com)
+
 * Thu Jan 28 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.1.alpha
 - Ensure file objects are cleaned up on error (pcreech@redhat.com)
 - converted to use mongoengine (mhrivnak@redhat.com)
