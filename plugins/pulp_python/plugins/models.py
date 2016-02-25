@@ -180,4 +180,4 @@ class Package(FileContentUnit):
         :return: A string representing self.
         :rtype:  basestring
         """
-        return 'Package(name={}, version={})'.format(self.name, self.version)
+        return 'Package(name={0}, version={1})'.format(self.name, self.version)
