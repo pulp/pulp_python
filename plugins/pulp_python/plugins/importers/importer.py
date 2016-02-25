@@ -3,6 +3,8 @@ from itertools import chain
 import shutil
 import tempfile
 
+from mongoengine import NotUniqueError
+
 from pulp.plugins.importer import Importer
 from pulp.server.controllers import repository as repo_controller
 
@@ -183,7 +185,11 @@ class PythonImporter(Importer):
         :rtype:           dict
         """
         package = models.Package.from_archive(file_path)
-        package.save_and_import_content(file_path)
+        try:
+            package.save_and_import_content(file_path)
+        except NotUniqueError:
+            package = package.__class__.objects.get(**package.unit_key)
+
         repo_controller.associate_single_unit(repo.repo_obj, package)
 
         return {'success_flag': True, 'summary': {}, 'details': {}}
