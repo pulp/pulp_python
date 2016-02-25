@@ -4,15 +4,17 @@ python:
   - "2.7"
 before_install:
   - "pushd .."
-  - "git clone https://github.com/pulp/pulp.git --branch 2.7-dev"
+  - "git clone https://github.com/pulp/pulp.git --branch master"
   - "git clone https://github.com/pulp/nectar.git"
   - "pushd nectar"
-  - "git checkout python-nectar-1.1.6-1"
+  - "git checkout python-nectar-1.4.5-1"
   - "popd"
   - "popd"
 install:
   # This is needed to build M2Crypto
   - "sudo apt-get install swig"
+  # Celery needs importlib for Python 2.6
+  - "pip install importlib"
   - "pip install -r test_requirements.txt"
   - "pushd .."
   - "python nectar/setup.py develop"
