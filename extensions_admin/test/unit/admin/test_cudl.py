@@ -12,6 +12,18 @@ from pulp_python.common import constants
 from pulp_python.extensions.admin import cudl
 
 
+class TestImporterConfigurationFlags(unittest.TestCase):
+    """
+    Assert that the importer config flags are correct.
+    """
+    def test_proxy(self):
+        """
+        We received a community pull request to turn proxy support on. This test ensures that it
+        stays on.
+        """
+        self.assertEqual(cudl.IMPORTER_CONFIGURATION_FLAGS['include_proxy'], True)
+
+
 class TestCreatePythonRepositoryCommand(unittest.TestCase):
     @mock.patch('pulp_python.extensions.admin.cudl.CreateAndConfigureRepositoryCommand.__init__')
     @mock.patch('pulp_python.extensions.admin.cudl.ImporterConfigMixin.__init__')
