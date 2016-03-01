@@ -2,25 +2,8 @@ language: python
 python:
   - "2.6"
   - "2.7"
-before_install:
-  - "pushd .."
-  - "git clone https://github.com/pulp/pulp.git --branch 2.7-dev"
-  - "git clone https://github.com/pulp/nectar.git"
-  - "pushd nectar"
-  - "git checkout python-nectar-1.1.6-1"
-  - "popd"
-  - "popd"
 install:
-  # This is needed to build M2Crypto
-  - "sudo apt-get install swig"
   - "pip install -r test_requirements.txt"
-  - "pushd .."
-  - "python nectar/setup.py develop"
-  - "pulp/manage_setup_pys.sh develop"
-  - "popd"
-  - "./manage_setup_pys.sh develop"
-  - "sudo mkdir -p /etc/pulp"
-  - "sudo touch /etc/pulp/server.conf"
 script:
-  - "./run-tests.py --enable-coverage --cover-min-percentage 100"
-after_success: coveralls
+  - "flake8 --import-order-style google --application-import-names pulp_python.common --config flake8.cfg ."
+  - "pep257 --ignore=D100,D103,D104,D200,D202,D203,D205,D400,D401,D402"
