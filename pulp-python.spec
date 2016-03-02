@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Wed Mar 02 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.3.beta
+- Bumping version to 1.1.0-0.3.beta (dkliban@redhat.com)
+
 * Fri Feb 19 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.2.beta
 - This uniqueness contstraint is now enforced by the platform for all content
   units. (dkliban@redhat.com)
