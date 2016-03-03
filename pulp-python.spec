@@ -132,6 +132,20 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
+- Merge branch 'master' into 1.1.0 (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
+- Configure Travis to only flake8 and pep257 the code. (rbarlow@redhat.com)
+- Merge branch 'test_proxy_true' (rbarlow@redhat.com)
+- Add a test to ensure that proxies are available for Python.
+  (rbarlow@redhat.com)
+- Merge pull request #66 from dkliban/check-unique-2 (dkliban@redhat.com)
+- Adds check for duplicate unit key (dkliban@redhat.com)
+- Use a Python 2.6 friendly string format syntax. (rbarlow@redhat.com)
+- Merge pull request #65 from seandst/413 (sean.myers@redhat.com)
+- Block attempts to load server.conf when running tests (sean.myers@redhat.com)
+- Enable proxy support in pulp_python by default (JohnsonAaron@JohnDeere.com)
+
 * Wed Mar 02 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.3.beta
 - Bumping version to 1.1.0-0.3.beta (dkliban@redhat.com)
 
