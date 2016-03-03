@@ -26,7 +26,7 @@ IMPORTER_CONFIGURATION_FLAGS = dict(
     include_ssl=False,
     include_sync=True,
     include_unit_policy=False,
-    include_proxy=False,
+    include_proxy=True,
     include_throttling=False
 )
 
