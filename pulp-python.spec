@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Fri Mar 04 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.5.beta
+- Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
+
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
 - Merge branch 'master' into 1.1.0 (dkliban@redhat.com)
 - Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
