@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue Mar 08 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.6.rc
+- Bumping version to 1.1.0-0.6.rc (dkliban@redhat.com)
+
 * Fri Mar 04 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.5.beta
 - Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
 
