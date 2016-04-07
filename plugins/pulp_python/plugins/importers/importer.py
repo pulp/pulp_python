@@ -184,15 +184,16 @@ class PythonImporter(Importer):
                             'details':      json-serializable object, providing details
         :rtype:           dict
         """
-        package = models.Package.from_archive(file_path)
         try:
+            package = models.Package.from_archive(file_path)
             package.save_and_import_content(file_path)
+            repo_controller.associate_single_unit(repo.repo_obj, package)
         except NotUniqueError:
             package = package.__class__.objects.get(**package.unit_key)
-
-        repo_controller.associate_single_unit(repo.repo_obj, package)
-
-        return {'success_flag': True, 'summary': {}, 'details': {}}
+            repo_controller.associate_single_unit(repo.repo_obj, package)
+        except Exception as e:
+            return {'success_flag': False, 'summary': e.message, 'details': {}}
+        return {'success_flag': True, 'summary': '', 'details': {}}
 
     def validate_config(self, repo, config):
         """
