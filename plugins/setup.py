@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='pulp_python_plugins',
-    version='1.1.1b1',
+    version='1.2.0b1',
     packages=find_packages(exclude=['test', 'test.*']),
     url='http://www.pulpproject.org',
     license='GPLv2+',
