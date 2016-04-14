@@ -142,32 +142,6 @@ class TestPythonImporter(unittest.TestCase):
         # And, of course, assert that the sync report was returned
         self.assertEqual(return_value, sync_report)
 
-    @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
-    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
-    @mock.patch('pulp_python.plugins.models.Package.from_archive')
-    def test_upload_unit(self, from_archive, mock_associate, mock_rebuild):
-        """
-        Assert correct operation of upload_unit().
-        """
-        package = from_archive.return_value
-
-        python_importer = importer.PythonImporter()
-        repo = mock.MagicMock()
-        type_id = constants.PACKAGE_TYPE_ID
-        unit_key = {}
-        metadata = {}
-        file_path = '/some/path/1234'
-        conduit = mock.MagicMock()
-        config = {}
-
-        report = python_importer.upload_unit(repo, type_id, unit_key, metadata, file_path, conduit,
-                                             config)
-
-        self.assertEqual(report, {'success_flag': True, 'summary': {}, 'details': {}})
-        from_archive.assert_called_once_with(file_path)
-        package.save_and_import_content.assert_called_once_with(file_path)
-        mock_associate.assert_called_once_with(repo.repo_obj, package)
-
     def test_validate_config(self):
         """
         There is no config, so we'll just assert that validation passes.
@@ -178,3 +152,47 @@ class TestPythonImporter(unittest.TestCase):
 
         expected_value = (True, '')
         self.assertEqual(return_value, expected_value)
+
+
+class TestUploadUnit(unittest.TestCase):
+    """
+    Assert correct operation of upload_unit().
+    """
+    def setUp(self):
+        super(TestUploadUnit, self).setUp()
+        self.repo = mock.MagicMock()
+        self.type_id = constants.PACKAGE_TYPE_ID
+        self.unit_key = {}
+        self.metadata = {}
+        self.file_path = '/some/path/1234'
+        self.conduit = mock.MagicMock()
+        self.config = {}
+
+    @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
+    @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
+    @mock.patch('pulp_python.plugins.models.Package.from_archive')
+    def test_upload_unit(self, from_archive, mock_associate, mock_rebuild):
+        """
+        Assert upload_unit() works correctly and reports a success.
+        """
+        package = from_archive.return_value
+        python_importer = importer.PythonImporter()
+        report = python_importer.upload_unit(self.repo, self.type_id, self.unit_key, self.metadata,
+                                             self.file_path, self.conduit, self.config)
+        from_archive.assert_called_once_with(self.file_path)
+        package.save_and_import_content.assert_called_once_with(self.file_path)
+        mock_associate.assert_called_once_with(self.repo.repo_obj, package)
+        self.assertTrue(report['success_flag'])
+
+    @mock.patch('pulp_python.plugins.models.Package.from_archive')
+    def test_upload_unit_failure(self, from_archive):
+        """
+        Assert that upload_unit() reports failure.
+        """
+        expected_msg = 'upload failure message'
+        from_archive.side_effect = Exception(expected_msg)
+        python_importer = importer.PythonImporter()
+        report = python_importer.upload_unit(self.repo, self.type_id, self.unit_key, self.metadata,
+                                             self.file_path, self.conduit, self.config)
+        self.assertFalse(report['success_flag'])
+        self.assertEqual(report['summary'], expected_msg)
