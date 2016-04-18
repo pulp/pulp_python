@@ -19,6 +19,9 @@ setup(
         'pulp.distributors': [
             'distributor = pulp_python.plugins.distributors.web:entry_point'
         ],
+        'pulp.server.db.migrations': [
+            'pulp_python = pulp_python.plugins.migrations',
+        ],
         'pulp.unit_models': [
             'python_package = pulp_python.plugins.models:Package',
         ],
