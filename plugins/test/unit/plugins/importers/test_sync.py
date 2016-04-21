@@ -599,6 +599,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         from_archive.assert_called_once_with(report.destination)
         from_archive.return_value.set_storage_path.assert_called_once_with(
             os.path.basename(report.destination))
+        from_archive.return_value.save.assert_called_once_with()
         from_archive.return_value.import_content.assert_called_once_with(report.destination)
         from_archive.return_value.save.assert_called_once_with()
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
@@ -629,7 +630,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         step.download_succeeded(report)
 
         package.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
-        package.import_content.assert_called_once_with(report.destination)
+        mock_objects.get.return_value.import_content.assert_called_once_with(report.destination)
         package.save.assert_called_once_with()
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                mock_objects.get.return_value)

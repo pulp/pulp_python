@@ -145,15 +145,14 @@ class DownloadPackagesStep(publish_step.DownloadStep):
 
         package = models.Package.from_archive(report.destination)
         package.set_storage_path(os.path.basename(report.destination))
-        package.import_content(report.destination)
 
         try:
             package.save()
         except mongoengine.NotUniqueError:
             package = models.Package.objects.get(name=package.name, version=package.version)
 
+        package.import_content(report.destination)
         repo_controller.associate_single_unit(self.get_repo().repo_obj, package)
-
         super(DownloadPackagesStep, self).download_succeeded(report)
 
 
