@@ -132,6 +132,14 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Mon Apr 25 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.1.beta
+- Fix upload. closes #1855 (jortel@redhat.com)
+- standard storage path migration. closes #1819 (jortel@redhat.com)
+- Fix return value of upload_unit() to be consistent with plugin API
+  (ttereshc@redhat.com)
+- Bumping version to 1.1.1-0.1.beta (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
+
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
 - Merge branch 'master' into 1.1.0 (dkliban@redhat.com)
 - Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
