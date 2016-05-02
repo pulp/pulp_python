@@ -1,6 +1,15 @@
 1.1 Release Notes
 =================
 
+1.1.1
+-----
+
+Migrations will need to be run as part of the upgrade to this release.
+This procedure is documented below in the 1.1.0 release notes.
+
+This release contains minor bugfixes. See the :fixedbugs:`1.1.1`.
+
+
 1.1.0
 -----
 
