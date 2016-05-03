@@ -132,6 +132,10 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue May 03 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.2.beta
+- Migrations need to be run when upgrading to 1.1.1 (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.2.beta (sean.myers@redhat.com)
+
 * Mon Apr 25 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.1.beta
 - Fix upload. closes #1855 (jortel@redhat.com)
 - standard storage path migration. closes #1819 (jortel@redhat.com)
