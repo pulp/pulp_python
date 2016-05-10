@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue May 10 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.3.rc
+- Bumping version to 1.1.1-0.3.rc (sean.myers@redhat.com)
+
 * Tue May 03 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.2.beta
 - Migrations need to be run when upgrading to 1.1.1 (sean.myers@redhat.com)
 - Bumping version to 1.1.1-0.2.beta (sean.myers@redhat.com)
