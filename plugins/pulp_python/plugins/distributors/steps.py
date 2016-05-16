@@ -184,13 +184,13 @@ def _get_packages(repo_id):
     :rtype:         dict
     """
     packages = {}
-    fields = ('version', '_filename', '_checksum', '_checksum_type', 'name', '_storage_path')
+    fields = ('version', 'filename', '_checksum', '_checksum_type', 'name', '_storage_path')
     unit_querysets = repo_controller.get_unit_model_querysets(repo_id, models.Package)
     unit_querysets = (q.only(*fields) for q in unit_querysets)
     for p in itertools.chain(*unit_querysets):
         packages.setdefault(p.name, []).append(
             {'version': p.version,
-             'filename': p._filename,
+             'filename': p.filename,
              'checksum': p._checksum,
              'checksum_type': p._checksum_type,
              'storage_path': p.storage_path})

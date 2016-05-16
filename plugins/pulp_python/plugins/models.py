@@ -41,24 +41,33 @@ class Package(FileContentUnit):
     (author, summary). By keeping the scope of the metadata as small as is reasonable, we have less
     complexity and reduced risk of innacuracy.
 
+    :ivar author: primary author of the package
+    :type author: basestring
+    :ivar filename: name of the file containing the package and metadata
+    :type filename: basestring
+    :ivar md5_digest: md5 checksum provided by PyPI to ensure we got the correct bits
+    :type md5_digest: basestring
     :ivar name: name of the project, ex. scipy
     :type name: basestring
+    :ivar packagetype: format of python package, ex bdist_wheel, sdist
+    :type packagetype: basestring
+    :ivar url: url that the package can be downloaded from
+    :type url: basestring
     :ivar version: Contains the distribution's version number. This field must be in the format
                    specified in PEP 386.
     :type version: basestring
-    :ivar filename: name of the file containing the package and metadata
-    :type filename: basestring
-    :ivar author: primary author of the package
-    :type author: basesetring
     :ivar summary: one line summary of what the package does
     :type summary: basestring
     """
 
-    name = StringField(required=True)
-    version = StringField(required=True)
-    filename = StringField(required=True)
     author = StringField()
+    filename = StringField(required=True)
+    md5_digest = StringField()
+    name = StringField(required=True)
+    packagetype = StringField()
     summary = StringField()
+    url = StringField()
+    version = StringField(required=True)
 
     _checksum = StringField()
     _checksum_type = StringField(default=DEFAULT_CHECKSUM_TYPE)
@@ -92,7 +101,11 @@ class Package(FileContentUnit):
         """
         package_attrs = {}
         package_attrs['filename'] = package_data['filename']
+        package_attrs['url'] = package_data['url']
         package_attrs['name'] = project_data['name']
+        package_attrs['packagetype'] = package_data['packagetype']
+        package_attrs['md5_digest'] = package_attrs['_checksum'] = package_data['md5_digest']
+        package_attrs['_checksum_type'] = "md5"
         package_attrs['version'] = release
         package_attrs['author'] = project_data['author']
         package_attrs['summary'] = project_data['summary']
