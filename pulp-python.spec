@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Mon May 16 2016 pulpbot <pulp-infra@redhat.com> 1.1.1-0.4.rc
+- Bumping version to 1.1.1-0.4.rc (pulp-infra@redhat.com)
+
 * Tue May 10 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.3.rc
 - Bumping version to 1.1.1-0.3.rc (sean.myers@redhat.com)
 
