@@ -454,10 +454,13 @@ class TestDownloadMetadataStep(unittest.TestCase):
     """
 
     def test_generate_download_requests(self):
+        """
+        Ensure that requests for metadata are correctly constructed.
+        """
         step = sync.DownloadMetadataStep('sync_step_download_metadata')
         step.parent = mock.MagicMock()
         step.parent._feed_url = 'http://pulpproject.org/'
-        step.parent._package_names = ['foo']
+        step.parent._project_names = ['foo']
 
         requests = list(step.generate_download_requests())
 
@@ -467,10 +470,13 @@ class TestDownloadMetadataStep(unittest.TestCase):
         self.assertEqual(type(request.destination), type(StringIO()))
 
     def test_generate_download_requests_canceled(self):
+        """
+        Ensure that download requests are not generated if the sync has been canceled.
+        """
         step = sync.DownloadMetadataStep('sync_step_download_metadata')
         step.parent = mock.MagicMock()
         step.parent._feed_url = 'http://pulpproject.org/'
-        step.parent._package_names = ['foo']
+        step.parent._project_names = ['foo']
         step.canceled = True
 
         requests = list(step.generate_download_requests())
@@ -480,8 +486,7 @@ class TestDownloadMetadataStep(unittest.TestCase):
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_failed')
     def test_download_failed(self, super_download_failed):
         """
-        Ensure that the download_failed() method closes the destination file and calls the
-        superclass handler.
+        Ensure that download_failed() closes the destination file and calls the superclass handler.
         """
         report = mock.MagicMock()
         step = sync.DownloadMetadataStep('sync_step_download_metadata')
@@ -491,11 +496,11 @@ class TestDownloadMetadataStep(unittest.TestCase):
         report.destination.close.assert_called_once_with()
         super_download_failed.assert_called_once_with(report)
 
-    @mock.patch('pulp_python.plugins.importers.sync.DownloadMetadataStep._process_manifest')
+    @mock.patch('pulp_python.plugins.importers.sync.DownloadMetadataStep._process_metadata')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    def test_download_succeeded(self, super_download_succeeded, _process_manifest):
+    def test_download_succeeded(self, super_download_succeeded, _process_metadata):
         """
-        Ensure the download_succeeded() method properly handles the downloaded metadata.
+        Ensure that download_succeeded() properly handles the downloaded metadata.
         """
         report = mock.MagicMock()
         step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
@@ -507,51 +512,36 @@ class TestDownloadMetadataStep(unittest.TestCase):
 
         report.destination.close.assert_called_once_with()
         super_download_succeeded.assert_called_once_with(report)
-        _process_manifest.assert_called_once_with(NUMPY_MANIFEST)
+        _process_metadata.assert_called_once_with(NUMPY_MANIFEST)
 
-    def test__process_manifest_ignores_bdist_and_wheel(self):
-        """
-        Ensure that _process_manifest() downloads versions that we are missing in Pulp. This test
-        also ensures that we do not download bdist or wheel archives, and that their presence in the
-        metadata does not cause any issues for the importer by using a manifest that does contain
-        those types of archives. Support for those archive types may be added at a later date.
-        """
+    ''' TODO (asmacdo) uncomment after upload
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_json')
+    def test__process_metadata(self, mock_from_json):
         step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
-        step.parent.available_units = []
-
-        step._process_manifest(NUMPY_MANIFEST)
-
-        # It should have marked all tarball packages for download. These are the checksums for only
-        # the non-bdist and non-wheel packages.
-        expected_checksums = set([
-            '2a4b0423a758706d592abb6721ec8dcd',
-            'be95babe263bfa3428363d6db5b64678',
-            'cdd1a0d14419d8a8253400d8ca8cba42',
-            '510cee1c6a131e0a9eb759aa2cc62609',
-            '78842b73560ec378142665e712ae4ad9'
-        ])
-        available_unit_checksums = set(u._checksum for u in step.parent.available_units)
-        self.assertEqual(available_unit_checksums, expected_checksums)
+        step._process_metadata(NUMPY_MANIFEST)
+        import ipdb
+        ipdb.set_trace()
+        self.assertEqual(mock_from_json.call_count, 27)
+    '''
 
 
 class TestDownloadPackagesStep(unittest.TestCase):
     """
     This class tests the DownloadPackagesStep class.
     """
-    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
     def test_download_succeeded_checksum_bad(self, super_download_succeeded,
-                                             download_failed, checksum, mock_from_archive):
+                                             download_failed, checksum):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is
         incorrect.
         """
         report = mock.MagicMock()
-        report.data = models.Package(name='foo', version='1.0.0', _checksum='expected checksum',
-                                     _checksum_type='md5')
+        report.data._checksum = 'expected checksum'
+        report.data._checksum_type = 'md5'
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         checksum.return_value = 'bad checksum'
 
@@ -568,23 +558,22 @@ class TestDownloadPackagesStep(unittest.TestCase):
         download_failed.assert_called_once_with(report)
         # Make sure the checksum was calculated with the correct data
         checksum.assert_called_once_with(report.destination, 'md5')
-        # from_archive should not have been called since the download failed
-        self.assertEqual(mock_from_archive.call_count, 0)
+        # The unit should not have been saved since the download failed
+        self.assertEqual(report.data.save.call_count, 0)
 
     @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
-    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.download_failed')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
     def test_download_succeeded_checksum_good(self, super_download_succeeded, download_failed,
-                                              from_archive, checksum, mock_associate):
+                                              checksum, mock_associate):
         """
         Test the download_succeeded() method when the checksum of the downloaded package is correct.
         """
         report = mock.MagicMock()
         report.destination = '/tmp/foo.tar.gz'
-        report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
-                                     _checksum_type='md5')
+        report.data._checksum = 'good checksum'
+        report.data._checksum_type = 'md5'
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
         checksum.return_value = 'good checksum'
@@ -595,46 +584,40 @@ class TestDownloadPackagesStep(unittest.TestCase):
         self.assertEqual(download_failed.call_count, 0)
         # Make sure the checksum was calculated with the correct data
         checksum.assert_called_once_with(report.destination, 'md5')
-        # The from_archive method should have been given the destination
-        from_archive.assert_called_once_with(report.destination)
-        from_archive.return_value.set_storage_path.assert_called_once_with(
-            os.path.basename(report.destination))
-        from_archive.return_value.save.assert_called_once_with()
-        from_archive.return_value.import_content.assert_called_once_with(report.destination)
-        from_archive.return_value.save.assert_called_once_with()
+        report.data.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
+        report.data.save.assert_called_once_with()
+        report.data.import_content.assert_called_once_with(report.destination)
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
-                                               from_archive.return_value)
+                                               report.data)
 
     @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.checksum')
-    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_archive')
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.objects')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
     def test_download_succeeded_not_unique(self, super_download_succeeded, mock_objects,
-                                           from_archive, checksum, mock_associate):
+                                           checksum, mock_associate):
         """
-        Test the download_succeeded() method when the checksum of the downloaded package is correct.
+        Test download_succeeded when the checksum is correct, but the unit already exists.
         """
         report = mock.MagicMock()
         report.destination = '/tmp/foo.tar.gz'
-        report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
-                                     _checksum_type='md5')
+        report.data.name = 'foo'
+        report.data.version = '1.0.0'
+        report.data._checksum = 'good checksum'
+        report.data._checksum_type = 'md5'
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
         checksum.return_value = 'good checksum'
-        package = from_archive.return_value
-        package.name = 'foo'
-        package.version = '1.0.0'
-        package.save.side_effect = mongoengine.NotUniqueError
+        report.data.save.side_effect = mongoengine.NotUniqueError
 
         step.download_succeeded(report)
 
-        package.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
+        report.data.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
         mock_objects.get.return_value.import_content.assert_called_once_with(report.destination)
-        package.save.assert_called_once_with()
+        report.data.save.assert_called_once_with()
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                mock_objects.get.return_value)
-        mock_objects.get.assert_called_once_with(name='foo', version='1.0.0')
+        mock_objects.get.assert_called_once_with(filename=report.data.filename)
 
 
 class TestSyncStep(unittest.TestCase):
@@ -678,9 +661,8 @@ class TestSyncStep(unittest.TestCase):
         self.assertEqual(step.description, _('Synchronizing cool_repo repository.'))
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
-        self.assertEqual(step._package_names, [])
+        self.assertEqual(step._project_names, [])
         self.assertEqual(step.available_units, [])
-        self.assertEqual(step.unit_urls, {})
         # Three child steps should have been added
         self.assertEqual(len(step.children), 3)
         self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
@@ -730,9 +712,8 @@ class TestSyncStep(unittest.TestCase):
         self.assertEqual(step.description, _('Synchronizing cool_repo repository.'))
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
-        self.assertEqual(step._package_names, ['numpy'])
+        self.assertEqual(step._project_names, ['numpy'])
         self.assertEqual(step.available_units, [])
-        self.assertEqual(step.unit_urls, {})
         # Three child steps should have been added
         self.assertEqual(len(step.children), 3)
         self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
@@ -782,9 +763,8 @@ class TestSyncStep(unittest.TestCase):
         self.assertEqual(step.description, _('Synchronizing cool_repo repository.'))
         # Assert that the feed url and packages names are correct
         self.assertEqual(step._feed_url, 'http://example.com/')
-        self.assertEqual(step._package_names, ['numpy', 'scipy', 'django'])
+        self.assertEqual(step._project_names, ['numpy', 'scipy', 'django'])
         self.assertEqual(step.available_units, [])
-        self.assertEqual(step.unit_urls, {})
         # Three child steps should have been added
         self.assertEqual(len(step.children), 3)
         self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
@@ -806,10 +786,9 @@ class TestSyncStep(unittest.TestCase):
         config = mock.MagicMock()
         working_dir = '/some/dir'
         step = sync.SyncStep(repo, conduit, config, working_dir)
-        u1 = models.Package(name='foo', version='1.2.0')
-        u2 = models.Package(name='foo', version='1.3.0')
+        u1 = models.Package(name='foo', version='1.2.0', url='url/1.2.tar.gz')
+        u2 = models.Package(name='foo', version='1.3.0', url='url/1.3.tar.gz')
         step.get_local_units_step.units_to_download.extend([u1, u2])
-        step.unit_urls.update({u1: 'http://u1/foo-1.2.0.tar.gz', u2: 'http://u2/foo-1.3.0.tar.gz'})
 
         requests = step.generate_download_requests()
 
@@ -818,13 +797,11 @@ class TestSyncStep(unittest.TestCase):
         requests = list(requests)
         self.assertEqual(len(requests), 2)
         request_urls = [r.url for r in requests]
-        self.assertEqual(
-            request_urls,
-            ['http://u1/foo-1.2.0.tar.gz', 'http://u2/foo-1.3.0.tar.gz'])
-        # The destinations should both have been paths
+        self.assertEqual(request_urls, ['url/1.2.tar.gz', 'url/1.3.tar.gz'])
+
+        # The destinations should both have been paths constructed from the filename
         request_destinations = [r.destination for r in requests]
-        self.assertEqual(request_destinations, ['/some/dir/foo-1.2.0.tar.gz',
-                                                '/some/dir/foo-1.3.0.tar.gz'])
+        self.assertEqual(request_destinations, ['/some/dir/1.2.tar.gz', '/some/dir/1.3.tar.gz'])
         requests_data = [r.data for r in requests]
         self.assertEqual(requests_data, step.get_local_units_step.units_to_download)
 

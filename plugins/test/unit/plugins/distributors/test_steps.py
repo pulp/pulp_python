@@ -14,14 +14,14 @@ from pulp_python.plugins.distributors import steps
 
 
 _PACKAGES = [
-    models.Package(name='nectar', version='1.2.0', _filename='nectar-1.2.0.tar.gz',
+    models.Package(name='nectar', version='1.2.0', filename='nectar-1.2.0.tar.gz',
                    _checksum='abcde', _checksum_type='made_up',
                    _storage_path='/path/to/nectar-1.2.0.tar.gz'),
-    models.Package(name='nectar', version='1.3.1', _filename='nectar-1.3.1.tar.gz',
+    models.Package(name='nectar', version='1.3.1', filename='nectar-1.3.1.tar.gz',
                    _checksum='fghij', _checksum_type='made_up',
                    _storage_path='/path/to/nectar-1.3.1.tar.gz'),
     models.Package(name='pulp_python_plugins', version='0.0.0',
-                   _filename='pulp_python_plugins-0.0.0.tar.gz',
+                   filename='pulp_python_plugins-0.0.0.tar.gz',
                    _checksum='klmno', _checksum_type='made_up',
                    _storage_path='/path/to/pulp_python_plugins-0.0.0.tar.gz'),
 ]
@@ -110,7 +110,7 @@ class TestPublishContentStep(unittest.TestCase):
         pulp_exists_calls = [c for c in exists.mock_calls if 'locale' not in c[1][0]]
         self.assertEqual(len(pulp_exists_calls), 3)
         expected_symlink_args = [
-            (u.storage_path, steps._get_package_path(u.name, u._filename))
+            (u.storage_path, steps._get_package_path(u.name, u.filename))
             for u in _PACKAGES]
         expected_symlink_args = [(a[0], os.path.join(step.parent.web_working_dir, a[1]))
                                  for a in expected_symlink_args]

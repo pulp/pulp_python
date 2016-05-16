@@ -78,7 +78,8 @@ class TestPackage(unittest.TestCase):
         """
         Test that the data needed to instantiate a package comes from the right part of the JSON.
         """
-        mock_pkg_attrs = {'filename': "m_file"}
+        mock_pkg_attrs = {'filename': "m_file", "url": "earl", "packagetype": "mocktype",
+                          'md5_digest': 'fleventyfive'}
         mock_release = "1.0.2"
         mock_dist_data = {"author": "me", "name": "test", "summary": "does stuff"}
         package = models.Package.from_json(mock_pkg_attrs, mock_release, mock_dist_data)
