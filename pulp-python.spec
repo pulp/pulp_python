@@ -2,7 +2,7 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 Name: pulp-python
-Version: 1.1.0
+Version: 1.1.1
 Release: 1%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
