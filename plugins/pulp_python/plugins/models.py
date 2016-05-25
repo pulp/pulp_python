@@ -2,13 +2,13 @@ import hashlib
 
 from mongoengine import StringField
 from pulp.server.db.model import FileContentUnit
-import twine  # noqa
+from twine.package import PackageFile  # noqa
 
 from pulp_python.common import constants
 
 
 DEFAULT_CHECKSUM_TYPE = 'sha512'
-REQUIRED_ATTRS = ('name', 'version', 'author', 'summary')
+PACKAGE_ATTRS = ('author', 'name', 'packagetype', 'summary', 'url', 'version')
 
 
 class Package(FileContentUnit):
@@ -112,7 +112,7 @@ class Package(FileContentUnit):
         return cls(**package_attrs)
 
     @classmethod
-    def from_file(cls, path):
+    def from_archive(cls, path):
         """
         Create and return (but do not save) an instance of a python package object from the package
         itself.
@@ -125,12 +125,13 @@ class Package(FileContentUnit):
         :return: instance of a package
         :rtype:  pulp_python.plugins.models.Package
         """
-
-        meta_dict = twine.package.PackageFile.from_filename(path, comment='').metadata_dictionary()
+        meta_dict = PackageFile.from_filename(path, comment='').metadata_dictionary()
         filtered_dict = {}
+        # Use only a subset of the attributes in the metadata to keep package minimal.
         for key, value in meta_dict.iteritems():
-            if key in REQUIRED_ATTRS:
+            if key in PACKAGE_ATTRS:
                 filtered_dict[key] = value
+        filtered_dict['filename'] = path.split('/')[-1]
         return cls(**filtered_dict)
 
     @staticmethod

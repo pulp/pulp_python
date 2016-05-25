@@ -21,16 +21,21 @@ class UploadPackageCommand(upload.UploadCommand):
         """
         return constants.PACKAGE_TYPE_ID
 
-    def generate_unit_key(self, *args, **kwargs):
+    def generate_unit_key(self, filename, *args, **kwargs):
         """
-        We don't need to generate the unit key client-side, but the superclass requires us to define
-        this method. It returns the empty dictionary.
+        Generates the unit key for a Python unit, which is the filename.
 
-        :param args:   Unused
-        :type  args:   list
-        :param kwargs: Unused
-        :type  kwargs: dict
-        :return:       An empty dictionary
-        :rtype:        dict
+        Unfortunately, what is passed in as "filename" here is actually a relative path to the
+        file, not just the filename. I have chosen to leave the argument named as it is because
+        this function is implementing behavior defined in core, and the variable name is set there.
+
+        :param filename: path to the file which is being uploaded
+        :type  filename: basestring
+        :param args:     Unused
+        :type  args:     list
+        :param kwargs:   Unused
+        :type  kwargs:   dict
+        :return:         An empty dictionary
+        :rtype:          dict
         """
-        return {}
+        return {"filename": filename.split('/')[-1]}

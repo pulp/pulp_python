@@ -26,10 +26,20 @@ class TestUploadPackageCommand(unittest.TestCase):
 
     def test_generate_unit_key(self):
         """
-        Assert that generate_unit_key() returns the empty dictionary.
+        Assert that generate_unit_key() returns the filename.
         """
         command = upload.UploadPackageCommand(mock.MagicMock())
 
         key = command.generate_unit_key('some', 'args', and_some='kwargs')
 
-        self.assertEqual(key, {})
+        self.assertEqual(key, {'filename': 'some'})
+
+    def test_generate_unit_key_with_path(self):
+        """
+        Assert that generate_unit_key() returns the filename, even when it is passed a path.
+        """
+        command = upload.UploadPackageCommand(mock.MagicMock())
+
+        key = command.generate_unit_key('path/mock_file', 'args', and_some='kwargs')
+
+        self.assertEqual(key, {'filename': 'mock_file'})
