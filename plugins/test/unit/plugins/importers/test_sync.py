@@ -514,16 +514,13 @@ class TestDownloadMetadataStep(unittest.TestCase):
         super_download_succeeded.assert_called_once_with(report)
         _process_metadata.assert_called_once_with(NUMPY_MANIFEST)
 
-    ''' TODO (asmacdo) uncomment after upload
     @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_json')
     def test__process_metadata(self, mock_from_json):
         step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
         step._process_metadata(NUMPY_MANIFEST)
-        import ipdb
-        ipdb.set_trace()
-        self.assertEqual(mock_from_json.call_count, 27)
-    '''
+        # 1.9.1 has 5 units, 1.9.0 has 5, 1.8.0 has 2, 1.8.1 has 5, 1.8.2 has 5. Total should be 22.
+        self.assertEqual(mock_from_json.call_count, 22)
 
 
 class TestDownloadPackagesStep(unittest.TestCase):

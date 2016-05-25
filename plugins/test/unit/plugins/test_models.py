@@ -88,14 +88,14 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package.author, 'me')
         self.assertEqual(package.summary, 'does stuff')
 
-    @mock.patch('pulp_python.plugins.models.twine')
+    @mock.patch('pulp_python.plugins.models.PackageFile')
     def test_from_file(self, m_twine):
         """
         Ensure that before init, metadata from twine is filtered leaving only required fields.
         """
-        twine_to_dict = m_twine.package.PackageFile.from_filename.return_value.metadata_dictionary
+        twine_to_dict = m_twine.from_filename.return_value.metadata_dictionary
         twine_to_dict.return_value = {'name': 'necessary', 'extra_field': 'do not include'}
-        package = models.Package.from_file('mock_path')
+        package = models.Package.from_archive('mock_path')
         self.assertEqual(package.name, 'necessary')
         self.assertFalse(hasattr(package, 'extra_field'))
 

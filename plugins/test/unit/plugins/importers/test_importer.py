@@ -162,32 +162,34 @@ class TestUploadUnit(unittest.TestCase):
         super(TestUploadUnit, self).setUp()
         self.repo = mock.MagicMock()
         self.type_id = constants.PACKAGE_TYPE_ID
-        self.unit_key = {}
+        self.unit_key = {'filename': '1234'}
         self.metadata = {}
         self.file_path = '/some/path/1234'
         self.conduit = mock.MagicMock()
         self.config = {}
 
-'''
-TODO (asmacdo) upload units!
+    @mock.patch('pulp_python.plugins.importers.importer.os')
     @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
     @mock.patch('pulp.server.controllers.repository.associate_single_unit', spec_set=True)
     @mock.patch('pulp_python.plugins.models.Package.from_archive')
-    def test_upload_unit(self, from_archive, mock_associate, mock_rebuild):
+    def test_upload_unit(self, from_archive, mock_associate, mock_rebuild, mock_os):
         """
         Assert upload_unit() works correctly and reports a success.
         """
+        working_dir = mock_os.path.dirname.return_value
         package = from_archive.return_value
         python_importer = importer.PythonImporter()
         report = python_importer.upload_unit(self.repo, self.type_id, self.unit_key, self.metadata,
                                              self.file_path, self.conduit, self.config)
-        from_archive.assert_called_once_with(self.file_path)
-        package.save_and_import_content.assert_called_once_with(self.file_path)
+        mock_os.path.join.assert_called_once_with(working_dir, self.unit_key['filename'])
+        from_archive.assert_called_once_with(mock_os.path.join.return_value)
+        package.save_and_import_content.assert_called_once_with(mock_os.path.join.return_value)
         mock_associate.assert_called_once_with(self.repo.repo_obj, package)
         self.assertTrue(report['success_flag'])
 
+    @mock.patch('pulp_python.plugins.importers.importer.os')
     @mock.patch('pulp_python.plugins.models.Package.from_archive')
-    def test_upload_unit_failure(self, from_archive):
+    def test_upload_unit_failure(self, from_archive, mock_os):
         """
         Assert that upload_unit() reports failure.
         """
@@ -198,4 +200,3 @@ TODO (asmacdo) upload units!
                                              self.file_path, self.conduit, self.config)
         self.assertFalse(report['success_flag'])
         self.assertEqual(report['summary'], expected_msg)
-'''
