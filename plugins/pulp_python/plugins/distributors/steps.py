@@ -1,9 +1,12 @@
+import collections
 from gettext import gettext as _
 import itertools
+import json
 import logging
 import os
 from xml.etree import cElementTree as ElementTree
 
+import pkg_resources
 from pulp.plugins.util.publish_step import AtomicDirectoryPublishStep, PluginStep
 from pulp.server.controllers import repository as repo_controller
 
@@ -33,7 +36,7 @@ class PublishContentStep(PluginStep):
         """
         Publish all the python files themselves by creating the symlinks to the storage paths.
         """
-        for name, packages in _get_packages(self.get_conduit().repo_id).items():
+        for name, packages in _get_projects(self.get_conduit().repo_id).items():
             for package in packages:
                 relative_path = _get_package_path(name, package['filename'])
                 symlink_path = os.path.join(self.parent.web_working_dir, relative_path)
@@ -62,10 +65,11 @@ class PublishMetadataStep(PluginStep):
         """
         # Make the simple/ directory and put the correct index.html in it
         simple_path = os.path.join(self.parent.web_working_dir, 'simple')
+        api_path = os.path.join(self.parent.web_working_dir, 'pypi')
         os.makedirs(simple_path)
         simple_index_path = os.path.join(simple_path, 'index.html')
 
-        packages = _get_packages(self.get_conduit().repo_id)
+        projects = _get_projects(self.get_conduit().repo_id)
 
         with open(simple_index_path, 'w') as index:
             html = ElementTree.Element('html')
@@ -76,13 +80,21 @@ class PublishMetadataStep(PluginStep):
             body = ElementTree.SubElement(html, 'body')
             # For each package, we need to make a reference in index.html and also make a directory
             # with its own index.html for the package
-            for name, packages in packages.items():
+            for name, packages in projects.items():
                 element = ElementTree.SubElement(body, 'a', {'href': name})
                 element.text = name
                 ElementTree.SubElement(body, 'br')
                 PublishMetadataStep._create_package_index(name, simple_path, packages)
 
             index.write(ElementTree.tostring(html, 'utf8'))
+
+        for name, packages in projects.items():
+            project_metadata_path = os.path.join(api_path, name, 'json')
+            os.makedirs(project_metadata_path)
+            project_index_metadata_path = os.path.join(project_metadata_path, 'index.html')
+            with open(project_index_metadata_path, 'w') as meta_json:
+                data = PublishMetadataStep._create_metadata(name, packages)
+                meta_json.write(json.dumps(data))
 
     @staticmethod
     def _create_package_index(name, simple_path, packages):
@@ -120,6 +132,55 @@ class PublishMetadataStep(PluginStep):
                 ElementTree.SubElement(body, 'br')
 
             package_index.write(ElementTree.tostring(html, 'utf8'))
+
+    @staticmethod
+    def _create_metadata(name, packages):
+        """
+        Generate json metadata for the project and its packages.
+
+        The structure of the data is designed to mimic the json api of PyPI. The data will be
+        for a single Python project (eg. SciPy). The inner dictionary 'info' specifies details of
+        the project that should be applicable for all packages. The inner dictionary 'releases'
+        contains keys for each version and the value is a list of dictionaries, each representing
+        the metadata for a single package of that version.
+
+        More information on the PyPI API can be found here: https://wiki.python.org/moin/PyPIJSON
+
+        :param name: Name of the project
+        :type  name: basestring
+        :param packages: metadata for each package of the project
+        :type  packages: list of dicts
+        :return: metadata for all packages of the project
+        :rtype:  dict
+        """
+        info = {'name': name}
+        releases = collections.defaultdict(list)
+        # For all versions, version > None is True
+        latest_version = None
+
+        for package in packages:
+
+            # info dict applies to all packages in this project, populated from the latest release.
+            version = package['version']
+            parsed_version = pkg_resources.parse_version(version)
+            if parsed_version > latest_version:
+                info['author'] = package['author'],
+                info['summary'] = package['summary'],
+                latest_version = parsed_version
+
+            href = '../../../%s#%s=%s' % (_get_package_path(name, package['filename']),
+                                          package['checksum_type'], package['checksum'])
+
+            # package data is specific to an individual file
+            package_data = {
+                'filename': package['filename'],
+                'packagetype': package['packagetype'],
+                'url': href,
+                'md5_digest': package['md5_digest'],
+            }
+            releases[version].append(package_data)
+
+        return {'info': info, 'releases': releases}
 
 
 class PythonPublisher(PluginStep):
@@ -171,9 +232,9 @@ def _get_package_path(name, filename):
     return os.path.join('packages', 'source', name[0], name, filename)
 
 
-def _get_packages(repo_id):
+def _get_projects(repo_id):
     """
-    Build and return a data structure of the available packages. The keys each index a list of
+    Build and return a data structure of the available projects. The keys each index a list of
     dictionaries. The inner dictionaries are of the form
     {'version': VERSION, 'filename': FILENAME, 'checksum': MD5SUM, 'checksum_type': TYPE,
      'storage_path': PATH}
@@ -183,15 +244,25 @@ def _get_packages(repo_id):
     :return:        A dictionary of all the packages in the repo to be published
     :rtype:         dict
     """
+    fields = ('filename', 'url', 'packagetype', 'md5_digest', '_checksum', '_checksum_type',
+              'version', 'name', 'author', '_storage_path')
     packages = {}
-    fields = ('version', 'filename', '_checksum', '_checksum_type', 'name', '_storage_path')
     unit_querysets = repo_controller.get_unit_model_querysets(repo_id, models.Package)
     unit_querysets = (q.only(*fields) for q in unit_querysets)
-    for p in itertools.chain(*unit_querysets):
-        packages.setdefault(p.name, []).append(
-            {'version': p.version,
-             'filename': p.filename,
-             'checksum': p._checksum,
-             'checksum_type': p._checksum_type,
-             'storage_path': p.storage_path})
+
+    for pac in itertools.chain(*unit_querysets):
+        packages.setdefault(pac.name, []).append({
+            'filename': pac.filename,
+            'name': pac.name,
+            'url': pac.url,
+            'packagetype': pac.packagetype,
+            'md5_digest': pac.md5_digest,
+            'checksum_type': pac._checksum_type,
+            'version': pac.version,
+            'author': pac.author,
+            'summary': pac.summary,
+            'checksum': pac._checksum,
+            'storage_path': pac.storage_path,
+        })
+
     return packages

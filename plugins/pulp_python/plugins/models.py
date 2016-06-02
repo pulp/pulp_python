@@ -51,7 +51,7 @@ class Package(FileContentUnit):
     :type name: basestring
     :ivar packagetype: format of python package, ex bdist_wheel, sdist
     :type packagetype: basestring
-    :ivar url: url that the package can be downloaded from
+    :ivar url: url that is the source of bits for this package
     :type url: basestring
     :ivar version: Contains the distribution's version number. This field must be in the format
                    specified in PEP 386.
