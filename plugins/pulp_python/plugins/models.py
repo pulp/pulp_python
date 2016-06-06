@@ -104,11 +104,14 @@ class Package(FileContentUnit):
         package_attrs['url'] = package_data['url']
         package_attrs['name'] = project_data['name']
         package_attrs['packagetype'] = package_data['packagetype']
-        package_attrs['md5_digest'] = package_attrs['_checksum'] = package_data['md5_digest']
-        package_attrs['_checksum_type'] = "md5"
+        package_attrs['md5_digest'] = package_data['md5_digest']
         package_attrs['version'] = release
         package_attrs['author'] = project_data['author']
         package_attrs['summary'] = project_data['summary']
+
+        # If we are syncing from PyPI, there will be no `checksum`, but will be `md5_digest`
+        package_attrs['_checksum'] = package_data.get('checksum', package_attrs['md5_digest'])
+        package_attrs['_checksum_type'] = package_data.get('checksum_type', 'md5')
         return cls(**package_attrs)
 
     @classmethod
