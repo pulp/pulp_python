@@ -91,7 +91,7 @@ class PublishMetadataStep(PluginStep):
         for name, packages in projects.items():
             project_metadata_path = os.path.join(api_path, name, 'json')
             os.makedirs(project_metadata_path)
-            project_index_metadata_path = os.path.join(project_metadata_path, 'index.html')
+            project_index_metadata_path = os.path.join(project_metadata_path, 'index.json')
             with open(project_index_metadata_path, 'w') as meta_json:
                 data = PublishMetadataStep._create_metadata(name, packages)
                 meta_json.write(json.dumps(data))
