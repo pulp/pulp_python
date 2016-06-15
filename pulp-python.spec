@@ -132,6 +132,15 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Wed Jun 15 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.1.beta
+- Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
+- Reverting strict mode so that Koji can build RPMs again (bbouters@redhat.com)
+- Enables strict mode for sphinx docs builds (bbouters@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.0-1].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-1 (dkliban@redhat.com)
+
 * Tue May 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-1
 - Bumping version to 1.1.1-1 (sean.myers@redhat.com)
 
