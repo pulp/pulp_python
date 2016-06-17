@@ -24,7 +24,7 @@ _PACKAGES = [
         filename='nectar-1.2.0.tar.gz',
         _checksum='abcde',
         _checksum_type='made_up',
-        url='some/url',
+        path='some/url',
         _storage_path='/path/to/nectar-1.2.0.tar.gz'
     ),
     models.Package(
@@ -37,8 +37,9 @@ _PACKAGES = [
         md5_digest='fghij',
         _checksum='fghij',
         _checksum_type='made_up',
-        url='some/url',
-        _storage_path='/path/to/nectar-1.3.1.tar.gz'),
+        path='some/url',
+        _storage_path='/path/to/nectar-1.3.1.tar.gz'
+    ),
     models.Package(
         name='pulp_python_plugins',
         packagetype='sdist',
@@ -49,57 +50,13 @@ _PACKAGES = [
         md5_digest='klmno',
         _checksum='klmno',
         _checksum_type='made_up',
-        url='some/url',
+        path='some/url',
         _storage_path='/path/to/pulp_python_plugins-0.0.0.tar.gz'
     ),
 ]
 
 
-_GET_PROJECTS_RETURN = {
-    'nectar': [
-        {
-            'name': 'nectar',
-            'url': 'some/url',
-            'packagetype': 'sdist',
-            'summary': 'does stuff',
-            'author': 'me',
-            'version': '1.2.0',
-            'filename': 'nectar-1.2.0.tar.gz',
-            'md5_digest': 'abcde',
-            'checksum': 'abcde',
-            'checksum_type': 'made_up',
-            'storage_path': '/path/to/nectar-1.2.0.tar.gz',
-        },
-        {
-            'name': 'nectar',
-            'url': 'some/url',
-            'packagetype': 'sdist',
-            'summary': 'does stuff',
-            'author': 'me',
-            'version': '1.3.1',
-            'filename': 'nectar-1.3.1.tar.gz',
-            'md5_digest': 'fghij',
-            'checksum': 'fghij',
-            'checksum_type': 'made_up',
-            'storage_path': '/path/to/nectar-1.3.1.tar.gz',
-        },
-    ],
-    'pulp_python_plugins': [
-        {
-            'name': 'pulp_python_plugins',
-            'url': 'some/url',
-            'packagetype': 'sdist',
-            'summary': 'does stuff',
-            'author': 'me',
-            'version': '0.0.0',
-            'filename': 'pulp_python_plugins-0.0.0.tar.gz',
-            'md5_digest': 'klmno',
-            'checksum': 'klmno',
-            'checksum_type': 'made_up',
-            'storage_path': '/path/to/pulp_python_plugins-0.0.0.tar.gz',
-        },
-    ],
-}
+_GET_PROJECTS_RETURN = {'nectar': _PACKAGES[0:1], 'pulp_python_plugins': [_PACKAGES[2]]}
 
 
 class TestPublishContentStep(unittest.TestCase):
@@ -118,11 +75,11 @@ class TestPublishContentStep(unittest.TestCase):
         self.assertEqual(step.redirect_context, None)
         self.assertEqual(step.description, _('Publishing Python Content.'))
 
-    @mock.patch('pulp_python.plugins.distributors.steps._get_projects', spec_set=True)
+    @mock.patch('pulp_python.plugins.distributors.steps.models.Package.objects')
     @mock.patch('pulp_python.plugins.distributors.steps.os.makedirs')
     @mock.patch('pulp_python.plugins.distributors.steps.os.path.exists')
     @mock.patch('pulp_python.plugins.distributors.steps.os.symlink')
-    def test_process_main(self, symlink, exists, makedirs, mock_get_projects):
+    def test_process_main(self, symlink, exists, makedirs, mock_package_qs):
         """
         Assert correct operation from the process_main() method with our _GET_UNITS_RETURN data.
         """
@@ -141,7 +98,8 @@ class TestPublishContentStep(unittest.TestCase):
         exists.side_effect = mock_exists
 
         step = steps.PublishContentStep()
-        mock_get_projects.return_value = _GET_PROJECTS_RETURN
+
+        mock_package_qs.packages_in_repo.return_value = _PACKAGES
         conduit = mock.MagicMock()
         step.get_conduit = mock.MagicMock(return_value=conduit)
         step.parent = mock.MagicMock()
@@ -150,16 +108,14 @@ class TestPublishContentStep(unittest.TestCase):
         step.process_main()
 
         step.get_conduit.assert_called_once_with()
-        mock_get_projects.assert_called_once_with(conduit.repo_id)
+        mock_package_qs.packages_in_repo.assert_called_once_with(conduit.repo_id)
         # os.path.exists should have been called once for each Unit. It also gets called for a lot
         # of locale stuff, so we'll need to filter those out.
         pulp_exists_calls = [c for c in exists.mock_calls if 'locale' not in c[1][0]]
         self.assertEqual(len(pulp_exists_calls), 3)
         expected_symlink_args = [
-            (u.storage_path, steps._get_package_path(u.name, u.filename))
-            for u in _PACKAGES]
-        expected_symlink_args = [(a[0], os.path.join(step.parent.web_working_dir, a[1]))
-                                 for a in expected_symlink_args]
+            (pac.storage_path, os.path.join(step.parent.web_working_dir, 'packages', pac.src_path))
+            for pac in _PACKAGES]
         expected_exists_call_args = [(os.path.dirname(a[1]),) for a in expected_symlink_args]
         actual_exists_call_args = [c[1] for c in pulp_exists_calls]
         self.assertEqual(set(actual_exists_call_args), set(expected_exists_call_args))
@@ -191,16 +147,16 @@ class TestPublishMetadataStep(unittest.TestCase):
         self.assertEqual(step.description, _('Publishing Python Metadata.'))
 
     @mock.patch('__builtin__.open', autospec=True)
-    @mock.patch('pulp_python.plugins.distributors.steps._get_projects', spec_set=True)
+    @mock.patch('pulp_python.plugins.distributors.steps.models.Package.objects')
     @mock.patch('pulp_python.plugins.distributors.steps.os.makedirs')
-    @mock.patch('pulp_python.plugins.distributors.steps.PublishMetadataStep._create_package_index')
-    def test_process_main(self, _create_package_index, makedirs, mock_get_projects, mock_open):
+    @mock.patch('pulp_python.plugins.distributors.steps.PublishMetadataStep._create_project_index')
+    def test_process_main(self, _create_project_index, makedirs, mock_package_qs, mock_open):
         """
         Assert all the correct calls from process_main().
         """
         step = steps.PublishMetadataStep()
         conduit = mock.MagicMock()
-        mock_get_projects.return_value = _GET_PROJECTS_RETURN
+        mock_package_qs.packages_by_project.return_value = _GET_PROJECTS_RETURN
         step.get_conduit = mock.MagicMock(return_value=conduit)
         step.parent = mock.MagicMock()
         step.parent.web_working_dir = '/some/path/'
@@ -209,7 +165,7 @@ class TestPublishMetadataStep(unittest.TestCase):
 
         # Assert correct usage of various mocked items
         step.get_conduit.assert_called_once_with()
-        mock_get_projects.assert_called_once_with(conduit.repo_id)
+        mock_package_qs.packages_by_project.assert_called_once_with(conduit.repo_id)
         makedirs.assert_has_calls([
             mock.call(os.path.join(step.parent.web_working_dir, 'simple')),
             mock.call(os.path.join(step.parent.web_working_dir, 'pypi', 'pulp_python_plugins',
@@ -217,10 +173,10 @@ class TestPublishMetadataStep(unittest.TestCase):
             mock.call(os.path.join(step.parent.web_working_dir, 'pypi', 'nectar', 'json')),
         ])
 
-        # Assert that the two calls to _create_package_index for each package name are correct
-        self.assertEqual(_create_package_index.call_count, 2)
-        expected_packages_by_name = steps._get_projects(conduit)
-        for call in _create_package_index.mock_calls:
+        # Assert that the two calls to _create_project_index for each package name are correct
+        self.assertEqual(_create_project_index.call_count, 2)
+        expected_packages_by_name = _GET_PROJECTS_RETURN
+        for call in _create_project_index.mock_calls:
             expected_packages = expected_packages_by_name[call[1][0]]
             self.assertEqual(call[1][1], os.path.join(step.parent.web_working_dir, 'simple'))
             self.assertEqual(call[1][2], expected_packages)
@@ -248,21 +204,44 @@ class TestPublishMetadataStep(unittest.TestCase):
 
     @mock.patch('__builtin__.open', autospec=True)
     @mock.patch('pulp_python.plugins.distributors.steps.os.makedirs')
-    def test__create_package_index(self, makedirs, mock_open):
+    def test__create_project_index(self, makedirs, mock_open):
         """
-        Assert all the correct calls from _create_package_index().
-        """
+        Assert all the correct calls from _create_project_index().
+            """
         step = steps.PublishMetadataStep()
         name = 'test_package'
         simple_path = os.path.join('/', 'path', 'to', 'simple')
+
         packages = [
-            {'version': '2.4.3', 'filename': 'test_package-2.4.3.tar.gz', 'checksum': 'sum',
-             'checksum_type': 'barlow'},
-            {'version': '2.5.0', 'filename': 'test_package-2.5.0.tar.gz', 'checksum': 'different',
-             'checksum_type': 'barlow'},
+            models.Package(
+                name='test-package',
+                packagetype='sdist',
+                version='2.4.3',
+                author='me',
+                summary='does stuff',
+                md5_digest='abcde',
+                filename='test_package-2.4.3.tar.gz',
+                _checksum='sum',
+                _checksum_type='barlow',
+                path='some/url',
+                _storage_path='/path/to/test_package-2.4.3.tar.gz'
+            ),
+            models.Package(
+                name='test-package',
+                packagetype='sdist',
+                version='2.5.0',
+                author='me',
+                summary='does stuff',
+                md5_digest='abcde',
+                filename='test_package-2.5.0.tar.gz',
+                _checksum='different',
+                _checksum_type='barlow',
+                path='some/url',
+                _storage_path='/path/to/test_package-2.4.3.tar.gz'
+            ),
         ]
 
-        step._create_package_index(name, simple_path, packages)
+        step._create_project_index(name, simple_path, packages)
 
         # Assert the right files and directories are made
         makedirs.assert_called_once_with(os.path.join(simple_path, name))
@@ -284,9 +263,7 @@ class TestPublishMetadataStep(unittest.TestCase):
         self.assertEqual(len(body.findall('br')), 2)
         self.assertEqual(len(body.findall('a')), 2)
         anchors = body.findall('a')
-        hrefs = [
-            os.path.join('..', '..', steps._get_package_path(name, p['filename'])) +
-            '#%s=%s' % (p['checksum_type'], p['checksum']) for p in packages]
+        hrefs = [os.path.join('..', '..', 'packages', pkg.checksum_url) for pkg in packages]
         self.assertEqual(set([a.get('href') for a in anchors]), set(hrefs))
         self.assertEqual(set([a.text for a in anchors]), set([p['filename'] for p in packages]))
 
@@ -386,39 +363,3 @@ class TestPythonPublisher(unittest.TestCase):
             set(p.children),
             set([AtomicDirectoryPublishStep.return_value, PublishContentStep.return_value,
                  PublishMetadataStep.return_value]))
-
-
-class TestGetPackagePath(unittest.TestCase):
-    """
-    This class contains tests for the _get_package_path() function.
-    """
-    def test__get_package_path(self):
-        """
-        Assert the correct return value from _get_package_path().
-        """
-        name = 'test_package'
-        filename = 'test_package-1.2.3.tar.gz'
-
-        path = steps._get_package_path(name, filename)
-
-        self.assertEqual(path, os.path.join('packages', 'source', 't', name, filename))
-
-
-class TestGetPackages(unittest.TestCase):
-    """
-    This class contains tests for the _get_projects() function.
-    """
-    @mock.patch('pulp.server.controllers.repository.get_unit_model_querysets', spec_set=True)
-    def test__get_projects(self, mock_get_querysets):
-        """
-        Assert the correct return value from _get_projects() with the _GET_UNITS_RETURN data set.
-        """
-        qs = mock.MagicMock()
-        qs.only.return_value = _PACKAGES
-        mock_get_querysets.return_value = [qs]
-
-        packages = steps._get_projects('repo1')
-
-        expected_packages = _GET_PROJECTS_RETURN
-
-        self.assertEqual(packages, expected_packages)

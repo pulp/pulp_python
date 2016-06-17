@@ -210,8 +210,9 @@ class SyncStep(publish_step.PluginStep):
         :rtype:  generator
         """
         for package in self.get_local_units_step.units_to_download:
-            destination = os.path.join(self.get_working_dir(), os.path.basename(package.url))
-            yield request.DownloadRequest(package.url, destination, package)
+            url = os.path.join(self._feed_url, 'packages', package.path)
+            destination = os.path.join(self.get_working_dir(), os.path.basename(url))
+            yield request.DownloadRequest(url, destination, package)
 
     def sync(self):
         """

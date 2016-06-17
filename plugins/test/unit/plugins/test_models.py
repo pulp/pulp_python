@@ -15,7 +15,9 @@ def make_package():
         version='1.0.0',
         author='Mr Foo',
         filename='foo-1.0.0.tar.gz',
+        packagetype='sdist',
         summary='Foo!',
+        md5_digest='abc123',
         _checksum='abc123',
         _checksum_type='md5',
     )
@@ -78,7 +80,7 @@ class TestPackage(unittest.TestCase):
         """
         Test that the data needed to instantiate a package comes from the right part of the JSON.
         """
-        mock_pkg_attrs = {'filename': "m_file", "url": "earl", "packagetype": "mocktype",
+        mock_pkg_attrs = {'filename': "m_file", "path": "earl", "packagetype": "mocktype",
                           'md5_digest': 'fleventyfive'}
         mock_release = "1.0.2"
         mock_dist_data = {"author": "me", "name": "test", "summary": "does stuff"}
@@ -98,6 +100,30 @@ class TestPackage(unittest.TestCase):
         package = models.Package.from_archive('mock_path')
         self.assertEqual(package.name, 'necessary')
         self.assertFalse(hasattr(package, 'extra_field'))
+
+    def test_checksum_url(self):
+        pkg = make_package()
+        self.assertEqual(pkg.checksum_url, 'source/f/foo/foo-1.0.0.tar.gz#md5=abc123')
+
+    def test_package_specific_metadata(self):
+        # TODO (asmacdo) checksum, not md5
+        pkg = make_package()
+        expected_metadata = {
+            'filename': u'foo-1.0.0.tar.gz',
+            'packagetype': u'sdist',
+            'path': u'../../../packages/source/f/foo/foo-1.0.0.tar.gz#md5=abc123',
+            'md5_digest': u'abc123',
+        }
+        self.assertEqual(pkg.package_specific_metadata, expected_metadata)
+
+    def test_project_metadata(self):
+        pkg = make_package()
+        expected_metadata = {
+            'name': 'foo',
+            'summary': 'Foo!',
+            'author': 'Mr Foo',
+        }
+        self.assertEqual(pkg.project_metadata, expected_metadata)
 
     def test___repr__(self):
         """

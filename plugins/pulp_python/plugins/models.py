@@ -1,10 +1,13 @@
 import hashlib
+import os
 
 from mongoengine import StringField
+import pkg_resources
 from pulp.server.db.model import FileContentUnit
 from twine.package import PackageFile  # noqa
 
 from pulp_python.common import constants
+from pulp_python.plugins import querysets
 
 
 DEFAULT_CHECKSUM_TYPE = 'sha512'
@@ -21,25 +24,25 @@ class Package(FileContentUnit):
     There are some overloaded terms that should be briefly discussed. We will be using the
     semantics of PEP 426. https://www.python.org/dev/peps/pep-0426/#id14
 
-    Package - An individual, installable python package. A package is defined by the project,
-              target architecture, and Python version. Note that there may not be a target
-              architecture in the case of architecture agnostic packages. A Python version is also
-              optional if there are no requirements for a specific runtime version. There are 3
-              packaging formats: sdist, whl, and zip.
+    Package - An individual, installable Python package. Uniqueness of a package is determined by
+              the project name, target architecture, and Python version. Note that there may not be
+              a target architecture in the case of architecture agnostic packages. A Python version
+              is also optional if there are no requirements for a specific runtime version. There
+              are two accepted package types, sdist and wheel.
     Release - A snapshot of the project. A particular release of the project will all share the
               same version number, but there may be multiple packages for a given release for
-              different architectures, python versions, and package types.
+              different architectures, Python versions, and package types.
     Project - The entire group of packages of all releases.
 
     The way that PyPI stores the metadata on their end leaves this model open to potential
-    inaccuracies. Many packages of the same project share a significant amount of metadata,
+    inaccuracies because they assume that all packages of the same project share certain metadata,
     including mutable fields. In the situation where a mutable field changes between releases, only
     the latest version is present in the metadata accessible over the API. This is could be
     particularly problematic for a field like "license". For this reason, most of these fields have
     been left out of this model. The only fields that are included here are necessary for sync
-    (name, version, filename) or are useful for disambiguation between similarly named projects
-    (author, summary). By keeping the scope of the metadata as small as is reasonable, we have less
-    complexity and reduced risk of innacuracy.
+    (name, version, filename, path) or are useful for disambiguation between similarly named
+    projects (author, summary). By keeping the scope of the metadata as small as is reasonable, we
+    have less complexity and reduced risk of innacuracy.
 
     :ivar author: primary author of the package
     :type author: basestring
@@ -51,13 +54,13 @@ class Package(FileContentUnit):
     :type name: basestring
     :ivar packagetype: format of python package, ex bdist_wheel, sdist
     :type packagetype: basestring
-    :ivar url: url that is the source of bits for this package
-    :type url: basestring
+    :ivar path: relative path to the bits for this package
+    :type path: basestring
+    :ivar summary: one line summary of what the package does
+    :type summary: basestring
     :ivar version: Contains the distribution's version number. This field must be in the format
                    specified in PEP 386.
     :type version: basestring
-    :ivar summary: one line summary of what the package does
-    :type summary: basestring
     """
 
     author = StringField()
@@ -65,8 +68,8 @@ class Package(FileContentUnit):
     md5_digest = StringField()
     name = StringField(required=True)
     packagetype = StringField()
+    path = StringField()
     summary = StringField()
-    url = StringField()
     version = StringField(required=True)
 
     _checksum = StringField()
@@ -82,12 +85,13 @@ class Package(FileContentUnit):
         'allow_inheritance': False,
         'collection': 'units_python_package',
         'indexes': [{'fields': ['-filename'], 'unique': True}],
+        'queryset_class': querysets.PythonPackageQuerySet,
     }
 
     @classmethod
     def from_json(cls, package_data, release, project_data):
         """
-        Create and return (but do not save) an instance of a single python package object from the
+        Create and return (but do not save) an instance of a single Python package object from the
         metadata available from PyPI JSON.
 
         :param package_data: metadata specific to a file
@@ -100,14 +104,16 @@ class Package(FileContentUnit):
         :rtype:  pulp_python.plugins.models.Package
         """
         package_attrs = {}
-        package_attrs['filename'] = package_data['filename']
-        package_attrs['url'] = package_data['url']
-        package_attrs['name'] = project_data['name']
-        package_attrs['packagetype'] = package_data['packagetype']
-        package_attrs['md5_digest'] = package_data['md5_digest']
+
         package_attrs['version'] = release
+        package_attrs['name'] = project_data['name']
         package_attrs['author'] = project_data['author']
         package_attrs['summary'] = project_data['summary']
+
+        package_attrs['filename'] = package_data['filename']
+        package_attrs['path'] = package_data['path']
+        package_attrs['packagetype'] = package_data['packagetype']
+        package_attrs['md5_digest'] = package_data['md5_digest']
 
         # If we are syncing from PyPI, there will be no `checksum`, but will be `md5_digest`
         package_attrs['_checksum'] = package_data.get('checksum', package_attrs['md5_digest'])
@@ -117,7 +123,7 @@ class Package(FileContentUnit):
     @classmethod
     def from_archive(cls, path):
         """
-        Create and return (but do not save) an instance of a python package object from the package
+        Create and return (but do not save) an instance of a Python package object from the package
         itself.
 
         Twine is smart enough to crack open a tarball, zip, or wheel and parse the metadata that is
@@ -157,6 +163,60 @@ class Package(FileContentUnit):
                 hasher.update(bits)
                 bits = file_handle.read(chunk_size)
         return hasher.hexdigest()
+
+    @property
+    def parsed_version(self):
+        """
+        Parsed version allows use of < and > operators order versions.
+
+        :return: version of the package, in comparable form.
+        :rtype:  pkg_resources.SetuptoolsVersion
+        """
+        return pkg_resources.parse_version(self.version)
+
+    @property
+    def src_path(self):
+        """
+        Returns the relative path to the package bits.
+
+        :return: relative path to package
+        :rtype:  basestring
+        """
+        return os.path.join('source', self.name[0], self.name, self.filename)
+
+    @property
+    def checksum_url(self):
+        """
+        Adds checksum information to the relative path.
+
+        :return: relative path with checksum information
+        :rtype:  basestring
+        """
+        return '%s#%s=%s' % (self.src_path, self._checksum_type, self._checksum)
+
+    @property
+    def package_specific_metadata(self):
+        """
+        Returns a dictionary containing the subset of metadata that is not duplicated between
+        packages of the same project.
+
+        :return: metadata for package that is not shared with the rest of the project
+        :rtype:  dict
+        """
+        href = '../../../packages/%s' % self.checksum_url
+        return {'filename': self.filename, 'packagetype': self.packagetype, 'path': href,
+                'md5_digest': self.md5_digest}
+
+    @property
+    def project_metadata(self):
+        """
+        Returns a dictionary containing the subset of metadata that is shared between packages
+        of the same project.
+
+        :return: metadata for package that is shared with the rest of the project
+        :rtype:  dict
+        """
+        return {'name': self.name, 'summary': self.summary, 'author': self.author}
 
     def __repr__(self):
         """

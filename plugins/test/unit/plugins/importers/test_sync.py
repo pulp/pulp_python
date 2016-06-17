@@ -781,10 +781,14 @@ class TestSyncStep(unittest.TestCase):
         repo = mock.MagicMock()
         conduit = mock.MagicMock()
         config = mock.MagicMock()
+        # mock the feed url
         working_dir = '/some/dir'
+        config.get.return_value = 'mock/feed'
+
         step = sync.SyncStep(repo, conduit, config, working_dir)
-        u1 = models.Package(name='foo', version='1.2.0', url='url/1.2.tar.gz')
-        u2 = models.Package(name='foo', version='1.3.0', url='url/1.3.tar.gz')
+        u1 = models.Package(name='foo', version='1.2.0', path='url/1.2.tar.gz')
+        u2 = models.Package(name='foo', version='1.3.0', path='url/1.3.tar.gz')
+        u1._feed_url = u2._feed_url = "feed/"
         step.get_local_units_step.units_to_download.extend([u1, u2])
 
         requests = step.generate_download_requests()
@@ -794,7 +798,8 @@ class TestSyncStep(unittest.TestCase):
         requests = list(requests)
         self.assertEqual(len(requests), 2)
         request_urls = [r.url for r in requests]
-        self.assertEqual(request_urls, ['url/1.2.tar.gz', 'url/1.3.tar.gz'])
+        self.assertEqual(request_urls, ['mock/feed/packages/url/1.2.tar.gz',
+                                        'mock/feed/packages/url/1.3.tar.gz'])
 
         # The destinations should both have been paths constructed from the filename
         request_destinations = [r.destination for r in requests]
