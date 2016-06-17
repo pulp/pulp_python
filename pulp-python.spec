@@ -132,6 +132,10 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Fri Jun 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.2.beta
+- Bumping version to 1.1.2-0.2.beta (sean.myers@redhat.com)
+- Remove published symlinks (asmacdo@gmail.com)
+
 * Wed Jun 15 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.1.beta
 - Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
 - Reverting strict mode so that Koji can build RPMs again (bbouters@redhat.com)
