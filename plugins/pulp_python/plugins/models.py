@@ -141,7 +141,10 @@ class Package(FileContentUnit):
             if key in PACKAGE_ATTRS:
                 filtered_dict[key] = value
         filtered_dict['filename'] = path.split('/')[-1]
-        return cls(**filtered_dict)
+        package = cls(**filtered_dict)
+        package._checksum = package.checksum(path)
+        package._checksum_type = DEFAULT_CHECKSUM_TYPE
+        return package
 
     @staticmethod
     def checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
@@ -205,7 +208,8 @@ class Package(FileContentUnit):
         """
         href = '../../../packages/%s' % self.checksum_url
         return {'filename': self.filename, 'packagetype': self.packagetype, 'path': href,
-                'md5_digest': self.md5_digest}
+                'md5_digest': self.md5_digest, 'checksum': self._checksum,
+                'checksum_type': self._checksum_type}
 
     @property
     def project_metadata(self):

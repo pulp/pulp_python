@@ -109,23 +109,6 @@ class DownloadPackagesStep(publish_step.DownloadStep):
         is moved to its final location, and the models.Package object is saved into the database
         and associated to the repository.
 
-        TODO (asmacdo) Outstanding question:
-
-        Should we update the package data after it is downloaded? In a normal sync from PYPI, the
-        package object is initialized from the JSON data. There are some fields that are specific
-        to the project rather than the package, and these will be incorrect if we only get this
-        information from the JSON and the info changed from release to release.
-
-        Benefits of update after successful download:
-            1. More fields can be accurately populated without the risk of "drift"
-            2. We can update the checksum to a better algorithm
-            3. Update logic is the same as upload, so they would produce identical data
-        Drawbacks of update:
-            1. Must crack open each compressed package and parse, pretty slow.
-            2. Packages would have 2 phases of completeness. Minimal until downloaded, full after.
-
-        package.update_from_file(report.destination)
-
         :param report: The report that details the download
         :type  report: nectar.report.DownloadReport
         """
@@ -137,6 +120,12 @@ class DownloadPackagesStep(publish_step.DownloadStep):
             report.error_report = {'expected_checksum': package._checksum,
                                    'actual_checksum': checksum}
             return self.download_failed(report)
+
+        # Unless checksum from upstream is default type, recalculate checksum
+        if package._checksum_type is not models.DEFAULT_CHECKSUM_TYPE:
+            package._checksum = models.Package.checksum(report.destination,
+                                                        models.DEFAULT_CHECKSUM_TYPE)
+            package._checksum_type = models.DEFAULT_CHECKSUM_TYPE
 
         package.set_storage_path(os.path.basename(report.destination))
 

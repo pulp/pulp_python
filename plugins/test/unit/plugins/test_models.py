@@ -17,9 +17,9 @@ def make_package():
         filename='foo-1.0.0.tar.gz',
         packagetype='sdist',
         summary='Foo!',
-        md5_digest='abc123',
+        md5_digest='md5_123',
         _checksum='abc123',
-        _checksum_type='md5',
+        _checksum_type='some_type',
     )
 
 
@@ -90,8 +90,9 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(package.author, 'me')
         self.assertEqual(package.summary, 'does stuff')
 
+    @mock.patch('pulp_python.plugins.models.Package.checksum')
     @mock.patch('pulp_python.plugins.models.PackageFile')
-    def test_from_file(self, m_twine):
+    def test_from_file(self, m_twine, m_checksum):
         """
         Ensure that before init, metadata from twine is filtered leaving only required fields.
         """
@@ -103,7 +104,7 @@ class TestPackage(unittest.TestCase):
 
     def test_checksum_url(self):
         pkg = make_package()
-        self.assertEqual(pkg.checksum_url, 'source/f/foo/foo-1.0.0.tar.gz#md5=abc123')
+        self.assertEqual(pkg.checksum_url, 'source/f/foo/foo-1.0.0.tar.gz#some_type=abc123')
 
     def test_package_specific_metadata(self):
         # TODO (asmacdo) checksum, not md5
@@ -111,8 +112,10 @@ class TestPackage(unittest.TestCase):
         expected_metadata = {
             'filename': u'foo-1.0.0.tar.gz',
             'packagetype': u'sdist',
-            'path': u'../../../packages/source/f/foo/foo-1.0.0.tar.gz#md5=abc123',
-            'md5_digest': u'abc123',
+            'path': u'../../../packages/source/f/foo/foo-1.0.0.tar.gz#some_type=abc123',
+            'md5_digest': u'md5_123',
+            'checksum': u'abc123',
+            'checksum_type': u'some_type',
         }
         self.assertEqual(pkg.package_specific_metadata, expected_metadata)
 

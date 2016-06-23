@@ -570,7 +570,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         report = mock.MagicMock()
         report.destination = '/tmp/foo.tar.gz'
         report.data._checksum = 'good checksum'
-        report.data._checksum_type = 'md5'
+        report.data._checksum_type = 'sha512'
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
         step.parent = mock.MagicMock()
         checksum.return_value = 'good checksum'
@@ -580,7 +580,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         # Download failed should not have been called
         self.assertEqual(download_failed.call_count, 0)
         # Make sure the checksum was calculated with the correct data
-        checksum.assert_called_once_with(report.destination, 'md5')
+        checksum.assert_called_once_with(report.destination, 'sha512')
         report.data.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
         report.data.save.assert_called_once_with()
         report.data.import_content.assert_called_once_with(report.destination)
