@@ -496,9 +496,9 @@ class TestDownloadMetadataStep(unittest.TestCase):
         report.destination.close.assert_called_once_with()
         super_download_failed.assert_called_once_with(report)
 
-    @mock.patch('pulp_python.plugins.importers.sync.DownloadMetadataStep._process_metadata')
+    @mock.patch('pulp_python.plugins.importers.sync.models.Package.objects')
     @mock.patch('pulp_python.plugins.importers.sync.publish_step.DownloadStep.download_succeeded')
-    def test_download_succeeded(self, super_download_succeeded, _process_metadata):
+    def test_download_succeeded(self, super_download_succeeded, mock_package_qs):
         """
         Ensure that download_succeeded() properly handles the downloaded metadata.
         """
@@ -512,15 +512,7 @@ class TestDownloadMetadataStep(unittest.TestCase):
 
         report.destination.close.assert_called_once_with()
         super_download_succeeded.assert_called_once_with(report)
-        _process_metadata.assert_called_once_with(NUMPY_MANIFEST)
-
-    @mock.patch('pulp_python.plugins.importers.sync.models.Package.from_json')
-    def test__process_metadata(self, mock_from_json):
-        step = sync.DownloadMetadataStep('sync_step_download_metadata', conduit=mock.MagicMock())
-        step.parent = mock.MagicMock()
-        step._process_metadata(NUMPY_MANIFEST)
-        # 1.9.1 has 5 units, 1.9.0 has 5, 1.8.0 has 2, 1.8.1 has 5, 1.8.2 has 5. Total should be 22.
-        self.assertEqual(mock_from_json.call_count, 22)
+        mock_package_qs.from_metadata.assert_called_once_with(NUMPY_MANIFEST)
 
 
 class TestDownloadPackagesStep(unittest.TestCase):
@@ -781,7 +773,6 @@ class TestSyncStep(unittest.TestCase):
         repo = mock.MagicMock()
         conduit = mock.MagicMock()
         config = mock.MagicMock()
-        # mock the feed url
         working_dir = '/some/dir'
         config.get.return_value = 'mock/feed'
 

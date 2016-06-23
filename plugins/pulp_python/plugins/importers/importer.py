@@ -170,7 +170,7 @@ class PythonImporter(Importer):
         :type  unit_key:  dict
         :param metadata:  any user-specified metadata for the unit
         :type  metadata:  dict
-        :param file_path: path on the Pulp server's file system to the temporary location of the
+        :param file_path: path on the Pulp server's filesystem to the temporary location of the
                           uploaded file; may be None in the event that a unit is comprised entirely
                           of metadata and has no bits associated
         :type  file_path: str

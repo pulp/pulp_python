@@ -86,8 +86,13 @@ class TestPackage(unittest.TestCase):
         mock_dist_data = {"author": "me", "name": "test", "summary": "does stuff"}
         package = models.Package.from_json(mock_pkg_attrs, mock_release, mock_dist_data)
         self.assertEqual(package.filename, 'm_file')
+        self.assertEqual(package.path, 'earl')
+        self.assertEqual(package.packagetype, 'mocktype')
+        self.assertEqual(package.md5_digest, 'fleventyfive')
+        self.assertEqual(package._checksum_type, 'md5')
         self.assertEqual(package.version, '1.0.2')
         self.assertEqual(package.author, 'me')
+        self.assertEqual(package.name, 'test')
         self.assertEqual(package.summary, 'does stuff')
 
     @mock.patch('pulp_python.plugins.models.Package.checksum')
@@ -97,17 +102,17 @@ class TestPackage(unittest.TestCase):
         Ensure that before init, metadata from twine is filtered leaving only required fields.
         """
         twine_to_dict = m_twine.from_filename.return_value.metadata_dictionary
-        twine_to_dict.return_value = {'name': 'necessary', 'extra_field': 'do not include'}
+        twine_to_dict.return_value = {'name': 'necessary', 'filetype': 'also_necessary',
+                                      'extra_field': 'do not include'}
         package = models.Package.from_archive('mock_path')
         self.assertEqual(package.name, 'necessary')
         self.assertFalse(hasattr(package, 'extra_field'))
 
-    def test_checksum_url(self):
+    def test_checksum_path(self):
         pkg = make_package()
-        self.assertEqual(pkg.checksum_url, 'source/f/foo/foo-1.0.0.tar.gz#some_type=abc123')
+        self.assertEqual(pkg.checksum_path, 'source/f/foo/foo-1.0.0.tar.gz#some_type=abc123')
 
     def test_package_specific_metadata(self):
-        # TODO (asmacdo) checksum, not md5
         pkg = make_package()
         expected_metadata = {
             'filename': u'foo-1.0.0.tar.gz',

@@ -1,4 +1,5 @@
 import itertools
+import json
 
 from pulp.server.controllers import repository as repo_controller
 from pulp.server.db.querysets import QuerySetPreventCache
@@ -37,3 +38,19 @@ class PythonPackageQuerySet(QuerySetPreventCache):
             projects.setdefault(pkg.name, []).append(pkg)
 
         return projects
+
+    def from_metadata(self, metadata):
+        """
+        Create all the packages described in the project's json metadata.
+
+        :param metadata: Project metadata in JSON format that describes each available package.
+        :type  metadata: basestring
+        :return: list of Python Packages
+        :rtype:  list of models.Package objects
+        """
+        metadata = json.loads(metadata)
+        units = []
+        for version, packages in metadata['releases'].items():
+            for package in packages:
+                units.append(self._document.from_json(package, version, metadata['info']))
+        return units

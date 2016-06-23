@@ -26,7 +26,7 @@ class TestUploadPackageCommand(unittest.TestCase):
 
     def test_generate_unit_key(self):
         """
-        Assert that generate_unit_key() returns the filename.
+        Assert that generate_unit_key() returns a dict containing the filename.
         """
         command = upload.UploadPackageCommand(mock.MagicMock())
 
@@ -36,7 +36,7 @@ class TestUploadPackageCommand(unittest.TestCase):
 
     def test_generate_unit_key_with_path(self):
         """
-        Assert that generate_unit_key() returns the filename, even when it is passed a path.
+        Assert that generate_unit_key() dict contains filename when the argument is a path.
         """
         command = upload.UploadPackageCommand(mock.MagicMock())
 

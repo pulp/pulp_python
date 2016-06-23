@@ -1,4 +1,5 @@
 import collections
+import errno
 from gettext import gettext as _
 import json
 import logging
@@ -36,8 +37,11 @@ class PublishContentStep(PluginStep):
         repo_id = self.get_conduit().repo_id
         for package in models.Package.objects.packages_in_repo(repo_id):
             symlink_path = os.path.join(self.parent.web_working_dir, 'packages', package.src_path)
-            if not os.path.exists(os.path.dirname(symlink_path)):
+            try:
                 os.makedirs(os.path.dirname(symlink_path))
+            except OSError, e:
+                if e.errno != errno.EEXIST:
+                    raise
             os.symlink(package.storage_path, symlink_path)
 
 
@@ -121,7 +125,7 @@ class PublishMetadataStep(PluginStep):
             heading = ElementTree.SubElement(body, 'h1')
             heading.text = title.text
             for package in packages:
-                href = '../../packages/%s' % package.checksum_url
+                href = '../../packages/%s' % package.checksum_path
                 node = ElementTree.SubElement(body, 'a', {'href': href, 'rel': 'internal'})
                 node.text = package['filename']
                 ElementTree.SubElement(body, 'br')
@@ -150,7 +154,7 @@ class PublishMetadataStep(PluginStep):
             project_index_metadata_path = os.path.join(project_metadata_path, 'index.json')
             with open(project_index_metadata_path, 'w') as project_json:
                 data = PublishMetadataStep._create_project_metadata(project_name, packages)
-                project_json.write(json.dumps(data))
+                json.dump(data, project_json, sort_keys=True, indent=4, separators=(',', ': '))
 
     @staticmethod
     def _create_project_metadata(name, packages):

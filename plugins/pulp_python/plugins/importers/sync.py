@@ -4,7 +4,6 @@ This module contains the necessary means for a necessary means for syncing packa
 from cStringIO import StringIO
 import contextlib
 from gettext import gettext as _
-import json
 import logging
 import os
 from urlparse import urljoin
@@ -62,7 +61,8 @@ class DownloadMetadataStep(publish_step.DownloadStep):
         _logger.info(_('Processing metadata retrieved from %(url)s.') % {'url': report.url})
         with contextlib.closing(report.destination) as destination:
             destination.seek(0)
-            self._process_metadata(destination.read())
+            units = models.Package.objects.from_metadata(destination.read())
+            self.parent.available_units.extend(units)
 
         super(DownloadMetadataStep, self).download_succeeded(report)
 
@@ -80,21 +80,6 @@ class DownloadMetadataStep(publish_step.DownloadStep):
             if self.canceled:
                 return
             yield request.DownloadRequest(u, StringIO(), {})
-
-    def _process_metadata(self, metadata):
-        """
-        Parses the project's json metadata to determine which packages are available from the feed
-        repository. Each available package is initialized and added to the parent step's list of
-        available_units.
-
-        :param metadata: Project metadata in JSON format that describes each available package.
-        :type  metadata: basestring
-        """
-        metadata = json.loads(metadata)
-        for version, packages in metadata['releases'].items():
-            for package in packages:
-                unit = models.Package.from_json(package, version, metadata['info'])
-                self.parent.available_units.append(unit)
 
 
 class DownloadPackagesStep(publish_step.DownloadStep):
@@ -122,10 +107,10 @@ class DownloadPackagesStep(publish_step.DownloadStep):
             return self.download_failed(report)
 
         # Unless checksum from upstream is default type, recalculate checksum
-        if package._checksum_type is not models.DEFAULT_CHECKSUM_TYPE:
+        if package._checksum_type != models.CHECKSUM_TYPE:
             package._checksum = models.Package.checksum(report.destination,
-                                                        models.DEFAULT_CHECKSUM_TYPE)
-            package._checksum_type = models.DEFAULT_CHECKSUM_TYPE
+                                                        models.CHECKSUM_TYPE)
+            package._checksum_type = models.CHECKSUM_TYPE
 
         package.set_storage_path(os.path.basename(report.destination))
 
@@ -199,7 +184,7 @@ class SyncStep(publish_step.PluginStep):
         :rtype:  generator
         """
         for package in self.get_local_units_step.units_to_download:
-            url = os.path.join(self._feed_url, 'packages', package.path)
+            url = package.package_url(self._feed_url)
             destination = os.path.join(self.get_working_dir(), os.path.basename(url))
             yield request.DownloadRequest(url, destination, package)
 

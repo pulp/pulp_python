@@ -4,6 +4,7 @@ import mock
 
 from pulp_python.plugins import models, querysets
 
+from .importers.test_sync import NUMPY_MANIFEST
 
 _PACKAGES = [
     models.Package(
@@ -62,3 +63,13 @@ class TestPythonPackageQuerySet(unittest.TestCase):
         self.assertEqual(ret['nectar'], _PACKAGES[0:2])
         self.assertTrue('pulp_python_plugins' in ret)
         self.assertEqual(ret['pulp_python_plugins'], [_PACKAGES[2]])
+
+    def test_from_metadata(self):
+        """
+        Ensure that packages can be created from json metadata.
+        """
+        mock_doc = mock.MagicMock()
+        qs = querysets.PythonPackageQuerySet(mock_doc, mock.MagicMock())
+        qs.from_metadata(NUMPY_MANIFEST)
+        # 1.9.1 has 5 units, 1.9.0 has 5, 1.8.0 has 2, 1.8.1 has 5, 1.8.2 has 5. Total should be 22.
+        self.assertEqual(mock_doc.from_json.call_count, 22)

@@ -77,9 +77,8 @@ class TestPublishContentStep(unittest.TestCase):
 
     @mock.patch('pulp_python.plugins.distributors.steps.models.Package.objects')
     @mock.patch('pulp_python.plugins.distributors.steps.os.makedirs')
-    @mock.patch('pulp_python.plugins.distributors.steps.os.path.exists')
     @mock.patch('pulp_python.plugins.distributors.steps.os.symlink')
-    def test_process_main(self, symlink, exists, makedirs, mock_package_qs):
+    def test_process_main(self, symlink, makedirs, mock_package_qs):
         """
         Assert correct operation from the process_main() method with our _GET_UNITS_RETURN data.
         """
@@ -95,10 +94,7 @@ class TestPublishContentStep(unittest.TestCase):
                 return False
             return True
 
-        exists.side_effect = mock_exists
-
         step = steps.PublishContentStep()
-
         mock_package_qs.packages_in_repo.return_value = _PACKAGES
         conduit = mock.MagicMock()
         step.get_conduit = mock.MagicMock(return_value=conduit)
@@ -111,17 +107,11 @@ class TestPublishContentStep(unittest.TestCase):
         mock_package_qs.packages_in_repo.assert_called_once_with(conduit.repo_id)
         # os.path.exists should have been called once for each Unit. It also gets called for a lot
         # of locale stuff, so we'll need to filter those out.
-        pulp_exists_calls = [c for c in exists.mock_calls if 'locale' not in c[1][0]]
-        self.assertEqual(len(pulp_exists_calls), 3)
         expected_symlink_args = [
             (pac.storage_path, os.path.join(step.parent.web_working_dir, 'packages', pac.src_path))
             for pac in _PACKAGES]
         expected_exists_call_args = [(os.path.dirname(a[1]),) for a in expected_symlink_args]
-        actual_exists_call_args = [c[1] for c in pulp_exists_calls]
-        self.assertEqual(set(actual_exists_call_args), set(expected_exists_call_args))
-        # os.makedirs should only have been called twice, since there are two versions of Nectar and
-        # they share a directory. This is also going to be the same set as the exists set.
-        self.assertEqual(makedirs.call_count, 2)
+        self.assertEqual(makedirs.call_count, 3)
         makedirs_call_args = [c[1] for c in makedirs.mock_calls]
         self.assertEqual(set(makedirs_call_args), set(expected_exists_call_args))
         # Lastly, three calls to symlink should have been made, one for each Unit.
@@ -263,7 +253,7 @@ class TestPublishMetadataStep(unittest.TestCase):
         self.assertEqual(len(body.findall('br')), 2)
         self.assertEqual(len(body.findall('a')), 2)
         anchors = body.findall('a')
-        hrefs = [os.path.join('..', '..', 'packages', pkg.checksum_url) for pkg in packages]
+        hrefs = [os.path.join('..', '..', 'packages', pkg.checksum_path) for pkg in packages]
         self.assertEqual(set([a.get('href') for a in anchors]), set(hrefs))
         self.assertEqual(set([a.text for a in anchors]), set([p['filename'] for p in packages]))
 

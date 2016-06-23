@@ -10,8 +10,9 @@ from pulp_python.common import constants
 from pulp_python.plugins import querysets
 
 
-DEFAULT_CHECKSUM_TYPE = 'sha512'
-PACKAGE_ATTRS = ('author', 'name', 'packagetype', 'summary', 'url', 'version')
+CHECKSUM_TYPE = 'sha512'
+PACKAGE_ATTRS = ('author', 'name', 'packagetype', 'summary', 'version')
+PACKAGE_TYPES = ('sdist', 'bdist_egg', 'bdist_wheel', 'bdist_wininst')
 
 
 class Package(FileContentUnit):
@@ -27,8 +28,7 @@ class Package(FileContentUnit):
     Package - An individual, installable Python package. Uniqueness of a package is determined by
               the project name, target architecture, and Python version. Note that there may not be
               a target architecture in the case of architecture agnostic packages. A Python version
-              is also optional if there are no requirements for a specific runtime version. There
-              are two accepted package types, sdist and wheel.
+              is also optional if there are no requirements for a specific runtime version.
     Release - A snapshot of the project. A particular release of the project will all share the
               same version number, but there may be multiple packages for a given release for
               different architectures, Python versions, and package types.
@@ -63,17 +63,18 @@ class Package(FileContentUnit):
     :type version: basestring
     """
 
+    # Validation deliberately left minimal because of noncompliant legacy data that works on PyPI
     author = StringField()
     filename = StringField(required=True)
-    md5_digest = StringField()
-    name = StringField(required=True)
-    packagetype = StringField()
+    md5_digest = StringField(regex=r'[a-fA-F0-9]{32}')
+    name = StringField(required=True, regex=r'^[.\-_A-Za-z0-9]+$')
+    packagetype = StringField(required=True, choices=PACKAGE_TYPES)
     path = StringField()
     summary = StringField()
     version = StringField(required=True)
 
     _checksum = StringField()
-    _checksum_type = StringField(default=DEFAULT_CHECKSUM_TYPE)
+    _checksum_type = StringField(default=CHECKSUM_TYPE)
 
     # For backward compatibility
     _ns = StringField(default='units_python_package')
@@ -113,7 +114,7 @@ class Package(FileContentUnit):
         package_attrs['filename'] = package_data['filename']
         package_attrs['path'] = package_data['path']
         package_attrs['packagetype'] = package_data['packagetype']
-        package_attrs['md5_digest'] = package_data['md5_digest']
+        package_attrs['md5_digest'] = package_data.get('md5_digest')
 
         # If we are syncing from PyPI, there will be no `checksum`, but will be `md5_digest`
         package_attrs['_checksum'] = package_data.get('checksum', package_attrs['md5_digest'])
@@ -140,14 +141,15 @@ class Package(FileContentUnit):
         for key, value in meta_dict.iteritems():
             if key in PACKAGE_ATTRS:
                 filtered_dict[key] = value
-        filtered_dict['filename'] = path.split('/')[-1]
+        filtered_dict['filename'] = os.path.basename(path)
+        filtered_dict['packagetype'] = meta_dict['filetype']
         package = cls(**filtered_dict)
         package._checksum = package.checksum(path)
-        package._checksum_type = DEFAULT_CHECKSUM_TYPE
+        package._checksum_type = CHECKSUM_TYPE
         return package
 
     @staticmethod
-    def checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
+    def checksum(path, algorithm=CHECKSUM_TYPE):
         """
         Return the checksum of the given path using the given algorithm.
 
@@ -182,13 +184,16 @@ class Package(FileContentUnit):
         """
         Returns the relative path to the package bits.
 
+        Example, for a SciPy sdist with version 0.9.0, the path would be:
+            source/s/scipy/scipy-0.9.0.tar.gz
+
         :return: relative path to package
         :rtype:  basestring
         """
         return os.path.join('source', self.name[0], self.name, self.filename)
 
     @property
-    def checksum_url(self):
+    def checksum_path(self):
         """
         Adds checksum information to the relative path.
 
@@ -206,7 +211,7 @@ class Package(FileContentUnit):
         :return: metadata for package that is not shared with the rest of the project
         :rtype:  dict
         """
-        href = '../../../packages/%s' % self.checksum_url
+        href = '../../../packages/%s' % self.checksum_path
         return {'filename': self.filename, 'packagetype': self.packagetype, 'path': href,
                 'md5_digest': self.md5_digest, 'checksum': self._checksum,
                 'checksum_type': self._checksum_type}
@@ -221,6 +226,18 @@ class Package(FileContentUnit):
         :rtype:  dict
         """
         return {'name': self.name, 'summary': self.summary, 'author': self.author}
+
+    def package_url(self, feed_url):
+        """
+        Given the feed, return a full url to retrieve the package bits.
+
+        :param feed_url: base url of the repository feed
+        :type  feed_url: basestring
+
+        :return: download url of package bits
+        :rtype:  basestring
+        """
+        return os.path.join(feed_url, 'packages', self.path)
 
     def __repr__(self):
         """

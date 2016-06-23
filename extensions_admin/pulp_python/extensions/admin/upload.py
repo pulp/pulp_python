@@ -1,3 +1,5 @@
+import os
+
 from pulp.client.commands.repo import upload
 
 from pulp_python.common import constants
@@ -35,7 +37,7 @@ class UploadPackageCommand(upload.UploadCommand):
         :type  args:     list
         :param kwargs:   Unused
         :type  kwargs:   dict
-        :return:         An empty dictionary
+        :return:         {"filename": filename}
         :rtype:          dict
         """
-        return {"filename": filename.split('/')[-1]}
+        return {"filename": os.path.basename(filename)}
