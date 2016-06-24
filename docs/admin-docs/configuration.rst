@@ -9,5 +9,4 @@ The Python importer is configured by editing
 
 .. _JSON: http://json.org/
 
-The importer supports the settings documented in Pulp's
-:ref:`importer config docs <platform:importer_settings>`.
+The importer supports the settings documented in Pulp's importer config docs.
