@@ -132,6 +132,9 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Mon Jun 27 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-1
+- Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+
 * Fri Jun 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.2.beta
 - Bumping version to 1.1.2-0.2.beta (sean.myers@redhat.com)
 - Remove published symlinks (asmacdo@gmail.com)
