@@ -2,7 +2,7 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 Name: pulp-python
-Version: 1.1.1
+Version: 1.1.2
 Release: 1%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
@@ -132,13 +132,41 @@ client capabilites with Python specific features.
 
 
 %changelog
-* Mon Mar 14 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-1
+* Mon Jun 27 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-1
+- Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+
+* Fri Jun 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.2.beta
+- Bumping version to 1.1.2-0.2.beta (sean.myers@redhat.com)
+- Remove published symlinks (asmacdo@gmail.com)
+
+* Wed Jun 15 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.1.beta
+- Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
+- Reverting strict mode so that Koji can build RPMs again (bbouters@redhat.com)
+- Enables strict mode for sphinx docs builds (bbouters@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.0-1].
+  (dkliban@redhat.com)
 - Bumping version to 1.1.0-1 (dkliban@redhat.com)
 
-* Tue Mar 08 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.6.rc
-- Bumping version to 1.1.0-0.6.rc (dkliban@redhat.com)
+* Tue May 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-1
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
 
-* Fri Mar 04 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.5.beta
+* Mon May 16 2016 pulpbot <pulp-infra@redhat.com> 1.1.1-0.4.rc
+- Bumping version to 1.1.1-0.4.rc (pulp-infra@redhat.com)
+
+* Tue May 10 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.3.rc
+- Bumping version to 1.1.1-0.3.rc (sean.myers@redhat.com)
+
+* Tue May 03 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.2.beta
+- Migrations need to be run when upgrading to 1.1.1 (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.2.beta (sean.myers@redhat.com)
+
+* Mon Apr 25 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.1.beta
+- Fix upload. closes #1855 (jortel@redhat.com)
+- standard storage path migration. closes #1819 (jortel@redhat.com)
+- Fix return value of upload_unit() to be consistent with plugin API
+  (ttereshc@redhat.com)
+- Bumping version to 1.1.1-0.1.beta (dkliban@redhat.com)
 - Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
 
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta

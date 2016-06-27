@@ -1,6 +1,7 @@
 import copy
 from gettext import gettext as _
 import logging
+import os
 import shutil
 
 from pulp.common.config import read_json_config
@@ -129,7 +130,10 @@ class PythonDistributor(Distributor):
             # in case repo_dir is None
             # ignore_errors set to True does not cover this.
             if repo_dir:
-                shutil.rmtree(repo_dir, ignore_errors=True)
+                if os.path.islink(repo_dir):
+                    os.unlink(repo_dir)
+                else:
+                    shutil.rmtree(repo_dir, ignore_errors=True)
 
     def validate_config(self, repo, config, config_conduit):
         """

@@ -3,6 +3,7 @@ This module contains tests for the pulp_python.plugins.importers.sync module.
 """
 from cStringIO import StringIO
 from gettext import gettext as _
+import os
 import types
 import unittest
 
@@ -581,6 +582,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         Test the download_succeeded() method when the checksum of the downloaded package is correct.
         """
         report = mock.MagicMock()
+        report.destination = '/tmp/foo.tar.gz'
         report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
                                      _checksum_type='md5')
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
@@ -595,8 +597,11 @@ class TestDownloadPackagesStep(unittest.TestCase):
         checksum.assert_called_once_with(report.destination, 'md5')
         # The from_archive method should have been given the destination
         from_archive.assert_called_once_with(report.destination)
-        from_archive.return_value.save_and_import_content\
-            .assert_called_once_with(report.destination)
+        from_archive.return_value.set_storage_path.assert_called_once_with(
+            os.path.basename(report.destination))
+        from_archive.return_value.save.assert_called_once_with()
+        from_archive.return_value.import_content.assert_called_once_with(report.destination)
+        from_archive.return_value.save.assert_called_once_with()
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                from_archive.return_value)
 
@@ -611,6 +616,7 @@ class TestDownloadPackagesStep(unittest.TestCase):
         Test the download_succeeded() method when the checksum of the downloaded package is correct.
         """
         report = mock.MagicMock()
+        report.destination = '/tmp/foo.tar.gz'
         report.data = models.Package(name='foo', version='1.0.0', _checksum='good checksum',
                                      _checksum_type='md5')
         step = sync.DownloadPackagesStep('sync_step_download_packages', conduit=mock.MagicMock())
@@ -619,12 +625,13 @@ class TestDownloadPackagesStep(unittest.TestCase):
         package = from_archive.return_value
         package.name = 'foo'
         package.version = '1.0.0'
-        package.save_and_import_content.side_effect = mongoengine.NotUniqueError
+        package.save.side_effect = mongoengine.NotUniqueError
 
         step.download_succeeded(report)
 
-        package.save_and_import_content.assert_called()
-        self.assertEqual(package.import_content.call_count, 0)
+        package.set_storage_path.assert_called_once_with(os.path.basename(report.destination))
+        mock_objects.get.return_value.import_content.assert_called_once_with(report.destination)
+        package.save.assert_called_once_with()
         mock_associate.assert_called_once_with(step.parent.get_repo.return_value.repo_obj,
                                                mock_objects.get.return_value)
         mock_objects.get.assert_called_once_with(name='foo', version='1.0.0')
