@@ -5,8 +5,7 @@ Prerequisites
 -------------
 
 These instructions assume that you have a working Pulp installation first. If you have not yet
-installed Pulp, please follow the Pulp :ref:`installation <platform:server_installation>`
-instructions, and then return to this document.
+installed Pulp, please follow the Pulp installation instructions, and then return to this document.
 
 The command line examples included here are written for systems that use yum as their package
 manager, and systemd as their init system. Please season to taste if your system is different.
