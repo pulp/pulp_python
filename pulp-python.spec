@@ -132,6 +132,10 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue Jul 19 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-0.1.beta
+- Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
+- Remove intersphinx and enable Strict mode (bbouters@redhat.com)
+
 * Mon Jun 27 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-1
 - Bumping version to 1.1.2-1 (sean.myers@redhat.com)
 
