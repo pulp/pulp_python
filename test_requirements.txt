@@ -1,7 +1,6 @@
 coverage
 coveralls
 flake8==2.6.2
-flake8-import-order
 mock<1.1
 nose
 nosexcover
