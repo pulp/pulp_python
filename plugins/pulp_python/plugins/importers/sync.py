@@ -1,8 +1,8 @@
 """
 This module contains the necessary means for a necessary means for syncing packages from PyPI.
 """
-import contextlib
 from cStringIO import StringIO
+import contextlib
 from gettext import gettext as _
 import json
 import logging
