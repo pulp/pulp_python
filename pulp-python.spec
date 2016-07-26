@@ -3,7 +3,7 @@
 
 Name: pulp-python
 Version: 1.1.3
-Release: 0.1.beta%{?dist}
+Release: 1%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -132,12 +132,14 @@ client capabilites with Python specific features.
 
 
 %changelog
-* Tue Jul 19 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-0.1.beta
-- Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
-- Remove intersphinx and enable Strict mode (bbouters@redhat.com)
-
-* Mon Jun 27 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-1
+* Tue Jul 26 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-1
+- Bumping version to 1.1.3-1 (sean.myers@redhat.com)
+- Adds banner warning about migration runtime (bbouters@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.2-1].
+  (sean.myers@redhat.com)
 - Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+- Remove intersphinx and enable Strict mode (bbouters@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
 
 * Fri Jun 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.2.beta
 - Bumping version to 1.1.2-0.2.beta (sean.myers@redhat.com)
