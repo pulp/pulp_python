@@ -15,9 +15,7 @@ subprocess.call(['find', PROJECT_DIR, '-name', '*.pyc', '-delete'])
 
 # Check the code for PEP-8 compliance
 config_file = os.path.join(PROJECT_DIR, 'flake8.cfg')
-exit_code = subprocess.call(['flake8', '--import-order-style', 'google',
-                             '--application-import-names', 'pulp_python.common',
-                             '--config', config_file, PROJECT_DIR])
+exit_code = subprocess.call(['flake8', '--config', config_file, PROJECT_DIR])
 
 if exit_code != 0:
     sys.exit(exit_code)
