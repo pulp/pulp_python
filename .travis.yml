@@ -5,5 +5,5 @@ python:
 install:
   - "pip install -r test_requirements.txt"
 script:
-  - "flake8 --import-order-style google --application-import-names pulp_python.common --config flake8.cfg ."
+  - "flake8 --config flake8.cfg ."
   - "pep257 --ignore=D100,D103,D104,D200,D202,D203,D205,D400,D401,D402"
