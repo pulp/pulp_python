@@ -94,6 +94,7 @@ Requires: python-pulp-common >= %{pulp_version}
 Requires: python-pulp-python-common >= %{version}
 Requires: pulp-server >= %{pulp_version}
 Requires: python-setuptools
+Requires: python-twine
 
 %description plugins
 Provides a collection of platform plugins that extend the Pulp platform
