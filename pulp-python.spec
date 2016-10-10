@@ -14,7 +14,7 @@ BuildArch:      noarch
 BuildRequires:  python-setuptools
 
 # This is the minimum platform version we require to function.
-%define pulp_version 2.8
+%define pulp_version 2.11
 
 %description
 Provides a collection of platform plugins and client extensions support for Python packages.
