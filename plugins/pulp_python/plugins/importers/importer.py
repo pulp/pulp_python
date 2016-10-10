@@ -1,5 +1,6 @@
 from gettext import gettext as _
 from itertools import chain
+import os
 import shutil
 import tempfile
 
@@ -184,15 +185,24 @@ class PythonImporter(Importer):
                             'details':      json-serializable object, providing details
         :rtype:           dict
         """
+
+        # Rename the file using its actual filename so twine knows how to extract metadata.
+        working_dir = os.path.dirname(file_path)
+        new_file_path = os.path.join(working_dir, unit_key['filename'])
+        os.rename(file_path, new_file_path)
+
         try:
-            package = models.Package.from_archive(file_path)
-            package.save_and_import_content(file_path)
+            package = models.Package.from_archive(new_file_path)
+            package.save_and_import_content(new_file_path)
             repo_controller.associate_single_unit(repo.repo_obj, package)
         except NotUniqueError:
             package = package.__class__.objects.get(**package.unit_key)
             repo_controller.associate_single_unit(repo.repo_obj, package)
         except Exception as e:
             return {'success_flag': False, 'summary': e.message, 'details': {}}
+        finally:
+            # Change the name back so it can be removed by a delete request with the upload_id.
+            os.rename(new_file_path, file_path)
         return {'success_flag': True, 'summary': '', 'details': {}}
 
     def validate_config(self, repo, config):
