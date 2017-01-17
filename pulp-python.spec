@@ -133,6 +133,81 @@ client capabilites with Python specific features.
 
 
 %changelog
+* Tue Jan 17 2017 Sean Myers <sean.myers@redhat.com> 2.0.0-0.1.beta
+- Bumping version to 2.0.0-0.1.beta (sean.myers@redhat.com)
+- Update dist_list: fc23 removed, fc25 added (sean.myers@redhat.com)
+- Add fc24 to dist list (sean.myers@redhat.com)
+- Bumping version to 2.0.0-0.1.alpha (sean.myers@redhat.com)
+- Build latest plugin upstream version for f24 (sean.myers@redhat.com)
+- Bumping version to 1.2.0-0.1.alpha (sean.myers@redhat.com)
+- Updating minimum platform version. (ipanova@redhat.com)
+- Cleanup for PR (asmacdo@gmail.com)
+- Populate `packagetype` which is a required field (asmacdo@gmail.com)
+- Generate and use sha512 checksum (asmacdo@gmail.com)
+- Refactor steps logic to model and custom queryset (asmacdo@gmail.com)
+- Serve index.json for directory requests (asmacdo@gmail.com)
+- return json rather than html (asmacdo@gmail.com)
+- Publish better checksum, use for sync (asmacdo@gmail.com)
+- Publish metadata to allow pulp to pulp sync (asmacdo@gmail.com)
+- Refactor to process uploaded files with twine (asmacdo@gmail.com)
+- Change sync code to use new model (asmacdo@gmail.com)
+- Create new model for python packages (asmacdo@gmail.com)
+- Adding python-twine to the spec file requirements. (ipanova@redhat.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Removing fc22 from the list of supported platforms. (ipanova@redhat.com)
+- Add basic mention-bot config (jeremy@jcline.org)
+- remove flake8-import-order for py 2.6 compat (asmacdo@gmail.com)
+- change import order to satisfy flake8 (asmacdo@gmail.com)
+- pin to flake8-2.6.2 for py2.6 support (asmacdo@gmail.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Adds banner warning about migration runtime (bbouters@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.2-1].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+- Remove intersphinx and enable Strict mode (bbouters@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.2-0.2.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.2-0.2.beta (sean.myers@redhat.com)
+- Remove published symlinks (asmacdo@gmail.com)
+- Automatic commit of package [pulp-python] release [1.1.2-0.1.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
+- Remove published symlinks (asmacdo@gmail.com)
+- Reverting strict mode so that Koji can build RPMs again (bbouters@redhat.com)
+- Enables strict mode for sphinx docs builds (bbouters@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.1-1].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.1-0.4.rc]. (pulp-
+  infra@redhat.com)
+- Bumping version to 1.1.1-0.4.rc (pulp-infra@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.1-0.3.rc].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.3.rc (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.1-0.2.beta].
+  (sean.myers@redhat.com)
+- Migrations need to be run when upgrading to 1.1.1 (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.2.beta (sean.myers@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.1-0.1.beta].
+  (sean.myers@redhat.com)
+- Fix upload. closes #1855 (jortel@redhat.com)
+- standard storage path migration. closes #1819 (jortel@redhat.com)
+- Bumping version to 1.2.0-0.1.beta (dkliban@redhat.com)
+- Fix return value of upload_unit() to be consistent with plugin API
+  (ttereshc@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.0-1].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-1 (dkliban@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.0-0.6.rc].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.6.rc (dkliban@redhat.com)
+- Bumping version to 1.1.1-0.1.beta (dkliban@redhat.com)
+- Automatic commit of package [pulp-python] release [1.1.0-0.5.beta].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
+
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
 - Merge branch 'master' into 1.1.0 (dkliban@redhat.com)
 - Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
