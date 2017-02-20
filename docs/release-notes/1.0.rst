@@ -48,4 +48,4 @@ using systemd):
 Bugfixes
 ^^^^^^^^
 
-This release contains minor bugfixes. See the :fixedbugs:`1.0.0`.
+This release contains minor bugfixes. See the :fixedbugs_pulp_python:`1.0.0`.
