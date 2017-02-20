@@ -7,7 +7,7 @@
 Migrations will need to be run as part of the upgrade to this release.
 This procedure is documented below in the 1.1.0 release notes.
 
-This release contains minor bugfixes. See the :fixedbugs:`1.1.1`.
+This release contains minor bugfixes. See the :fixedbugs_pulp_python:`1.1.1`.
 
 
 1.1.0
@@ -44,4 +44,4 @@ using systemd):
 Bugfixes
 ^^^^^^^^
 
-This release contains minor bugfixes. See the :fixedbugs:`1.1.0`.
+This release contains minor bugfixes. See the :fixedbugs_pulp_python:`1.1.0`.
