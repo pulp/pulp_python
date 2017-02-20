@@ -19,7 +19,7 @@ The 2.0.x releases of the Python plugins depend on the Pulp 2.12.x or greater.
 Bugfixes
 ^^^^^^^^
 
-This release also contains some minor bugfixes. See the :fixedbugs:`2.0.0`.
+This release also contains some minor bugfixes. See the :fixedbugs_pulp_python:`2.0.0`.
 
 Known Issues
 ^^^^^^^^^^^^
