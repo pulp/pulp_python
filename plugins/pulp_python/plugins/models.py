@@ -211,10 +211,9 @@ class Package(FileContentUnit):
         :return: metadata for package that is not shared with the rest of the project
         :rtype:  dict
         """
-        href = '../../../packages/%s' % self.checksum_path
-        return {'filename': self.filename, 'packagetype': self.packagetype, 'path': href,
-                'md5_digest': self.md5_digest, 'checksum': self._checksum,
-                'checksum_type': self._checksum_type}
+        return {'filename': self.filename, 'packagetype': self.packagetype,
+                'path': self.checksum_path, 'md5_digest': self.md5_digest,
+                'checksum': self._checksum, 'checksum_type': self._checksum_type}
 
     @property
     def project_metadata(self):
