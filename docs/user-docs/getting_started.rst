@@ -32,7 +32,8 @@ You can list existing Python repositories::
 Upload a Python Package
 -----------------------
 
-Now that we have a Python repository, we can upload a Python source package to it. Let's clone the
+Now that we have a Python repository, we can upload a Python source package to it. Pulp accepts
+source distributions and wheels, which are uploaded in the same way. Let's clone the
 pulp_python plugins package and build a source package suitable for uploading to Pulp::
 
    $ cd /tmp
@@ -61,6 +62,7 @@ And now we can see that there is one Python package in our repository::
    Content Unit Counts:
      Python Package: 1
 
+
 Query Packages in a Repository
 ------------------------------
 
@@ -86,11 +88,13 @@ that clients can install the package from Pulp::
 
    $ pulp-admin python repo publish run --repo-id my_own_pypi
 
+Your data is now available at its web publish location: `http://<host>/pulp/python/web/<repo_id>/`.
 
 Install a Package From a Pulp Hosted Python Repository
 ------------------------------------------------------
 
-We will now install our package on another machine using pip::
+We can now use pip to install from your repository. As with PyPI, the pip access point is the
+repository web location plus "simple/". We will now install our package on another machine using pip::
 
    $ pip install -i http://pulp.example.com/pulp/python/web/my_own_pypi/simple/ pulp-python-plugins
    Downloading/unpacking pulp-python-plugins
@@ -129,7 +133,8 @@ Synchronize Packages from PyPI
 ------------------------------
 
 It is possible to synchronize packages from the Python Package Index. In order to do this, you must
-specify the feed URL as well as a comma separated list of package names you wish to sync::
+specify the feed URL as well as a comma separated list of package names you wish to sync. Pulp will
+sync all releases of all package types.::
 
    $ pulp-admin python repo create --repo-id pypi --feed https://pypi.python.org/ --package-names numpy,scipy
    Repository [pypi] successfully created
@@ -141,15 +146,42 @@ specify the feed URL as well as a comma separated list of package names you wish
 
    This command may be exited via ctrl+c without affecting the request.
 
-
-   Downloading and processing metadata.
-   [-]
+   Downloading Python metadata.
+   [==================================================] 100%
+   2 of 2 items
    ... completed
 
    Downloading and processing Python packages.
    [==================================================] 100%
-   30 of 30 items
+   718 of 718 items
    ... completed
 
 
-   Task Succeeded 
+   Task Succeeded
+
+   Publishing Python Metadata.
+   [-]
+   ... completed
+
+   Publishing Python Content.
+   [-]
+   ... completed
+
+   Making files available via web.
+   [-]
+   ... completed
+
+
+   Task Succeeded
+
+
+Synchronize Packages from another Pulp
+--------------------------------------
+
+Version 2.0+ publishes include metadata for each project. This allows separate instances of Pulp
+to sync from each other. After a publish is complete, the web publish location can be
+used as a feed for a second Pulp. Here is an example.::
+
+   $ pulp-admin python repo create --repo-id sync_from_other_pulp --feed http://<host>/pulp/python/web/<repo_id>/ --package-names numpy,scipy
+
+   $ pulp-admin python repo sync run --repo-id sync_from_other_pulp
