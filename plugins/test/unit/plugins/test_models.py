@@ -117,7 +117,7 @@ class TestPackage(unittest.TestCase):
         expected_metadata = {
             'filename': u'foo-1.0.0.tar.gz',
             'packagetype': u'sdist',
-            'path': u'../../../packages/source/f/foo/foo-1.0.0.tar.gz#some_type=abc123',
+            'path': u'source/f/foo/foo-1.0.0.tar.gz',
             'md5_digest': u'md5_123',
             'checksum': u'abc123',
             'checksum_type': u'some_type',

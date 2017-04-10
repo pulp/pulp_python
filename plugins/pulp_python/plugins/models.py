@@ -182,7 +182,8 @@ class Package(FileContentUnit):
     @property
     def src_path(self):
         """
-        Returns the relative path to the package bits.
+        Returns the relative path to the package bits where they are or will be served from Pulp,
+        not to be confused with `self.path`, which is the path of the upstream bits.
 
         Example, for a SciPy sdist with version 0.9.0, the path would be:
             source/s/scipy/scipy-0.9.0.tar.gz
@@ -195,7 +196,7 @@ class Package(FileContentUnit):
     @property
     def checksum_path(self):
         """
-        Adds checksum information to the relative path.
+        Adds checksum information to the path of the package bits.
 
         :return: relative path with checksum information
         :rtype:  basestring
@@ -211,8 +212,7 @@ class Package(FileContentUnit):
         :return: metadata for package that is not shared with the rest of the project
         :rtype:  dict
         """
-        href = '../../../packages/%s' % self.checksum_path
-        return {'filename': self.filename, 'packagetype': self.packagetype, 'path': href,
+        return {'filename': self.filename, 'packagetype': self.packagetype, 'path': self.src_path,
                 'md5_digest': self.md5_digest, 'checksum': self._checksum,
                 'checksum_type': self._checksum_type}
 
