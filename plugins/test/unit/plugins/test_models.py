@@ -51,7 +51,6 @@ class TestPackage(unittest.TestCase):
         hasher = hashlib.sha512()
         hasher.update('Hello World!')
         self.assertEqual(checksum, hasher.hexdigest())
-        raise Exception
 
     @mock.patch('__builtin__.open')
     def test_checksum_md5(self, mock_open):
