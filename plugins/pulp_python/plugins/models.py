@@ -1,123 +1,155 @@
-from gettext import gettext as _
 import hashlib
-import re
-import tarfile
+import os
 
 from mongoengine import StringField
+import pkg_resources
 from pulp.server.db.model import FileContentUnit
+from twine.package import PackageFile  # noqa
 
 from pulp_python.common import constants
+from pulp_python.plugins import querysets
 
 
-DEFAULT_CHECKSUM_TYPE = 'sha512'
-
-
-# These are required to be in the PKG-INFO file.
-REQUIRED_ATTRS = ('name', 'version', 'summary', 'home_page', 'author', 'author_email', 'license',
-                  'description', 'platform')
+CHECKSUM_TYPE = 'sha512'
+PACKAGE_ATTRS = ('author', 'name', 'packagetype', 'summary', 'version')
+PACKAGE_TYPES = ('sdist', 'bdist_egg', 'bdist_wheel', 'bdist_wininst')
 
 
 class Package(FileContentUnit):
     """
     This class represents a Python package.
+
+    Packages stored on PyPI have significantly more metadata associated with them, but we have
+    chosen to keep this model minimal. Below is an explanation for why this was done.
+
+    There are some overloaded terms that should be briefly discussed. We will be using the
+    semantics of PEP 426. https://www.python.org/dev/peps/pep-0426/#id14
+
+    Package - An individual, installable Python package. Uniqueness of a package is determined by
+              the project name, target architecture, and Python version. Note that there may not be
+              a target architecture in the case of architecture agnostic packages. A Python version
+              is also optional if there are no requirements for a specific runtime version.
+    Release - A snapshot of the project. A particular release of the project will all share the
+              same version number, but there may be multiple packages for a given release for
+              different architectures, Python versions, and package types.
+    Project - The entire group of packages of all releases.
+
+    The way that PyPI stores the metadata on their end leaves this model open to potential
+    inaccuracies because they assume that all packages of the same project share certain metadata,
+    including mutable fields. In the situation where a mutable field changes between releases, only
+    the latest version is present in the metadata accessible over the API. This is could be
+    particularly problematic for a field like "license". For this reason, most of these fields have
+    been left out of this model. The only fields that are included here are necessary for sync
+    (name, version, filename, path) or are useful for disambiguation between similarly named
+    projects (author, summary). By keeping the scope of the metadata as small as is reasonable, we
+    have less complexity and reduced risk of innacuracy.
+
+    :ivar author: primary author of the package
+    :type author: basestring
+    :ivar filename: name of the file containing the package and metadata
+    :type filename: basestring
+    :ivar md5_digest: md5 checksum provided by PyPI to ensure we got the correct bits
+    :type md5_digest: basestring
+    :ivar name: name of the project, ex. scipy
+    :type name: basestring
+    :ivar packagetype: format of python package, ex bdist_wheel, sdist
+    :type packagetype: basestring
+    :ivar path: relative path to the bits for this package
+    :type path: basestring
+    :ivar summary: one line summary of what the package does
+    :type summary: basestring
+    :ivar version: Contains the distribution's version number. This field must be in the format
+                   specified in PEP 386.
+    :type version: basestring
     """
 
-    # unit key
-    name = StringField(required=True)
+    # Validation deliberately left minimal because of noncompliant legacy data that works on PyPI
+    author = StringField()
+    filename = StringField(required=True)
+    md5_digest = StringField(regex=r'[a-fA-F0-9]{32}')
+    name = StringField(required=True, regex=r'^[.\-_A-Za-z0-9]+$')
+    packagetype = StringField(required=True, choices=PACKAGE_TYPES)
+    path = StringField()
+    summary = StringField()
     version = StringField(required=True)
 
-    author = StringField()
-    author_email = StringField()
-    description = StringField()
-    home_page = StringField()
-    license = StringField()
-    platform = StringField()
-    summary = StringField()
-
     _checksum = StringField()
-    _checksum_type = StringField(default=DEFAULT_CHECKSUM_TYPE)
-    _filename = StringField()
-    _metadata_file = StringField()
+    _checksum_type = StringField(default=CHECKSUM_TYPE)
 
     # For backward compatibility
     _ns = StringField(default='units_python_package')
     _content_type_id = StringField(required=True, default=constants.PACKAGE_TYPE_ID)
 
-    unit_key_fields = ('name', 'version')
+    unit_key_fields = ('filename',)
 
     meta = {
         'allow_inheritance': False,
         'collection': 'units_python_package',
-        'indexes': [],
+        'indexes': [{'fields': ['-filename'], 'unique': True}],
+        'queryset_class': querysets.PythonPackageQuerySet,
     }
 
     @classmethod
-    def from_archive(cls, archive_path):
+    def from_json(cls, package_data, release, project_data):
         """
-        Instantiate a Package using the metadata found inside the Python package found at
-        archive_path. This tarball should be the build result of running setup.py sdist on the
-        package, and should contain a PKG-INFO file. This method will read the PKG-INFO to determine
-        the package's metadata and unit key.
+        Create and return (but do not save) an instance of a single Python package object from the
+        metadata available from PyPI JSON.
 
-        :param archive_path: A filesystem path to the Python source distribution that this Package
-                             will represent.
-        :type  archive_path: basestring
-        :return:             An instance of Package that represents the package found at
-                             archive_path.
-        :rtype:              pulp_python.plugins.models.Package
-        :raises:             ValueError if archive_path does not point to a valid Python tarball
-                             created with setup.py sdist.
-        :raises:             IOError if the archive_path does not exist.
+        :param package_data: metadata specific to a file
+        :type  package_data: dict
+        :param release: version number
+        :type  release: basestring
+        :param project_data: metadata that applies to all versions
+        :type  project_data: dict
+        :return: instance of a package
+        :rtype:  pulp_python.plugins.models.Package
         """
-        try:
-            compression_type = cls._compression_type(archive_path)
-            checksum = cls.checksum(archive_path)
-            package_archive = tarfile.open(archive_path)
-            metadata_file = None
-            for member in package_archive.getmembers():
-                if re.match('.*/PKG-INFO$|^PKG-INFO$', member.name):
-                    # find the metadata file with the shortest path
-                    if metadata_file:
-                        if len(member.name) < len(metadata_file.name):
-                            metadata_file = member
-                    else:
-                        metadata_file = member
-            if not metadata_file:
-                msg = _('The archive at %(path)s does not contain a PKG-INFO file.')
-                msg = msg % {'path': archive_path}
-                raise ValueError(msg)
+        package_attrs = {}
 
-            metadata_file_name = metadata_file.name
-            metadata_file = package_archive.extractfile(metadata_file)
-            metadata = metadata_file.read()
+        package_attrs['version'] = release
+        package_attrs['name'] = project_data['name']
+        package_attrs['author'] = project_data['author']
+        package_attrs['summary'] = project_data['summary']
 
-            # Build a list of tuples of all the attributes found in the metadata. Ignore attributes
-            # with a leading underscore, as they are not part of the metadata.
-            attrs = dict()
-            try:
-                for attr in REQUIRED_ATTRS:
-                    attrs[attr] = re.search('^%s: (?P<field>.*?)\s*$' % cls._metadata_label(attr),
-                                            metadata, flags=re.MULTILINE).group('field')
-            except AttributeError:
-                msg = _('The PKG-INFO file is missing required attributes. Please ensure that the '
-                        'following attributes are all present: %(attrs)s')
-                msg = msg % {
-                    'attrs': ', '.join([cls._metadata_label(attr) for attr in REQUIRED_ATTRS])}
-                raise ValueError(msg)
+        package_attrs['filename'] = package_data['filename']
+        package_attrs['path'] = package_data['path']
+        package_attrs['packagetype'] = package_data['packagetype']
+        package_attrs['md5_digest'] = package_data.get('md5_digest')
 
-            # Add the filename, checksum, and checksum_type to the attrs
-            attrs['_filename'] = '%s-%s.tar%s' % (attrs['name'], attrs['version'], compression_type)
-            attrs['_checksum'] = checksum
-            attrs['_checksum_type'] = DEFAULT_CHECKSUM_TYPE
-            attrs['_metadata_file'] = metadata_file_name
-            package = cls(**attrs)
-            return package
-        finally:
-            if 'package_archive' in locals():
-                package_archive.close()
+        # If we are syncing from PyPI, there will be no `checksum`, but will be `md5_digest`
+        package_attrs['_checksum'] = package_data.get('checksum', package_attrs['md5_digest'])
+        package_attrs['_checksum_type'] = package_data.get('checksum_type', 'md5')
+        return cls(**package_attrs)
+
+    @classmethod
+    def from_archive(cls, path):
+        """
+        Create and return (but do not save) an instance of a Python package object from the package
+        itself.
+
+        Twine is smart enough to crack open a tarball, zip, or wheel and parse the metadata that is
+        contained in the package.
+
+        :param path: path to the package
+        :type  path: basestring
+        :return: instance of a package
+        :rtype:  pulp_python.plugins.models.Package
+        """
+        meta_dict = PackageFile.from_filename(path, comment='').metadata_dictionary()
+        filtered_dict = {}
+        # Use only a subset of the attributes in the metadata to keep package minimal.
+        for key, value in meta_dict.iteritems():
+            if key in PACKAGE_ATTRS:
+                filtered_dict[key] = value
+        filtered_dict['filename'] = os.path.basename(path)
+        filtered_dict['packagetype'] = meta_dict['filetype']
+        package = cls(**filtered_dict)
+        package._checksum = package.checksum(path)
+        package._checksum_type = CHECKSUM_TYPE
+        return package
 
     @staticmethod
-    def checksum(path, algorithm=DEFAULT_CHECKSUM_TYPE):
+    def checksum(path, algorithm=CHECKSUM_TYPE):
         """
         Return the checksum of the given path using the given algorithm.
 
@@ -137,43 +169,75 @@ class Package(FileContentUnit):
                 bits = file_handle.read(chunk_size)
         return hasher.hexdigest()
 
-    @staticmethod
-    def _compression_type(path):
+    @property
+    def parsed_version(self):
         """
-        Return the type of compression used in the file at path. Can be '', '.bz2', '.gz', or
-        '.zip'. '' is returned if the file at path matches none of the magic signatures. This
-        algorithm is based on http://stackoverflow.com/a/13044946.
+        Parsed version allows use of < and > operators order versions.
 
-        :param path: The path to the file you wish to test for compression type.
-        :type  path: basestring
-        :return:     File extension used to represent the compression type found at path.
-        :rtype:      basestring
+        :return: version of the package, in comparable form.
+        :rtype:  pkg_resources.SetuptoolsVersion
         """
-        magic_dict = {
-            "\x1f\x8b\x08": ".gz",
-            "\x42\x5a\x68": ".bz2",
-            "\x50\x4b\x03\x04": ".zip"
-        }
-        # We need to read the first four bytes of the file to compare
-        with open(path) as the_file:
-            header = the_file.read(4)
-        for magic, filetype in magic_dict.items():
-            if header.startswith(magic):
-                return filetype
-        return ''
+        return pkg_resources.parse_version(self.version)
 
-    @staticmethod
-    def _metadata_label(attribute):
+    @property
+    def src_path(self):
         """
-        Return the label in the PKG-INFO file that corresponds to the given attribute.
+        Returns the relative path to the package bits where they are or will be served from Pulp,
+        not to be confused with `self.path`, which is the path of the upstream bits.
 
-        :param attribute: The attribute on a Package for which you wish to know the PKG-INFO label
-        :type  attribute: basestring
-        :return:          The label in the PKG-INFO file that can be used to get the field
-        :rtype:           basestring
+        Example, for a SciPy sdist with version 0.9.0, the path would be:
+            source/s/scipy/scipy-0.9.0.tar.gz
+
+        :return: relative path to package
+        :rtype:  basestring
         """
-        label = attribute[0].upper() + attribute[1:]
-        return label.replace('_', '-')
+        return os.path.join('source', self.name[0], self.name, self.filename)
+
+    @property
+    def checksum_path(self):
+        """
+        Adds checksum information to the path of the package bits.
+
+        :return: relative path with checksum information
+        :rtype:  basestring
+        """
+        return '%s#%s=%s' % (self.src_path, self._checksum_type, self._checksum)
+
+    @property
+    def package_specific_metadata(self):
+        """
+        Returns a dictionary containing the subset of metadata that is not duplicated between
+        packages of the same project.
+
+        :return: metadata for package that is not shared with the rest of the project
+        :rtype:  dict
+        """
+        return {'filename': self.filename, 'packagetype': self.packagetype, 'path': self.src_path,
+                'md5_digest': self.md5_digest, 'checksum': self._checksum,
+                'checksum_type': self._checksum_type}
+
+    @property
+    def project_metadata(self):
+        """
+        Returns a dictionary containing the subset of metadata that is shared between packages
+        of the same project.
+
+        :return: metadata for package that is shared with the rest of the project
+        :rtype:  dict
+        """
+        return {'name': self.name, 'summary': self.summary, 'author': self.author}
+
+    def package_url(self, feed_url):
+        """
+        Given the feed, return a full url to retrieve the package bits.
+
+        :param feed_url: base url of the repository feed
+        :type  feed_url: basestring
+
+        :return: download url of package bits
+        :rtype:  basestring
+        """
+        return os.path.join(feed_url, 'packages', self.path)
 
     def __repr__(self):
         """

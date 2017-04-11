@@ -7,36 +7,27 @@ The Python plugins come with a database type for Python packages. This type's id
 Unit Key
 --------
 
-The Python type's unit key is an ordered list of the following attributes:
-
-+---------+----------------------------+
-| Name    | Description                |
-+=========+============================+
-| name    | The name of the package    |
-+---------+----------------------------+
-| version | The version of the package |
-+---------+----------------------------+
+The Python type's unit key is the filename of the package. In versions before 2.0, the unit key was
+the name and version, which did not allow for multiple package types of a single release.
 
 Other Attributes
 ----------------
 
-The Python package type has these additional attributes that are all taken from the package's
-PKG-INFO file:
+The Python package type has these additional attributes, all of which are determined automatically
+by the package metadata.
 
 +--------------+-------------------------------------------------------+
 | Name         | Description                                           |
 +==============+=======================================================+
-| summary      | A brief summary                                       |
-+--------------+-------------------------------------------------------+
-| home_page    | The package's home page URL                           |
-+--------------+-------------------------------------------------------+
 | author       | The author's name                                     |
 +--------------+-------------------------------------------------------+
-| author_email | The author's e-mail address                           |
+| name         | Project/package name                                  |
 +--------------+-------------------------------------------------------+
-| license      | The package's licence type                            |
+| packagetype  | Format of the python package, ex sdist or bdist_wheel |
 +--------------+-------------------------------------------------------+
-| description  | A long description of the package                     |
+| summary      | A brief summary                                       |
 +--------------+-------------------------------------------------------+
 | platform     | The platforms that the package is intended to work in |
++--------------+-------------------------------------------------------+
+| version      | Version number of the package distribution            |
 +--------------+-------------------------------------------------------+
