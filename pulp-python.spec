@@ -69,6 +69,7 @@ rm -rf %{buildroot}
 %package -n python-pulp-python-common
 Summary: Pulp Python support common library
 Group: Development/Languages
+Provides: python2-pulp-python-common
 Requires: python-pulp-common >= %{pulp_version}
 Requires: python-setuptools
 
