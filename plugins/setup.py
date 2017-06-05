@@ -2,16 +2,21 @@
 
 from setuptools import find_packages, setup
 
+requirements = [
+    'pulpcore-plugin',
+    'pulp-python-common'
+]
 
 setup(
-    name='pulp_python_plugins',
-    version='2.0a1',
-    packages=find_packages(exclude=['test', 'test.*']),
+    name='pulp-python',
+    version='3.0.0a1.dev0',
+    packages=find_packages(exclude=['test']),
     url='http://www.pulpproject.org',
+    install_requires=requirements,
     license='GPLv2+',
     author='Pulp Team',
     author_email='pulp-list@redhat.com',
-    description='plugins for python support in pulp',
+    description='Plugins for Python support in pulp',
     entry_points={
         'pulp.importers': [
             'importer = pulp_python.plugins.importers.importer:entry_point',
