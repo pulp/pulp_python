@@ -1,14 +1,20 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
+# The release number
+%global release_number 0.1.alpha
+
+# Create tag for the Source0 and setup
+%global git_tag %{name}-%{version}-%{release_number}
+
 Name: pulp-python
 Version: 2.1.0
-Release: 0.1.alpha%{?dist}
+Release: %{release_number}%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
 URL: https://github.com/pulp/pulp_python
-Source0: https://fedorahosted.org/releases/p/u/%{name}/%{name}-%{version}.tar.gz
+Source0: https://codeload.github.com/pulp/pulp_python/tar.gz/%{git_tag}#/%{name}-%{version}.tar.gz 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  python-setuptools
@@ -21,7 +27,7 @@ Provides a collection of platform plugins and client extensions support for Pyth
 
 
 %prep
-%setup -q
+%setup -q -n pulp_python-%{git_tag}
 
 
 %build
