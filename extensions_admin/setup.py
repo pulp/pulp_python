@@ -2,12 +2,16 @@
 
 from setuptools import find_packages, setup
 
+requirements = [
+    'pulp-python-common'
+]
 
 setup(
-    name='pulp_python_extensions_admin',
-    version='2.0a1',
+    name='pulp-python-cli',
+    version='3.0.0a1.dev0',
     packages=find_packages(exclude=['test']),
     url='http://www.pulpproject.org',
+    install_requires=requirements,
     license='GPLv2+',
     author='Pulp Team',
     author_email='pulp-list@redhat.com',
