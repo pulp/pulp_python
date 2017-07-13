@@ -12,7 +12,7 @@ from pulp_python.plugins import querysets
 
 CHECKSUM_TYPE = 'sha512'
 PACKAGE_ATTRS = ('author', 'name', 'packagetype', 'summary', 'version')
-PACKAGE_TYPES = ('sdist', 'bdist_egg', 'bdist_wheel', 'bdist_wininst')
+PACKAGE_TYPES = ('sdist', 'bdist_egg', 'bdist_wheel', 'bdist_wininst', 'bdist_msi', 'bdist_rpm')
 
 
 class Package(FileContentUnit):
