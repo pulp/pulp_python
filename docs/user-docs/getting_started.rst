@@ -186,6 +186,6 @@ used as a feed for a second Pulp. Here is an example.::
 
    $ pulp-admin python repo sync run --repo-id sync_from_other_pulp
 
-If you're using a non-standard Apache configuration, please insure "index.json" is appended to your DirectoryIndex directive, otherwise remote Pulp instances will not be able to sync your repository.
+The pulp_python RPM distribution automatically adds index.json as a DirectoryIndex in pulp_python.conf. If you're not running the pulp_python RPM distribution, you will need to ensure this setting is present before remote Pulp instances will be able to sync your repository.
 
-Version 2.0+ of the pulp_python plugin is required on both Pulp servers. Syncronizing python content between pulp_python 1.x and 2.x is not supported.
+Version 2.0+ of the pulp_python plugin is required on both Pulp servers for synchronization to work. Syncronizing python content between pulp_python 1.x and 2.x is not supported.
