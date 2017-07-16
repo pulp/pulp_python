@@ -29,6 +29,12 @@ command as the same user that the web server uses when it runs Pulp::
 
   $ sudo -u apache pulp-manage-db
 
+
+The pulp_python RPM distribution automatically adds index.html and index.json as a DirectoryIndex
+in pulp_python.conf. If you're not running the pulp_python RPM distribution, or you have
+customized your apache configuration, you will need to ensure this setting is present before remote
+Pulp instances will be able to sync your repository.
+
 Finally, restart ``httpd``::
 
   $ sudo systemctl restart httpd
@@ -39,3 +45,4 @@ Admin Client
 Simply install the ``pulp-python-admin-extensions`` package::
 
   $ sudo yum install pulp-python-admin-extensions
+
