@@ -185,3 +185,7 @@ used as a feed for a second Pulp. Here is an example.::
    $ pulp-admin python repo create --repo-id sync_from_other_pulp --feed http://<host>/pulp/python/web/<repo_id>/ --package-names numpy,scipy
 
    $ pulp-admin python repo sync run --repo-id sync_from_other_pulp
+
+
+Version 2.0+ of the pulp_python plugin is required on both Pulp servers for synchronization to work.
+Syncronizing python content between pulp_python 1.x and 2.x is not supported.
