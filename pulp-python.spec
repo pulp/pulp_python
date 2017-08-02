@@ -3,7 +3,7 @@
 
 Name: pulp-python
 Version: 2.0.1
-Release: 0.2.beta%{?dist}
+Release: 0.3.rc%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
