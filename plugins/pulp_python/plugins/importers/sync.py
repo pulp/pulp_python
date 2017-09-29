@@ -14,6 +14,7 @@ from pulp.common.plugins import importer_constants
 from pulp.plugins.util import publish_step
 from pulp.plugins.util.publish_step import GetLocalUnitsStep
 from pulp.server.controllers import repository as repo_controller
+from pulp.server.exceptions import MissingValue
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
@@ -114,7 +115,7 @@ class DownloadPackagesStep(publish_step.DownloadStep):
 
         package.set_storage_path(os.path.basename(report.destination))
 
-        # If the same package was simultaniously created by another task, it is possible that this
+        # If the same package was simultaneously created by another task, it is possible that this
         # will attempt to save a duplicate unit into the database. In that case, catch the error,
         # retrieve the unit, and associate it to this repo.
         try:
@@ -133,6 +134,9 @@ class SyncStep(publish_step.PluginStep):
     a Python repository sync.
     """
 
+    # The sync will fail if these settings are not provided in the config
+    required_settings = (constants.CONFIG_KEY_PACKAGE_NAMES, importer_constants.KEY_FEED)
+
     def __init__(self, repo, conduit, config, working_dir):
         """
         Initialize the SyncStep and its child steps.
@@ -150,6 +154,7 @@ class SyncStep(publish_step.PluginStep):
                                        constants.IMPORTER_TYPE_ID)
         self.description = _('Synchronizing %(id)s repository.') % {'id': repo.id}
 
+        self._validate(config)
         self._feed_url = config.get(importer_constants.KEY_FEED)
         self._project_names = config.get(constants.CONFIG_KEY_PACKAGE_NAMES, [])
         if self._project_names:
@@ -198,3 +203,21 @@ class SyncStep(publish_step.PluginStep):
         self.process_lifecycle()
         repo_controller.rebuild_content_unit_counts(self.get_repo().repo_obj)
         return self._build_final_report()
+
+    @classmethod
+    def _validate(cls, config):
+        """
+        Ensure that any required settings have non-empty values.
+
+        :param config:  config object for the sync
+        :type  config:  pulp.plugins.config.PluginCallConfiguration
+
+        :raises MissingValue:   if any required sync setting is missing
+        """
+        missing = []
+        for key in cls.required_settings:
+            if not config.get(key):
+                missing.append(key)
+
+        if missing:
+            raise MissingValue(missing)
