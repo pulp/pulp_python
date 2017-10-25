@@ -1,6 +1,25 @@
 2.0 Release Notes
 =================
 
+2.0.2
+-----
+
+Bugfixes
+^^^^^^^^
+
+This release contains some bugfixes. See the :fixedbugs_pulp_python:`2.0.2`.
+
+
+2.0.1
+-----
+
+Bugfixes
+^^^^^^^^
+
+This release contains some bugfixes. See the :fixedbugs_pulp_python:`2.0.1`.
+
+
+
 2.0.0
 -----
 
