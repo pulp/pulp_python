@@ -9,7 +9,10 @@ import unittest
 
 import mock
 import mongoengine
+from pulp.common.plugins import importer_constants
+from pulp.plugins.config import PluginCallConfiguration
 from pulp.plugins.util.publish_step import GetLocalUnitsStep
+from pulp.server.exceptions import MissingValue
 
 from pulp_python.common import constants
 from pulp_python.plugins import models
@@ -613,56 +616,6 @@ class TestSyncStep(unittest.TestCase):
     """
     This class contains tests for the SyncStep class.
     """
-    @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.__init__',
-                side_effect=sync.DownloadPackagesStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.publish_step.PluginStep.__init__',
-                side_effect=sync.publish_step.PluginStep.__init__, autospec=True)
-    @mock.patch('pulp_python.plugins.importers.sync.SyncStep.generate_download_requests',
-                autospec=True)
-    def test___init___no_packages(self, generate_download_requests, super___init__,
-                                  download_packages___init__):
-        """
-        Test the __init__() method when the user has not specified any packages to sync.
-        """
-        repo = mock.MagicMock()
-        repo.id = 'cool_repo'
-        conduit = mock.MagicMock()
-        config = mock.MagicMock()
-        working_dir = '/some/dir'
-
-        def fake_get(key, default=None):
-            if key == constants.CONFIG_KEY_PACKAGE_NAMES:
-                return default
-            return 'http://example.com/'
-
-        config.get.side_effect = fake_get
-
-        step = sync.SyncStep(repo, conduit, config, working_dir)
-
-        # The superclass __init__ method gets called four times. Once directly by this __init__, and
-        # three more times by the substeps it creates.
-        self.assertEqual(super___init__.call_count, 4)
-        # Let's assert that the direct call was cool.
-        self.assertEqual(
-            super___init__.mock_calls[0],
-            mock.call(step, 'sync_step_main', repo, conduit, config, working_dir,
-                      constants.IMPORTER_TYPE_ID))
-        self.assertEqual(step.description, _('Synchronizing cool_repo repository.'))
-        # Assert that the feed url and packages names are correct
-        self.assertEqual(step._feed_url, 'http://example.com/')
-        self.assertEqual(step._project_names, [])
-        self.assertEqual(step.available_units, [])
-        # Three child steps should have been added
-        self.assertEqual(len(step.children), 3)
-        self.assertEqual(type(step.children[0]), sync.DownloadMetadataStep)
-        self.assertEqual(type(step.children[1]), GetLocalUnitsStep)
-        self.assertEqual(type(step.children[2]), sync.DownloadPackagesStep)
-        # Make sure the steps were initialized properly
-        downloads = generate_download_requests.return_value
-        download_packages___init__.assert_called_once_with(
-            step.children[2], 'sync_step_download_packages', downloads=downloads, repo=repo,
-            config=config, conduit=conduit, working_dir=working_dir,
-            description=_('Downloading and processing Python packages.'))
 
     @mock.patch('pulp_python.plugins.importers.sync.DownloadPackagesStep.__init__',
                 side_effect=sync.DownloadPackagesStep.__init__, autospec=True)
@@ -797,6 +750,46 @@ class TestSyncStep(unittest.TestCase):
         self.assertEqual(request_destinations, ['/some/dir/1.2.tar.gz', '/some/dir/1.3.tar.gz'])
         requests_data = [r.data for r in requests]
         self.assertEqual(requests_data, step.get_local_units_step.units_to_download)
+
+    def test_required_settings(self):
+        """
+        Assert that the required_settings class attribute is set correctly.
+        """
+        self.assertEqual(sync.SyncStep.required_settings,
+                         (constants.CONFIG_KEY_PACKAGE_NAMES, importer_constants.KEY_FEED))
+
+    def test_validate_no_packages_or_feed(self):
+        config = PluginCallConfiguration({}, {})
+
+        try:
+            sync.SyncStep._validate(config)
+        except MissingValue as e:
+            self.assertTrue(importer_constants.KEY_FEED in e.property_names)
+            self.assertTrue(constants.CONFIG_KEY_PACKAGE_NAMES in e.property_names)
+        else:
+            raise AssertionError('validation should have failed')
+
+    def test_validate_no_packages(self):
+        config = PluginCallConfiguration({}, {importer_constants.KEY_FEED: 'http://foo'})
+
+        try:
+            sync.SyncStep._validate(config)
+        except MissingValue, e:
+            self.assertTrue(constants.CONFIG_KEY_PACKAGE_NAMES in e.property_names)
+            self.assertEqual(len(e.property_names), 1)
+        else:
+            raise AssertionError('validation should have failed')
+
+    def test_validate_no_feed(self):
+        config = PluginCallConfiguration({}, {constants.CONFIG_KEY_PACKAGE_NAMES: 'numpy'})
+
+        try:
+            sync.SyncStep._validate(config)
+        except MissingValue, e:
+            self.assertTrue(importer_constants.KEY_FEED in e.property_names)
+            self.assertEqual(len(e.property_names), 1)
+        else:
+            raise AssertionError('validation should have failed')
 
     @mock.patch('pulp.server.controllers.repository.rebuild_content_unit_counts', spec_set=True)
     @mock.patch('pulp_python.plugins.importers.sync.SyncStep._build_final_report',

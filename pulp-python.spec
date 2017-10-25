@@ -2,8 +2,8 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 Name: pulp-python
-Version: 2.0.0
-Release: 0.3.rc%{?dist}
+Version: 2.0.2
+Release: 0.1.beta%{?dist}
 Summary: Support for Python content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -70,6 +70,7 @@ rm -rf %{buildroot}
 Summary: Pulp Python support common library
 Group: Development/Languages
 Provides: python2-pulp-python-common
+Obsoletes: python2-pulp-python-common < %{version}
 Requires: python-pulp-common >= %{pulp_version}
 Requires: python-setuptools
 
