@@ -1,6 +1,0 @@
-[run]
-source = .,pulp_python
-include = ./common/pulp_python/*,./extensions_admin/pulp_python/*,./plugins/pulp_python/*
-
-[report]
-show_missing = True
