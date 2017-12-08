@@ -3,20 +3,14 @@ from pulpcore.plugin import viewsets as platform
 from . import models, serializers
 
 
-class PythonContentViewSet(platform.ContentViewSet):
+class PythonPackageContentViewSet(platform.ContentViewSet):
     """
-    A ViewSet for PythonContent.
-
-    Define endpoint name which will appear in the API endpoint for this content type.
-    For example::
-        http://pulp.example.com/api/v3/content/python/
-
-    Also specify queryset and serializer for PythonContent.
+    The ViewSet for PythonPackageContent.
     """
 
     endpoint_name = 'python'
-    queryset = models.PythonContent.objects.all()
-    serializer_class = serializers.PythonContentSerializer
+    queryset = models.PythonPackageContent.objects.all()
+    serializer_class = serializers.PythonPackageContentSerializer
 
 
 class PythonImporterViewSet(platform.ImporterViewSet):

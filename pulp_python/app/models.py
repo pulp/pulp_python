@@ -1,35 +1,65 @@
-from gettext import gettext as _
 from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import (Artifact, Content, ContentArtifact, RemoteArtifact, Importer,
-                                    ProgressBar, Publisher, RepositoryContent, PublishedArtifact,
-                                    PublishedMetadata)
-from pulpcore.plugin.tasking import Task
-
+from pulpcore.plugin.models import Content, Importer, Publisher
+from django.contrib.postgres.fields import ArrayField
 
 log = getLogger(__name__)
 
 
-class PythonContent(Content):
+class Classifier(models.Model):
     """
-    The "python" content type.
+    Custom tags for classifier
 
-    Define fields you need for your new content type and
-    specify uniqueness constraint to identify unit of this type.
+    Fields:
 
-    For example::
+        name (models.TextField): The name of the classifier
 
-        field1 = models.TextField()
-        field2 = models.IntegerField()
-        field3 = models.CharField()
+    Relations:
 
-        class Meta:
-            unique_together = (field1, field2)
+        python_package_content (models.ForeignKey): The PythonPackageContent this classifier
+        is associated with.
+
+    """
+
+    name = models.TextField()
+    python_package_content = models.ForeignKey("PythonPackageContent", related_name="classifiers",
+                                               related_query_name="classifier")
+
+
+class PythonPackageContent(Content):
+    """
+    A Content Type representing Python's Distribution Package as
+    defined in pep-0426 and pep-0345
+    https://www.python.org/dev/peps/pep-0491/
+    https://www.python.org/dev/peps/pep-0345/
     """
 
     TYPE = 'python'
+    filename = models.TextField(unique=True, db_index=True, blank=False)
+    packagetype = models.TextField(blank=False)
+    name = models.TextField(blank=False)
+    version = models.TextField(blank=False)
+    metadata_version = models.TextField(blank=False)
+    summary = models.TextField()
+    description = models.TextField()
+    keywords = ArrayField(models.TextField())
+    home_page = models.TextField()
+    download_url = models.TextField()
+    author = models.TextField()
+    author_email = models.TextField()
+    maintainer = models.TextField()
+    maintainer_email = models.TextField()
+    license = models.TextField()
+    requires_python = models.TextField()
+    project_url = models.TextField()
+    platform = models.TextField()
+    supported_platform = models.TextField()
+    requires_dist = ArrayField(models.TextField())
+    provides_dist = ArrayField(models.TextField())
+    obsoletes_dist = ArrayField(models.TextField())
+    requires_external = ArrayField(models.TextField())
 
 
 class PythonPublisher(Publisher):
