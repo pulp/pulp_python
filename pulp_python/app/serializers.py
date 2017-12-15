@@ -164,19 +164,16 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
 class PythonImporterSerializer(platform.ImporterSerializer):
     """
     A Serializer for PythonImporter.
-
-    Add any new fields if defined on PythonImporter.
-    Similar to the example above, in PythonContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.ImporterSerializer.Meta.validators + [myValidator1, myValidator2]
     """
 
+    projects = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        help_text=_('A list of project names to sync.')
+    )
+
     class Meta:
-        fields = platform.ImporterSerializer.Meta.fields
+        fields = platform.ImporterSerializer.Meta.fields + ('projects',)
         model = models.PythonImporter
         validators = platform.ImporterSerializer.Meta.validators
 
