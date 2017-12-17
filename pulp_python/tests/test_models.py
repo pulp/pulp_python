@@ -10,7 +10,7 @@ class ImportersTestCase(TestCase):
         repo1 = Repository.objects.create(name='repo1')
         self.importer1 = PythonImporter.objects.create(
             name='importer1', download_policy='immediate', sync_mode='mirror',
-            repository=repo1, project_names=[])
+            repository=repo1, projects=[])
         content = PythonPackageContent.objects.create(
             filename='filename', packagetype='bdist_wheel',
             name='project', version='0.0.1')

@@ -100,7 +100,7 @@ class PythonImporter(Importer):
     An Importer for Python Content.
 
     Attributes:
-        project_names (list): A list of python projects to sync
+        projects (list): A list of python projects to sync
     """
 
     TYPE = 'python'
@@ -131,7 +131,7 @@ class PythonImporter(Importer):
         remote = []
 
         metadata_urls = [urljoin(self.feed_url, 'pypi/%s/json' % project)
-                         for project in self.project_names]
+                         for project in self.projects]
 
         for metadata_url in metadata_urls:
             parsed_url = urlparse(metadata_url)
