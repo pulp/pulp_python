@@ -5,7 +5,6 @@ from collections import namedtuple
 from logging import getLogger
 from urllib.parse import urljoin, urlparse
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from pulpcore.plugin.models import (Artifact, Content, Importer, Publisher)
@@ -70,10 +69,10 @@ class PythonPackageContent(Content):
     project_url = models.TextField(null=True)
     platform = models.TextField(null=True)
     supported_platform = models.TextField(null=True)
-    requires_dist = ArrayField(models.TextField(), default=[])
-    provides_dist = ArrayField(models.TextField(), default=[])
-    obsoletes_dist = ArrayField(models.TextField(), default=[])
-    requires_external = ArrayField(models.TextField(), default=[])
+    requires_dist = models.TextField(default="[]", blank=False)
+    provides_dist = models.TextField(default="[]", blank=False)
+    obsoletes_dist = models.TextField(default="[]", blank=False)
+    requires_external = models.TextField(default="[]", blank=False)
 
 
 class PythonPublisher(Publisher):
@@ -104,7 +103,7 @@ class PythonImporter(Importer):
     """
 
     TYPE = 'python'
-    projects = ArrayField(models.TextField())
+    projects = models.TextField(null=True)
 
     def _fetch_inventory(self):
         """
@@ -131,7 +130,7 @@ class PythonImporter(Importer):
         remote = []
 
         metadata_urls = [urljoin(self.feed_url, 'pypi/%s/json' % project)
-                         for project in self.projects]
+                         for project in json.loads(self.projects)]
 
         for metadata_url in metadata_urls:
             parsed_url = urlparse(metadata_url)
@@ -199,10 +198,10 @@ class PythonImporter(Importer):
         package['project_url'] = project.get('project_url')
         package['platform'] = project.get('platform')
         package['supported_platform'] = project.get('supported_platform')
-        package['requires_dist'] = project.get('requires_dist', [])
-        package['provides_dist'] = project.get('provides_dist', [])
-        package['obsoletes_dist'] = project.get('obsoletes_dist', [])
-        package['requires_external'] = project.get('requires_external', [])
+        package['requires_dist'] = json.dumps(project.get('requires_dist', []))
+        package['provides_dist'] = json.dumps(project.get('provides_dist', []))
+        package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
+        package['requires_external'] = json.dumps(project.get('requires_external', []))
         package['url'] = distribution['url']
         package['md5_digest'] = distribution['md5_digest']
 

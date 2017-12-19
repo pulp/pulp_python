@@ -105,29 +105,25 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         required=False, allow_blank=True,
         help_text=_('Field to specify the OS and CPU for which the binary package was compiled. ')
     )
-    requires_dist = serializers.ListField(
-        child=serializers.CharField(),
-        required=False, default=[],
-        help_text=_('List containing names of some other distutils project '
+    requires_dist = serializers.CharField(
+        required=False, default="[]",
+        help_text=_('A JSON list containing names of some other distutils project '
                     'required by this distribution.')
     )
-    provides_dist = serializers.ListField(
-        child=serializers.CharField(),
-        required=False, default=[],
-        help_text=_('List containing names of a Distutils project which is contained'
+    provides_dist = serializers.CharField(
+        required=False, default="[]",
+        help_text=_('A JSON list containing names of a Distutils project which is contained'
                     ' within this distribution.')
     )
-    obsoletes_dist = serializers.ListField(
-        child=serializers.CharField(),
-        required=False, default=[],
-        help_text=_('List containing names of a distutils project\'s distribution which this '
-                    'distribution renders obsolete, meaning that the two projects should not '
+    obsoletes_dist = serializers.CharField(
+        required=False, default="[]",
+        help_text=_('A JSON list containing names of a distutils project\'s distribution which '
+                    'this distribution renders obsolete, meaning that the two projects should not '
                     'be installed at the same time.')
     )
-    requires_external = serializers.ListField(
-        child=serializers.CharField(),
-        required=False, default=[],
-        help_text=_('List containing some dependency in the system that the distribution '
+    requires_external = serializers.CharField(
+        required=False, default="[]",
+        help_text=_('A JSON list containing some dependency in the system that the distribution '
                     'is to be used.')
     )
     classifiers = ClassifierSerializer(
@@ -166,10 +162,9 @@ class PythonImporterSerializer(platform.ImporterSerializer):
     A Serializer for PythonImporter.
     """
 
-    projects = serializers.ListField(
-        child=serializers.CharField(),
+    projects = serializers.CharField(
         required=True,
-        help_text=_('A list of project names to sync.')
+        help_text=_('A JSON list of project names to sync.')
     )
 
     class Meta:
