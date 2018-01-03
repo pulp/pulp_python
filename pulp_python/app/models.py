@@ -20,6 +20,11 @@ log = getLogger(__name__)
 
 Delta = namedtuple('Delta', ('additions', 'removals'))
 
+PACKAGE_TYPES = (("bdist_dmg", "bdist_dmg"), ("bdist_dumb", "bdist_dumb"),
+                 ("bdist_egg", "bdist_egg"), ("bdist_msi", "bdist_msi"),
+                 ("bdist_rpm", "bdist_rpm"), ("bdist_wheel", "bdist_wheel"),
+                 ("bdist_wininst", "bdist_wininst"), ("sdist", "sdist"))
+
 
 class Classifier(models.Model):
     """
@@ -51,7 +56,7 @@ class PythonPackageContent(Content):
 
     TYPE = 'python'
     filename = models.TextField(unique=True, db_index=True, blank=False)
-    packagetype = models.TextField(blank=False)
+    packagetype = models.TextField(blank=False, choices=PACKAGE_TYPES)
     name = models.TextField(blank=False)
     version = models.TextField(blank=False)
     metadata_version = models.TextField(null=True)
@@ -105,24 +110,28 @@ class PythonImporter(Importer):
     TYPE = 'python'
     projects = models.TextField(null=True)
 
-    def _fetch_inventory(self):
+    def _fetch_inventory(self, version):
         """
-        Fetch existing contentunits in the repository.
+        Fetch the contentunits in the specified repository version
+
+        Args:
+            version (pulpcore.plugin.models.RepositoryVersion): version of repository to fetch
+                content units from
 
         Returns:
             set: of contentunit filenames.
         """
         inventory = set()
-
-        q_set = PythonPackageContent.objects.filter(repositories=self.repository)
-        q_set = q_set.only("filename")
-        for content in (c.cast() for c in q_set):
-            inventory.add(content.filename)
+        if version is not None:
+            q_set = version.content()
+            if q_set:
+                for content in (c.cast() for c in q_set):
+                    inventory.add(content.filename)
         return inventory
 
     def _fetch_remote(self):
         """
-        Fetch contentunits available  on the remote repository.
+        Fetch contentunits available in the remote repository.
 
         Returns:
             list: of contentunit metadata.
@@ -170,9 +179,12 @@ class PythonImporter(Importer):
         """
         Create a dictionary of metadata needed to create a PythonContentUnit from
         the project, version, and distribution metadata
-        :param project:
-        :param version:
-        :param distribution:
+
+        Args:
+            project (dict): of metadata relevant to the entire Python project
+            version (string): version of distribution
+            distribution (dict): of metadata of a single Python distribution
+
         Returns:
             dictionary: of useful python metadata
         """
@@ -229,28 +241,39 @@ class PythonImporter(Importer):
                 })
             yield content
 
-    def _build_removals(self, removals):
+    def _build_removals(self, removals, version):
         """
         Generate the content to be removed.
 
+        Args:
+            removals (set): of filenames to remove
+            version (pulpcore.plugin.models.RepositoryVersion): of repository to remove contents
+                from
         Returns:
             generator: A generator of content to be removed.
         """
         q = models.Q()
         for content_key in removals:
             q |= models.Q(pythonpackagecontent__filename=content_key)
-            q_set = self.repository.content.filter(q)
+            q_set = version.content().filter(q)
             q_set = q_set.only('id')
             for content in q_set:
                 yield content
 
-    def sync(self):
+    def sync(self, new_version, base_version):
         """
         Sync the python projects listed on a :class:`pulp_python.app.models.PythonImporter`
         from a remote repository
+
+        Args:
+            new_version (pulpcore.plugin.models.RepositoryVersion): the new version to which
+                content should be added and removed.
+            base_version (pulpcore.plugin.models.RepositoryVersion): the targeted pre-existing
+                version or None if one does not exist.
+
         """
 
-        inventory = self._fetch_inventory()
+        inventory = self._fetch_inventory(base_version)
         remote_metadata = self._fetch_remote()
         remote_keys = set([content['filename'] for content in remote_metadata])
 
@@ -262,7 +285,7 @@ class PythonImporter(Importer):
             self._build_additions(delta.additions, remote_metadata),
             len(delta.additions))
         removals = SizedIterable(
-            self._build_removals(delta.removals),
+            self._build_removals(delta.removals, base_version),
             len(delta.removals))
-        changeset = ChangeSet(self, additions=additions, removals=removals)
+        changeset = ChangeSet(self, new_version, additions=additions, removals=removals)
         changeset.apply_and_drain()

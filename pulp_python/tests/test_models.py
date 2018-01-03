@@ -1,6 +1,6 @@
 from django.test import TestCase
 from pulp_python.app.models import PythonPackageContent, PythonImporter
-from pulpcore.plugin.models import Repository, RepositoryContent
+from pulpcore.plugin.models import Repository, RepositoryVersion
 
 
 class ImportersTestCase(TestCase):
@@ -15,11 +15,14 @@ class ImportersTestCase(TestCase):
             filename='filename', packagetype='bdist_wheel',
             name='project', version='0.0.1')
 
-        RepositoryContent.objects.create(repository=repo1, content=content)
+        self.repo_v1 = RepositoryVersion.objects.create(repository=repo1)
+        self.repo_v1.add_content(content)
+
+        self.repo_v1.save()
 
     def test_fetch_inventory(self):
 
-        remote = self.importer1._fetch_inventory()
+        remote = self.importer1._fetch_inventory(self.repo_v1)
         self.assertEqual(remote, {'filename'})
 
     def test_find_delta_mirror_true(self):
