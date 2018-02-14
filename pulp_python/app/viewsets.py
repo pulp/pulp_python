@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
 from pulpcore.plugin import viewsets as platform
+from pulpcore.plugin.models import Repository
 from rest_framework import decorators
 
 from . import models, serializers, tasks
@@ -31,13 +32,17 @@ class PythonImporterViewSet(platform.ImporterViewSet):
     @decorators.detail_route(methods=('post',))
     def sync(self, request, pk):
         importer = self.get_object()
+        repository = self.get_resource(request.data['repository'], Repository)
         if not importer.feed_url:
             # TODO(asmacdo) make sure this raises a 400
             raise ValueError(_("An importer must have a 'feed_url' attribute to sync."))
 
         async_result = tasks.sync.apply_async_with_reservation(
-            platform.tags.RESOURCE_REPOSITORY_TYPE, str(importer.repository.pk),
-            kwargs={'importer_pk': importer.pk}
+            platform.tags.RESOURCE_REPOSITORY_TYPE, str(repository.pk),
+            kwargs={
+                'importer_pk': importer.pk,
+                'repository_pk': repository.pk
+            }
         )
         return platform.OperationPostponedResponse([async_result], request)
 

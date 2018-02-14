@@ -1,5 +1,5 @@
 from collections import namedtuple
-from contextlib import contextmanager, suppress
+from contextlib import suppress
 import json
 
 from gettext import gettext as _
@@ -11,7 +11,7 @@ from celery import shared_task
 from django.db import transaction
 from django.db.models import Q
 from pulpcore.plugin import models
-from pulpcore.plugin.tasks import working_dir_context, UserFacingTask
+from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
 
 from pulpcore.plugin.changeset import (
     ChangeSet,
@@ -30,55 +30,27 @@ log = logging.getLogger(__name__)
 Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
-class repository_version_context:
-    """
-    """
-    def __init__(self, importer):
-        self.importer = importer
-
-        self.base_version = None
-        with suppress(models.RepositoryVersion.DoesNotExist):
-            self.base_version = self.importer.repository.versions.exclude(complete=False).latest()
-
-        with transaction.atomic():
-            self.new_version = models.RepositoryVersion(repository=self.importer.repository)
-            self.new_version.number = self.importer.repository.last_version + 1
-            self.importer.repository.last_version = self.new_version.number
-            self.new_version.save()
-            self.importer.repository.save()
-
-    def __enter__(self):
-           return self
-
-    def __exit__(self, exc_type, exc_val, traceback):
-        # Exceptions are reraised by the context manager by default.
-        if exc_val:
-            self.new_version.delete()
-            return
-        else:
-            with transaction.atomic():
-                self.new_version.complete = True
-                self.new_version.save()
-                self.created_resource = models.CreatedResource(content_object=self.new_version)
-                self.created_resource.save()
-            return True
-
-
 @shared_task(base=UserFacingTask)
-def sync(importer_pk):
+def sync(importer_pk, repository_pk):
     importer = python_models.PythonImporter.objects.get(pk=importer_pk)
+    repository = models.Repository.objects.get(pk=repository_pk)
 
-    with repository_version_context(importer) as rv:
-        # import rpdb
-        # rpdb.set_trace()
-        with working_dir_context():
+    if not importer.feed_url:
+        raise ValueError(_("An importer must have a feed_url attribute to sync."))
+
+    base_version = models.RepositoryVersion.latest(repository)
+
+    with models.RepositoryVersion.create(repository) as new_version:
+
+        with WorkingDirectory():
             log.info(
                 _('Creating RepositoryVersion: repository=%(repository)s importer=%(importer)s'),
                 {
-                    'repository': importer.repository.name,
+                    'repository': repository.name,
                     'importer': importer.name
                 })
-            inventory = _fetch_inventory(rv.base_version)
+
+            inventory = _fetch_inventory(base_version)
             remote_metadata = _fetch_remote(importer)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
@@ -89,9 +61,9 @@ def sync(importer_pk):
                 _build_additions(delta.additions, remote_metadata),
                 len(delta.additions))
             removals = SizedIterable(
-                _build_removals(delta.removals, rv.base_version),
+                _build_removals(delta.removals, base_version),
                 len(delta.removals))
-            changeset = ChangeSet(importer, rv.new_version, additions=additions, removals=removals)
+            changeset = ChangeSet(importer, new_version, additions=additions, removals=removals)
             changeset.apply_and_drain()
 
 
@@ -128,12 +100,11 @@ def _fetch_remote(importer):
                      for project in json.loads(importer.projects)]
 
     for metadata_url in metadata_urls:
-        parsed_url = urlparse(metadata_url)
 
-        download = importer.get_futures_downloader(metadata_url, os.path.basename(parsed_url.path))
-        download()
+        downloader = importer.get_downloader(metadata_url)
+        downloader.fetch()
 
-        metadata = json.load(open(download.writer.path))
+        metadata = json.load(open(downloader.path))
         for version, packages in metadata['releases'].items():
             for package in packages:
                 remote.append(_parse_metadata(metadata['info'], version, package))
