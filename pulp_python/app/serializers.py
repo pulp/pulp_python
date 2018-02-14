@@ -170,7 +170,6 @@ class PythonImporterSerializer(platform.ImporterSerializer):
     class Meta:
         fields = platform.ImporterSerializer.Meta.fields + ('projects',)
         model = models.PythonImporter
-        validators = platform.ImporterSerializer.Meta.validators
 
 
 class PythonPublisherSerializer(platform.PublisherSerializer):
@@ -190,4 +189,3 @@ class PythonPublisherSerializer(platform.PublisherSerializer):
     class Meta:
         fields = platform.PublisherSerializer.Meta.fields
         model = models.PythonPublisher
-        validators = platform.PublisherSerializer.Meta.validators
