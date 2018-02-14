@@ -80,7 +80,7 @@ def _fetch_inventory(version):
     """
     inventory = set()
     if version is not None:
-        q_set = version.content()
+        q_set = version.content
         if q_set:
             for content in (c.cast() for c in q_set):
                 inventory.add(content.filename)
@@ -100,6 +100,8 @@ def _fetch_remote(importer):
                      for project in json.loads(importer.projects)]
 
     for metadata_url in metadata_urls:
+        log.warn("Downloading metadata:*********************")
+        log.warn(metadata_url)
 
         downloader = importer.get_downloader(metadata_url)
         downloader.fetch()
@@ -216,7 +218,7 @@ def _build_removals(removals, version):
     q = Q()
     for content_key in removals:
         q |= Q(pythonpackagecontent__filename=content_key)
-        q_set = version.content().filter(q)
+        q_set = version.content.filter(q)
         q_set = q_set.only('id')
         for content in q_set:
             yield content
