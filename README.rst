@@ -100,7 +100,7 @@ Sync repository ``foo`` using Importer ``bar``
 
 Use ``python`` Importer:
 
-``$ http POST $IMPORTER_HREF'sync/'``
+``$ http POST $IMPORTER_HREF'sync/' repository=$REPO_HREF``
 
 Look at the new Repository Version created
 ------------------------------------------
