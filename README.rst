@@ -108,6 +108,7 @@ Look at the new Repository Version created
 ``$ http GET $REPO_HREF'versions/'``
 
 .. code:: json
+
     [
       {
             "_href": "http://localhost:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/",
@@ -118,7 +119,6 @@ Look at the new Repository Version created
             "created": "2018-01-03T19:15:17.974275Z",
             "content_summary": {}
         }
-
     ]
 
 
