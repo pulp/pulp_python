@@ -105,7 +105,7 @@ Use ``python`` Importer:
 Look at the new Repository Version created
 ------------------------------------------
 
-``$ http POST $REPO_HREF'versions/'``
+``$ http GET $REPO_HREF'versions/'``
 
 .. code:: json
     [
