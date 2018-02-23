@@ -37,11 +37,12 @@ class PythonImporterViewSet(platform.ImporterViewSet):
         """
         importer = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
+
         if not importer.feed_url:
             raise ValidationError(detail=_("An importer must have a 'feed_url' attribute to sync."))
 
         async_result = tasks.sync.apply_async_with_reservation(
-            platform.tags.RESOURCE_REPOSITORY_TYPE, str(repository.pk),
+            [repository, importer],
             kwargs={
                 'importer_pk': importer.pk,
                 'repository_pk': repository.pk
