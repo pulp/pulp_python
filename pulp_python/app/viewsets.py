@@ -5,7 +5,9 @@ from pulpcore.plugin.models import Repository
 from rest_framework import decorators
 from rest_framework.exceptions import ValidationError
 
-from . import models, serializers, tasks
+from pulp_python.app import models as python_models
+from pulp_python.app import serializers as python_serializers
+from pulp_python.app import tasks as python_tasks
 
 
 class PythonPackageContentViewSet(platform.ContentViewSet):
@@ -14,8 +16,8 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     """
 
     endpoint_name = 'python'
-    queryset = models.PythonPackageContent.objects.all()
-    serializer_class = serializers.PythonPackageContentSerializer
+    queryset = python_models.PythonPackageContent.objects.all()
+    serializer_class = python_serializers.PythonPackageContentSerializer
 
 
 class PythonImporterViewSet(platform.ImporterViewSet):
@@ -27,8 +29,8 @@ class PythonImporterViewSet(platform.ImporterViewSet):
     """
 
     endpoint_name = 'python'
-    queryset = models.PythonImporter.objects.all()
-    serializer_class = serializers.PythonImporterSerializer
+    queryset = python_models.PythonImporter.objects.all()
+    serializer_class = python_serializers.PythonImporterSerializer
 
     @decorators.detail_route(methods=('post',))
     def sync(self, request, pk):
@@ -41,7 +43,7 @@ class PythonImporterViewSet(platform.ImporterViewSet):
         if not importer.feed_url:
             raise ValidationError(detail=_("An importer must have a 'feed_url' attribute to sync."))
 
-        async_result = tasks.sync.apply_async_with_reservation(
+        async_result = python_tasks.sync.apply_async_with_reservation(
             [repository, importer],
             kwargs={
                 'importer_pk': importer.pk,
@@ -60,5 +62,5 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     """
 
     endpoint_name = 'python'
-    queryset = models.PythonPublisher.objects.all()
-    serializer_class = serializers.PythonPublisherSerializer
+    queryset = python_models.PythonPublisher.objects.all()
+    serializer_class = python_serializers.PythonPublisherSerializer
