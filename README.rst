@@ -197,7 +197,7 @@ will be added before pulp3 beta is released.
 Add a Publisher to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/python/ name=bar``
+``$ http POST http://localhost:8000/api/v3/publishers/python/ name=bar``
 
 .. code:: json
 
