@@ -3,7 +3,7 @@ from gettext import gettext as _
 from rest_framework import serializers
 from pulpcore.plugin import serializers as platform
 
-from . import models
+from pulp_python.app import models as python_models
 
 
 class ClassifierSerializer(serializers.ModelSerializer):
@@ -16,7 +16,7 @@ class ClassifierSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = models.Classifier
+        model = python_models.Classifier
         fields = ('name',)
 
 
@@ -140,10 +140,10 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         :return:
         """
         classifiers = validated_data.pop('classifiers')
-        PythonPackageContent = models.PythonPackageContent.objects.create(**validated_data)
+        PythonPackageContent = python_models.PythonPackageContent.objects.create(**validated_data)
         for classifier in classifiers:
-            models.Classifier.objects.create(python_package_content=PythonPackageContent,
-                                             **classifier)
+            python_models.Classifier.objects.create(python_package_content=PythonPackageContent,
+                                                    **classifier)
         return PythonPackageContent
 
     class Meta:
@@ -154,7 +154,7 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
             'platform', 'supported_platform', 'requires_dist', 'provides_dist',
             'obsoletes_dist', 'requires_external', 'classifiers'
         )
-        model = models.PythonPackageContent
+        model = python_models.PythonPackageContent
 
 
 class PythonImporterSerializer(platform.ImporterSerializer):
@@ -169,7 +169,7 @@ class PythonImporterSerializer(platform.ImporterSerializer):
 
     class Meta:
         fields = platform.ImporterSerializer.Meta.fields + ('projects',)
-        model = models.PythonImporter
+        model = python_models.PythonImporter
 
 
 class PythonPublisherSerializer(platform.PublisherSerializer):
@@ -188,4 +188,4 @@ class PythonPublisherSerializer(platform.PublisherSerializer):
 
     class Meta:
         fields = platform.PublisherSerializer.Meta.fields
-        model = models.PythonPublisher
+        model = python_models.PythonPublisher

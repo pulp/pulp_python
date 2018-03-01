@@ -14,6 +14,7 @@ from pulpcore.plugin.changeset import (
     SizedIterable,
 )
 from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
+from rest_framework import serializers
 
 from pulp_python.app import models as python_models
 
@@ -30,12 +31,12 @@ def sync(importer_pk, repository_pk):
     repository = models.Repository.objects.get(pk=repository_pk)
 
     if not importer.feed_url:
-        raise ValueError(_("An importer must have a feed_url attribute to sync."))
+        raise serializers.ValidationError(
+            detail=_("An importer must have a feed_url attribute to sync."))
 
     base_version = models.RepositoryVersion.latest(repository)
 
     with models.RepositoryVersion.create(repository) as new_version:
-
         with WorkingDirectory():
             log.info(
                 _('Creating RepositoryVersion: repository=%(repository)s importer=%(importer)s'),
