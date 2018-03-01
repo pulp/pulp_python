@@ -72,6 +72,14 @@ class PythonPackageContent(Content):
             'filename',
         )
 
+    def __str__(self):
+        """
+        Overrides Content.str to provide the distribution version and type at the end.
+        e.g. <PythonPackageContent: shelf-reader [version] (whl)>
+        """
+        return '<{}: {} [{}] ({})>'.format(
+            self._meta.object_name, self.name, self.version, self.packagetype)
+
 
 class PythonPublisher(Publisher):
     """

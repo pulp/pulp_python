@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
-from pulp_python.app import tasks as python_tasks
+from pulp_python.app.tasks import sync, publish
 
 
 class PythonPackageContentViewSet(platform.ContentViewSet):
@@ -43,7 +43,7 @@ class PythonImporterViewSet(platform.ImporterViewSet):
         if not importer.feed_url:
             raise ValidationError(detail=_("An importer must have a 'feed_url' attribute to sync."))
 
-        async_result = python_tasks.sync.apply_async_with_reservation(
+        async_result = sync.apply_async_with_reservation(
             [repository, importer],
             kwargs={
                 'importer_pk': importer.pk,
@@ -64,3 +64,24 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonPublisher.objects.all()
     serializer_class = python_serializers.PythonPublisherSerializer
+
+    @decorators.detail_route(methods=('post',))
+    def publish(self, request, pk):
+        """
+        Dispatches a publish task.
+        """
+        try:
+            repository_uri = request.data['repository']
+        except KeyError:
+            raise ValidationError(detail=_('Repository URI must be specified.'))
+
+        publisher = self.get_object()
+        repository = self.get_resource(repository_uri, Repository)
+        result = publish.apply_async_with_reservation(
+            [repository, publisher],
+            kwargs={
+                'publisher_pk': publisher.pk,
+                'repository_pk': repository.pk
+            }
+        )
+        return platform.OperationPostponedResponse([result], request)
