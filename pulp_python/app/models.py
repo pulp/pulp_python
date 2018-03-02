@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Importer, Publisher
+from pulpcore.plugin.models import Content, Importer, Model, Publisher
 
 
 log = getLogger(__name__)
@@ -14,7 +14,7 @@ PACKAGE_TYPES = (("bdist_dmg", "bdist_dmg"), ("bdist_dumb", "bdist_dumb"),
                  ("bdist_wininst", "bdist_wininst"), ("sdist", "sdist"))
 
 
-class Classifier(models.Model):
+class Classifier(Model):
     """
     Custom tags for classifier
 
