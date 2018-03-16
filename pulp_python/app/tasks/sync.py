@@ -1,11 +1,14 @@
-from collections import namedtuple
-from gettext import gettext as _
-from urllib.parse import urljoin
 import json
 import logging
 
+from collections import namedtuple
+from gettext import gettext as _
+from urllib.parse import urljoin
+
 from celery import shared_task
 from django.db.models import Q
+from rest_framework import serializers
+
 from pulpcore.plugin import models
 from pulpcore.plugin.changeset import (
     ChangeSet,
@@ -14,7 +17,6 @@ from pulpcore.plugin.changeset import (
     SizedIterable,
 )
 from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
-from rest_framework import serializers
 
 from pulp_python.app import models as python_models
 
@@ -39,19 +41,17 @@ def sync(importer_pk, repository_pk):
     with models.RepositoryVersion.create(repository) as new_version:
         with WorkingDirectory():
             log.info(
-                _('Creating RepositoryVersion: repository=%(repository)s importer=%(importer)s'),
-                {
-                    'repository': repository.name,
-                    'importer': importer.name
-                })
+                _('Creating RepositoryVersion: repository={repository} importer={importer}')
+                .format(repository=repository.name, importer=importer.name)
+            )
 
             inventory = _fetch_inventory(base_version)
             remote_metadata = _fetch_remote(importer)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
             mirror = importer.sync_mode == 'mirror'
-            delta = _find_delta(inventory=inventory, remote=remote_keys,
-                                mirror=mirror)
+            delta = _find_delta(inventory=inventory, remote=remote_keys, mirror=mirror)
+
             additions = SizedIterable(
                 _build_additions(delta.additions, remote_metadata),
                 len(delta.additions))

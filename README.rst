@@ -211,7 +211,7 @@ Add a Publisher to repository ``foo``
 Create a Publication for Publisher ``bar``
 ------------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/publications/ publisher=$PUBLISHER_HREF``
+``$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF````
 
 .. code:: json
 
@@ -227,7 +227,7 @@ Create a Publication for Publisher ``bar``
 Add a Distribution to Publisher ``bar``
 ---------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/distributions/ name='baz' base_path='foo' auto_updated=true http=true https=true publisher=$PUBLISHER_HREF publication=$PUBLICATION_HREF``
+``$ http POST http://localhost:8000/api/v3/distributions/ name='baz' base_path='foo' publication=$PUBLICATION_HREF``
 
 
 .. code:: json
@@ -236,6 +236,28 @@ Add a Distribution to Publisher ``bar``
         "_href": "http://localhost:8000/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
        ...
     }
+
+
+View the newly created distribution
+-----------------------------------
+
+``$ curl localhost:8000/content/foo/simple/shelf-reader/index.html
+
+..code:: html
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Links for shelf-reader</title>
+    </head>
+    <body><h1>Links for shelf-reader</h1>
+
+    <a href="../../shelf-reader-0.1.tar.gz#md5=dc5090a6b26ba47cb2ad07c9f2569fc4" rel="internal">shelf-reader-0.1.tar.gz</a><br/>
+
+    <a href="../../shelf_reader-0.1-py2-none-any.whl#md5=69b867d206f1ff984651aeef25fc54f9" rel="internal">shelf_reader-0.1-py2-none-any.whl</a><br/>
+
+    </body>
+    </html>
 
 
 Check status of a task
