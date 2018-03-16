@@ -31,7 +31,8 @@ class Classifier(Model):
 
     name = models.TextField()
     python_package_content = models.ForeignKey("PythonPackageContent", related_name="classifiers",
-                                               related_query_name="classifier")
+                                               related_query_name="classifier",
+                                               on_delete=models.CASCADE)
 
 
 class PythonPackageContent(Content):
