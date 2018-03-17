@@ -44,25 +44,27 @@ class PythonPackageContent(Content):
     """
 
     TYPE = 'python'
+    # Required metadata
     filename = models.TextField(unique=True, db_index=True, blank=False)
     packagetype = models.TextField(blank=False, choices=PACKAGE_TYPES)
     name = models.TextField(blank=False)
     version = models.TextField(blank=False)
-    metadata_version = models.TextField(null=True)
-    summary = models.TextField(null=True)
-    description = models.TextField(null=True)
-    keywords = models.TextField(null=True)
-    home_page = models.TextField(null=True)
-    download_url = models.TextField(null=True)
-    author = models.TextField(null=True)
-    author_email = models.TextField(null=True)
-    maintainer = models.TextField(null=True)
-    maintainer_email = models.TextField(null=True)
-    license = models.TextField(null=True)
-    requires_python = models.TextField(null=True)
-    project_url = models.TextField(null=True)
-    platform = models.TextField(null=True)
-    supported_platform = models.TextField(null=True)
+    # Optional metadata
+    metadata_version = models.TextField(blank=True)
+    summary = models.TextField(blank=True)
+    description = models.TextField(blank=True)
+    keywords = models.TextField(blank=True)
+    home_page = models.TextField(blank=True)
+    download_url = models.TextField(blank=True)
+    author = models.TextField(blank=True)
+    author_email = models.TextField(blank=True)
+    maintainer = models.TextField(blank=True)
+    maintainer_email = models.TextField(blank=True)
+    license = models.TextField(blank=True)
+    requires_python = models.TextField(blank=True)
+    project_url = models.TextField(blank=True)
+    platform = models.TextField(blank=True)
+    supported_platform = models.TextField(blank=True)
     requires_dist = models.TextField(default="[]", blank=False)
     provides_dist = models.TextField(default="[]", blank=False)
     obsoletes_dist = models.TextField(default="[]", blank=False)
@@ -110,4 +112,4 @@ class PythonImporter(Importer):
     """
 
     TYPE = 'python'
-    projects = models.TextField(null=True)
+    projects = models.TextField()
