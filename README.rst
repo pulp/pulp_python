@@ -211,7 +211,7 @@ Add a Publisher to repository ``foo``
 Create a Publication for Publisher ``bar``
 ------------------------------------------
 
-``$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF````
+``$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF``
 
 .. code:: json
 
