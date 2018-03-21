@@ -46,7 +46,7 @@ simple_detail_template = """<!DOCTYPE html>
 
 
 @shared_task(base=UserFacingTask)
-def publish(publisher_pk, repository_pk):
+def publish(publisher_pk, repository_version_pk):
     """
     Use provided publisher to create a Publication based on a RepositoryVersion.
 
@@ -55,17 +55,16 @@ def publish(publisher_pk, repository_pk):
         repository_pk (str): Create a Publication from the latest version of this Repository.
     """
     publisher = python_models.PythonPublisher.objects.get(pk=publisher_pk)
-    repository = models.Repository.objects.get(pk=repository_pk)
-    latest_version = models.RepositoryVersion.latest(repository)
+    repository_version = models.RepositoryVersion.objects.get(pk=repository_version_pk)
 
     log.info(_('Publishing: repository={repo}, version={version}, publisher={pub}').format(
-        repo=repository.name,
-        version=latest_version.number,
+        repo=repository_version.repository.name,
+        version=repository_version.number,
         pub=publisher.name
     ))
 
     with WorkingDirectory():
-        with models.Publication.create(latest_version, publisher) as publication:
+        with models.Publication.create(repository_version, publisher) as publication:
             write_simple_api(publication)
 
     log.info(_('Publication: {pk} created').format(pk=publication.pk))

@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from pulpcore.plugin import models
 from pulpcore.plugin.changeset import (
+    BatchIterator,
     ChangeSet,
     PendingArtifact,
     PendingContent,
@@ -52,12 +53,8 @@ def sync(importer_pk, repository_pk):
             mirror = importer.sync_mode == 'mirror'
             delta = _find_delta(inventory=inventory, remote=remote_keys, mirror=mirror)
 
-            additions = SizedIterable(
-                _build_additions(delta.additions, remote_metadata),
-                len(delta.additions))
-            removals = SizedIterable(
-                _build_removals(delta.removals, base_version),
-                len(delta.removals))
+            additions = _build_additions(delta, remote_metadata)
+            removals = _build_removals(delta, base_version)
             changeset = ChangeSet(importer, new_version, additions=additions, removals=removals)
             changeset.apply_and_drain()
 
@@ -74,11 +71,10 @@ def _fetch_inventory(version):
         set: of contentunit filenames.
     """
     inventory = set()
-    if version is not None:
-        q_set = version.content
-        if q_set:
-            for content in (c.cast() for c in q_set):
-                inventory.add(content.filename)
+    if version:
+        for content in python_models.PythonPackageContent.objects.filter(
+                pk__in=version.content).only("filename"):
+            inventory.add(content.filename)
     return inventory
 
 
@@ -173,44 +169,55 @@ def _parse_metadata(project, version, distribution):
     return package
 
 
-def _build_additions(additions, remote_metadata):
+def _build_additions(delta, remote_metadata):
     """
     Generate the content to be added.
 
+    Args:
+        delta (namedtuple): tuple of content to add, and content to remove from the repository
+        remote_metadata (list): list of contentunit metadata
+
     Returns:
-        generator: A generator of content to be added.
+        The PythonPackageContent to be added to the repository.
     """
-    for entry in remote_metadata:
-        if(entry['filename'] not in additions):
-            continue
+    def generate():
+        for entry in remote_metadata:
+            if entry['filename'] not in delta.additions:
+                continue
 
-        url = entry.pop('url')
-        artifact = models.Artifact(md5=entry.pop('md5_digest'))
+            url = entry.pop('url')
+            artifact = models.Artifact(md5=entry.pop('md5_digest'))
 
-        package = python_models.PythonPackageContent(**entry)
-        content = PendingContent(
-            package,
-            artifacts={
-                PendingArtifact(model=artifact, url=url, relative_path=entry['filename'])
-            })
-        yield content
+            package = python_models.PythonPackageContent(**entry)
+            content = PendingContent(
+                package,
+                artifacts={
+                    PendingArtifact(model=artifact, url=url, relative_path=entry['filename'])
+                })
+            yield content
+
+    return SizedIterable(generate(), len(delta.additions))
 
 
-def _build_removals(removals, version):
+def _build_removals(delta, version):
     """
     Generate the content to be removed.
 
     Args:
-        removals (set): of filenames to remove
+        delta (namedtuple): tuple of content to add, and content to remove from the repository
         version (pulpcore.plugin.models.RepositoryVersion): of repository to remove contents
             from
     Returns:
-        generator: A generator of content to be removed.
+        The PythonPackageContent to be removed from the repository.
     """
-    q = Q()
-    for content_key in removals:
-        q |= Q(pythonpackagecontent__filename=content_key)
-        q_set = version.content.filter(q)
-        q_set = q_set.only('id')
-        for content in q_set:
-            yield content
+    def generate():
+        for removals in BatchIterator(delta.removals):
+            q = Q()
+            for content_key in removals:
+                q |= Q(pythonpackagecontent__filename=content_key)
+            q_set = version.content.filter(q)
+            q_set = q_set.only('id')
+            for content in q_set:
+                yield content
+
+    return SizedIterable(generate(), len(delta.removals))

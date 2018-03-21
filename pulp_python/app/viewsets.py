@@ -1,7 +1,7 @@
 from gettext import gettext as _
 
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Repository
+from pulpcore.plugin.models import Repository, RepositoryVersion
 from rest_framework import decorators
 from rest_framework.exceptions import ValidationError
 
@@ -70,18 +70,33 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
         """
         Dispatches a publish task.
         """
-        try:
-            repository_uri = request.data['repository']
-        except KeyError:
-            raise ValidationError(detail=_('Repository URI must be specified.'))
-
         publisher = self.get_object()
-        repository = self.get_resource(repository_uri, Repository)
+        repository = None
+        repository_version = None
+
+        if 'repository' not in request.data and 'repository_version' not in request.data:
+            raise ValidationError("Either the 'repository' or 'repository_version' "
+                                  "need to be specified.")
+
+        if 'repository' in request.data and request.data['repository']:
+            repository = self.get_resource(request.data['repository'], Repository)
+
+        if 'repository_version' in request.data and request.data['repository_version']:
+            repository_version = self.get_resource(request.data['repository_version'],
+                                                   RepositoryVersion)
+
+        if repository and repository_version:
+            raise ValidationError("Either the 'repository' or 'repository_version' "
+                                  "can be specified - not both.")
+
+        if not repository_version:
+            repository_version = RepositoryVersion.latest(repository)
+
         result = publish.apply_async_with_reservation(
-            [repository, publisher],
+            [repository_version.repository, publisher],
             kwargs={
                 'publisher_pk': publisher.pk,
-                'repository_pk': repository.pk
+                'repository_version_pk': repository_version.pk
             }
         )
         return platform.OperationPostponedResponse([result], request)
