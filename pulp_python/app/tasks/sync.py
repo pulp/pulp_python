@@ -140,31 +140,31 @@ def _parse_metadata(project, version, distribution):
 
     package = {}
 
-    package['filename'] = distribution['filename']
-    package['packagetype'] = distribution['packagetype']
-    package['name'] = project['name']
+    package['filename'] = distribution.get('filename') or ""
+    package['packagetype'] = distribution.get('packagetype') or ""
+    package['name'] = project.get('name') or ""
     package['version'] = version
-    package['metadata_version'] = project.get('metadata_version')
-    package['summary'] = project.get('summary')
-    package['description'] = project.get('description')
-    package['keywords'] = project.get('keywords')
-    package['home_page'] = project.get('home_page')
-    package['download_url'] = project.get('download_url')
-    package['author'] = project.get('author')
-    package['author_email'] = project.get('author_email')
-    package['maintainer'] = project.get('maintainer')
-    package['maintainer_email'] = project.get('maintainer_email')
-    package['license'] = project.get('license')
-    package['requires_python'] = project.get('requires_python')
-    package['project_url'] = project.get('project_url')
-    package['platform'] = project.get('platform')
-    package['supported_platform'] = project.get('supported_platform')
+    package['metadata_version'] = project.get('metadata_version') or ""
+    package['summary'] = project.get('summary') or ""
+    package['description'] = project.get('description') or ""
+    package['keywords'] = project.get('keywords') or ""
+    package['home_page'] = project.get('home_page') or ""
+    package['download_url'] = project.get('download_url') or ""
+    package['author'] = project.get('author') or ""
+    package['author_email'] = project.get('author_email') or ""
+    package['maintainer'] = project.get('maintainer') or ""
+    package['maintainer_email'] = project.get('maintainer_email') or ""
+    package['license'] = project.get('license') or ""
+    package['requires_python'] = project.get('requires_python') or ""
+    package['project_url'] = project.get('project_url') or ""
+    package['platform'] = project.get('platform') or ""
+    package['supported_platform'] = project.get('supported_platform') or ""
     package['requires_dist'] = json.dumps(project.get('requires_dist', []))
     package['provides_dist'] = json.dumps(project.get('provides_dist', []))
     package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
     package['requires_external'] = json.dumps(project.get('requires_external', []))
-    package['url'] = distribution['url']
-    package['md5_digest'] = distribution['md5_digest']
+    package['url'] = distribution.get('url') or ""
+    package['md5_digest'] = distribution.get('md5_digest') or ""
 
     return package
 
