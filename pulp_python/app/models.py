@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Importer, Model, Publisher
+from pulpcore.plugin.models import Content, Remote, Model, Publisher
 
 
 log = getLogger(__name__)
@@ -103,9 +103,9 @@ class PythonPublisher(Publisher):
         raise NotImplementedError
 
 
-class PythonImporter(Importer):
+class PythonRemote(Remote):
     """
-    An Importer for Python Content.
+    A Remote for Python Content.
 
     Attributes:
         projects (list): A list of python projects to sync

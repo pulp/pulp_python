@@ -1,15 +1,15 @@
 from django.test import TestCase
-from pulp_python.app.models import PythonPackageContent, PythonImporter
+from pulp_python.app.models import PythonPackageContent, PythonRemote
 from pulpcore.plugin.models import Repository, RepositoryVersion
 
 
-class ImportersTestCase(TestCase):
+class RemotesTestCase(TestCase):
 
     def setUp(self):
 
         repo1 = Repository.objects.create(name='repo1')
-        self.importer1 = PythonImporter.objects.create(
-            name='importer1', download_policy='immediate', sync_mode='mirror',
+        self.remote1 = PythonRemote.objects.create(
+            name='remote1', download_policy='immediate', sync_mode='mirror',
             repository=repo1, projects=[])
         content = PythonPackageContent.objects.create(
             filename='filename', packagetype='bdist_wheel',
@@ -22,14 +22,14 @@ class ImportersTestCase(TestCase):
 
     def test_fetch_inventory(self):
 
-        remote = self.importer1._fetch_inventory(self.repo_v1)
+        remote = self.remote1._fetch_inventory(self.repo_v1)
         self.assertEqual(remote, {'filename'})
 
     def test_find_delta_mirror_true(self):
 
         inventory = set(['test1', 'test3'])
         remote = set(['test1', 'test2'])
-        delta = self.importer1._find_delta(inventory, remote, True)
+        delta = self.remote1._find_delta(inventory, remote, True)
 
         self.assertEqual(len(delta.additions), 1)
         self.assertTrue('test2' in delta.additions)
@@ -41,7 +41,7 @@ class ImportersTestCase(TestCase):
 
         inventory = set(['test1', 'test3'])
         remote = set(['test1', 'test2'])
-        delta = self.importer1._find_delta(inventory, remote, False)
+        delta = self.remote1._find_delta(inventory, remote, False)
 
         self.assertEqual(len(delta.additions), 1)
         self.assertTrue('test2' in delta.additions)

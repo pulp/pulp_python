@@ -20,33 +20,33 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     serializer_class = python_serializers.PythonPackageContentSerializer
 
 
-class PythonImporterViewSet(platform.ImporterViewSet):
+class PythonRemoteViewSet(platform.RemoteViewSet):
     """
-    A ViewSet for PythonImporter.
+    A ViewSet for PythonRemote.
 
     Similar to the PythonContentViewSet above, define endpoint_name,
     queryset and serializer, at a minimum.
     """
 
     endpoint_name = 'python'
-    queryset = python_models.PythonImporter.objects.all()
-    serializer_class = python_serializers.PythonImporterSerializer
+    queryset = python_models.PythonRemote.objects.all()
+    serializer_class = python_serializers.PythonRemoteSerializer
 
     @decorators.detail_route(methods=('post',))
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
-        importer = self.get_object()
+        remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
 
-        if not importer.feed_url:
-            raise ValidationError(detail=_("An importer must have a 'feed_url' attribute to sync."))
+        if not remote.feed_url:
+            raise ValidationError(detail=_("A remote must have a 'feed_url' attribute to sync."))
 
         async_result = sync.apply_async_with_reservation(
-            [repository, importer],
+            [repository, remote],
             kwargs={
-                'importer_pk': importer.pk,
+                'remote_pk': remote.pk,
                 'repository_pk': repository.pk
             }
         )

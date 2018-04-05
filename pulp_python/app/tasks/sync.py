@@ -29,33 +29,33 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
 @shared_task(base=UserFacingTask)
-def sync(importer_pk, repository_pk):
-    importer = python_models.PythonImporter.objects.get(pk=importer_pk)
+def sync(remote_pk, repository_pk):
+    remote = python_models.PythonRemote.objects.get(pk=remote_pk)
     repository = models.Repository.objects.get(pk=repository_pk)
 
-    if not importer.feed_url:
+    if not remote.feed_url:
         raise serializers.ValidationError(
-            detail=_("An importer must have a feed_url attribute to sync."))
+            detail=_("A remote must have a feed_url attribute to sync."))
 
     base_version = models.RepositoryVersion.latest(repository)
 
     with models.RepositoryVersion.create(repository) as new_version:
         with WorkingDirectory():
             log.info(
-                _('Creating RepositoryVersion: repository={repository} importer={importer}')
-                .format(repository=repository.name, importer=importer.name)
+                _('Creating RepositoryVersion: repository={repository} remote={remote}')
+                .format(repository=repository.name, remote=remote.name)
             )
 
             inventory = _fetch_inventory(base_version)
-            remote_metadata = _fetch_remote(importer)
+            remote_metadata = _fetch_remote(remote)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
-            mirror = importer.sync_mode == 'mirror'
+            mirror = remote.sync_mode == 'mirror'
             delta = _find_delta(inventory=inventory, remote=remote_keys, mirror=mirror)
 
             additions = _build_additions(delta, remote_metadata)
             removals = _build_removals(delta, base_version)
-            changeset = ChangeSet(importer, new_version, additions=additions, removals=removals)
+            changeset = ChangeSet(remote, new_version, additions=additions, removals=removals)
             changeset.apply_and_drain()
 
 
@@ -78,28 +78,28 @@ def _fetch_inventory(version):
     return inventory
 
 
-def _fetch_remote(importer):
+def _fetch_remote(remote):
     """
     Fetch contentunits available in the remote repository.
 
     Returns:
         list: of contentunit metadata.
     """
-    remote = []
+    remote_units = []
 
-    metadata_urls = [urljoin(importer.feed_url, 'pypi/%s/json' % project)
-                     for project in json.loads(importer.projects)]
+    metadata_urls = [urljoin(remote.feed_url, 'pypi/%s/json' % project)
+                     for project in json.loads(remote.projects)]
 
     for metadata_url in metadata_urls:
-        downloader = importer.get_downloader(metadata_url)
+        downloader = remote.get_downloader(metadata_url)
         downloader.fetch()
 
         metadata = json.load(open(downloader.path))
         for version, packages in metadata['releases'].items():
             for package in packages:
-                remote.append(_parse_metadata(metadata['info'], version, package))
+                remote_units.append(_parse_metadata(metadata['info'], version, package))
 
-    return remote
+    return remote_units
 
 
 def _find_delta(inventory, remote, mirror=False):
