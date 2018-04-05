@@ -80,27 +80,27 @@ Create a repository ``foo``
 
 ``$ export REPO_HREF=$(http :8000/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
-Add an Importer to repository ``foo``
+Add a Remote to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/importers/python/ name='bar' download_policy='immediate' sync_mode='additive' repository=$REPO_HREF feed_url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
+``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar' download_policy='immediate' sync_mode='additive' repository=$REPO_HREF feed_url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/importers/python/3750748b-781f-48df-9734-df014b2a11b4/",
+        "_href": "http://localhost:8000/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
         ...
     }
 
-``$ export IMPORTER_HREF=$(http :8000/api/v3/importers/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :8000/api/v3/remotes/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
-Sync repository ``foo`` using Importer ``bar``
+Sync repository ``foo`` using Remote ``bar``
 ----------------------------------------------
 
-Use ``python`` Importer:
+Use ``python`` Remote:
 
-``$ http POST $IMPORTER_HREF'sync/' repository=$REPO_HREF``
+``$ http POST $REMOTE_HREF'sync/' repository=$REPO_HREF``
 
 Look at the new Repository Version created
 ------------------------------------------

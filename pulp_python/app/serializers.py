@@ -157,9 +157,9 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         model = python_models.PythonPackageContent
 
 
-class PythonImporterSerializer(platform.ImporterSerializer):
+class PythonRemoteSerializer(platform.RemoteSerializer):
     """
-    A Serializer for PythonImporter.
+    A Serializer for PythonRemote.
     """
 
     projects = serializers.CharField(
@@ -168,8 +168,8 @@ class PythonImporterSerializer(platform.ImporterSerializer):
     )
 
     class Meta:
-        fields = platform.ImporterSerializer.Meta.fields + ('projects',)
-        model = python_models.PythonImporter
+        fields = platform.RemoteSerializer.Meta.fields + ('projects',)
+        model = python_models.PythonRemote
 
 
 class PythonPublisherSerializer(platform.PublisherSerializer):

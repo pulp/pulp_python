@@ -29,33 +29,33 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
 @shared_task(base=UserFacingTask)
-def sync(importer_pk, repository_pk):
-    importer = python_models.PythonImporter.objects.get(pk=importer_pk)
+def sync(remote_pk, repository_pk):
+    remote = python_models.PythonRemote.objects.get(pk=remote_pk)
     repository = models.Repository.objects.get(pk=repository_pk)
 
-    if not importer.feed_url:
+    if not remote.feed_url:
         raise serializers.ValidationError(
-            detail=_("An importer must have a feed_url attribute to sync."))
+            detail=_("A remote must have a feed_url attribute to sync."))
 
     base_version = models.RepositoryVersion.latest(repository)
 
     with models.RepositoryVersion.create(repository) as new_version:
         with WorkingDirectory():
             log.info(
-                _('Creating RepositoryVersion: repository={repository} importer={importer}')
-                .format(repository=repository.name, importer=importer.name)
+                _('Creating RepositoryVersion: repository={repository} remote={remote}')
+                .format(repository=repository.name, remote=remote.name)
             )
 
             inventory = _fetch_inventory(base_version)
-            remote_metadata = _fetch_remote(importer)
+            remote_metadata = _fetch_remote(remote)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
-            mirror = importer.sync_mode == 'mirror'
+            mirror = remote.sync_mode == 'mirror'
             delta = _find_delta(inventory=inventory, remote=remote_keys, mirror=mirror)
 
             additions = _build_additions(delta, remote_metadata)
             removals = _build_removals(delta, base_version)
-            changeset = ChangeSet(importer, new_version, additions=additions, removals=removals)
+            changeset = ChangeSet(remote, new_version, additions=additions, removals=removals)
             changeset.apply_and_drain()
 
 
@@ -78,28 +78,28 @@ def _fetch_inventory(version):
     return inventory
 
 
-def _fetch_remote(importer):
+def _fetch_remote(remote):
     """
     Fetch contentunits available in the remote repository.
 
     Returns:
         list: of contentunit metadata.
     """
-    remote = []
+    remote_units = []
 
-    metadata_urls = [urljoin(importer.feed_url, 'pypi/%s/json' % project)
-                     for project in json.loads(importer.projects)]
+    metadata_urls = [urljoin(remote.feed_url, 'pypi/%s/json' % project)
+                     for project in json.loads(remote.projects)]
 
     for metadata_url in metadata_urls:
-        downloader = importer.get_downloader(metadata_url)
+        downloader = remote.get_downloader(metadata_url)
         downloader.fetch()
 
         metadata = json.load(open(downloader.path))
         for version, packages in metadata['releases'].items():
             for package in packages:
-                remote.append(_parse_metadata(metadata['info'], version, package))
+                remote_units.append(_parse_metadata(metadata['info'], version, package))
 
-    return remote
+    return remote_units
 
 
 def _find_delta(inventory, remote, mirror=False):
@@ -140,31 +140,31 @@ def _parse_metadata(project, version, distribution):
 
     package = {}
 
-    package['filename'] = distribution['filename']
-    package['packagetype'] = distribution['packagetype']
-    package['name'] = project['name']
+    package['filename'] = distribution.get('filename') or ""
+    package['packagetype'] = distribution.get('packagetype') or ""
+    package['name'] = project.get('name') or ""
     package['version'] = version
-    package['metadata_version'] = project.get('metadata_version')
-    package['summary'] = project.get('summary')
-    package['description'] = project.get('description')
-    package['keywords'] = project.get('keywords')
-    package['home_page'] = project.get('home_page')
-    package['download_url'] = project.get('download_url')
-    package['author'] = project.get('author')
-    package['author_email'] = project.get('author_email')
-    package['maintainer'] = project.get('maintainer')
-    package['maintainer_email'] = project.get('maintainer_email')
-    package['license'] = project.get('license')
-    package['requires_python'] = project.get('requires_python')
-    package['project_url'] = project.get('project_url')
-    package['platform'] = project.get('platform')
-    package['supported_platform'] = project.get('supported_platform')
+    package['metadata_version'] = project.get('metadata_version') or ""
+    package['summary'] = project.get('summary') or ""
+    package['description'] = project.get('description') or ""
+    package['keywords'] = project.get('keywords') or ""
+    package['home_page'] = project.get('home_page') or ""
+    package['download_url'] = project.get('download_url') or ""
+    package['author'] = project.get('author') or ""
+    package['author_email'] = project.get('author_email') or ""
+    package['maintainer'] = project.get('maintainer') or ""
+    package['maintainer_email'] = project.get('maintainer_email') or ""
+    package['license'] = project.get('license') or ""
+    package['requires_python'] = project.get('requires_python') or ""
+    package['project_url'] = project.get('project_url') or ""
+    package['platform'] = project.get('platform') or ""
+    package['supported_platform'] = project.get('supported_platform') or ""
     package['requires_dist'] = json.dumps(project.get('requires_dist', []))
     package['provides_dist'] = json.dumps(project.get('provides_dist', []))
     package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
     package['requires_external'] = json.dumps(project.get('requires_external', []))
-    package['url'] = distribution['url']
-    package['md5_digest'] = distribution['md5_digest']
+    package['url'] = distribution.get('url') or ""
+    package['md5_digest'] = distribution.get('md5_digest') or ""
 
     return package
 
