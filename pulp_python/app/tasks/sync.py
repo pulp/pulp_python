@@ -33,9 +33,9 @@ def sync(remote_pk, repository_pk):
     remote = python_models.PythonRemote.objects.get(pk=remote_pk)
     repository = models.Repository.objects.get(pk=repository_pk)
 
-    if not remote.feed_url:
+    if not remote.url:
         raise serializers.ValidationError(
-            detail=_("A remote must have a feed_url attribute to sync."))
+            detail=_("A remote must have a url attribute to sync."))
 
     base_version = models.RepositoryVersion.latest(repository)
 
@@ -87,7 +87,7 @@ def _fetch_remote(remote):
     """
     remote_units = []
 
-    metadata_urls = [urljoin(remote.feed_url, 'pypi/%s/json' % project)
+    metadata_urls = [urljoin(remote.url, 'pypi/%s/json' % project)
                      for project in json.loads(remote.projects)]
 
     for metadata_url in metadata_urls:
