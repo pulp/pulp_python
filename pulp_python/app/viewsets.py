@@ -1,5 +1,3 @@
-from gettext import gettext as _
-
 from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import Repository, RepositoryVersion
 from rest_framework import decorators
@@ -39,9 +37,6 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         """
         remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
-
-        if not remote.url:
-            raise ValidationError(detail=_("A remote must have a 'url' attribute to sync."))
 
         async_result = sync.apply_async_with_reservation(
             [repository, remote],
