@@ -40,8 +40,8 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
 
-        if not remote.feed_url:
-            raise ValidationError(detail=_("A remote must have a 'feed_url' attribute to sync."))
+        if not remote.url:
+            raise ValidationError(detail=_("A remote must have a 'url' attribute to sync."))
 
         async_result = sync.apply_async_with_reservation(
             [repository, remote],
