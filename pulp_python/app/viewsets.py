@@ -45,7 +45,7 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
                 'repository_pk': repository.pk
             }
         )
-        return platform.OperationPostponedResponse([async_result], request)
+        return platform.OperationPostponedResponse(async_result, request)
 
 
 class PythonPublisherViewSet(platform.PublisherViewSet):
@@ -94,4 +94,4 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
                 'repository_version_pk': repository_version.pk
             }
         )
-        return platform.OperationPostponedResponse([result], request)
+        return platform.OperationPostponedResponse(result, request)
