@@ -171,12 +171,12 @@ Create a file with the json bellow and save it as content.json.
         "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
     }
 
-``$ http POST http://localhost:8000/api/v3/content/python/ < content.json``
+``$ http POST http://localhost:8000/api/v3/content/python/packages/ < content.json``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/content/python/a9578a5f-c59f-4920-9497-8d1699c112ff/",
+        "_href": "http://localhost:8000/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
         "artifacts": {
             "shelf_reader-0.1-py2-none-any.whl": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
         },
@@ -186,7 +186,7 @@ Create a file with the json bellow and save it as content.json.
         "type": "python"
     }
 
-``$ export CONTENT_HREF=$(http :8000/api/v3/content/python/ | jq -r '.results[] | select(.path == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
+``$ export CONTENT_HREF=$(http :8000/api/v3/content/python/packages | jq -r '.results[] | select(.path == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
 
 Add content to repository ``foo``
 ---------------------------------

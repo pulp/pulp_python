@@ -13,7 +13,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     The ViewSet for PythonPackageContent.
     """
 
-    endpoint_name = 'python'
+    endpoint_name = 'python/packages'
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
 
