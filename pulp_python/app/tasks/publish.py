@@ -81,14 +81,15 @@ def write_simple_api(publication):
         publication (pulpcore.plugin.models.Publication): A publication to generate metadata for
     """
 
-    os.mkdir('simple')
+    simple_dir = 'simple'
+    os.mkdir(simple_dir)
     project_names = python_models.PythonPackageContent.objects.order_by('name')\
         .values_list('name', flat=True).distinct()
 
     index_names = [(name, sanitize_name(name)) for name in project_names]
 
     # write the root index, which lists all of the projects for which there is a package available
-    index_path = 'simple/index.html'
+    index_path = '{simple_dir}/index.html'.format(simple_dir=simple_dir)
     with open(index_path, 'w') as index:
         context = Context({
             'projects': index_names
@@ -97,14 +98,14 @@ def write_simple_api(publication):
         index.write(template.render(context))
 
     index_metadata = models.PublishedMetadata(
-        relative_path=index_path,
+        relative_path=simple_dir,
         publication=publication,
         file=File(open(index_path, 'rb'))
     )
     index_metadata.save()
 
     for (name, canonical_name) in index_names:
-        project_dir = 'simple/{}'.format(canonical_name)
+        project_dir = '{simple_dir}/{name}'.format(simple_dir=simple_dir, name=canonical_name)
         os.mkdir(project_dir)
 
         packages = python_models.PythonPackageContent.objects.filter(name=name)
@@ -135,7 +136,7 @@ def write_simple_api(publication):
             simple_metadata.write(template.render(context))
 
         project_metadata = models.PublishedMetadata(
-            relative_path=metadata_relative_path,
+            relative_path=project_dir,
             publication=publication,
             file=File(open(metadata_relative_path, 'rb'))
         )

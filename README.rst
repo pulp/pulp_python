@@ -241,24 +241,27 @@ Add a Distribution to Publisher ``bar``
 View the newly created distribution
 -----------------------------------
 
-``$ curl localhost:8000/content/foo/simple/shelf-reader/index.html
+The metadata and packages can now be retrieved from the distribution:
 
-..code:: html
+``$ curl localhost:8000/content/foo/simple/``
 
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Links for shelf-reader</title>
-    </head>
-    <body><h1>Links for shelf-reader</h1>
+``$ curl localhost:8000/content/foo/simple/shelf-reader/``
 
-    <a href="../../shelf-reader-0.1.tar.gz#md5=dc5090a6b26ba47cb2ad07c9f2569fc4" rel="internal">shelf-reader-0.1.tar.gz</a><br/>
+The content is also pip installable:
 
-    <a href="../../shelf_reader-0.1-py2-none-any.whl#md5=69b867d206f1ff984651aeef25fc54f9" rel="internal">shelf_reader-0.1-py2-none-any.whl</a><br/>
+``pip install --trusted-host dev.pulp3 -i http://dev.pulp3:8000/content/foo/simple/ shelf-reader``
 
-    </body>
-    </html>
+Alternatively, you can modify your ``pip.conf`` file. See the
+`pip docs <https://pip.pypa.io/en/stable/user_guide/#configuration>`_ for more detail.
 
+``$ cat pip.conf``
+
+.. code::
+
+  [global]
+  index-url = http://dev.pulp3:8000/content/foo/simple/
+
+``pip install --trusted-host dev.pulp3 shelf-reader``
 
 Check status of a task
 ----------------------
