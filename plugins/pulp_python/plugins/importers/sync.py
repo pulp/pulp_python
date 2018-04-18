@@ -75,7 +75,7 @@ class DownloadMetadataStep(publish_step.DownloadStep):
         :return: A generator that yields DownloadRequests for a project's json metadata.
         :rtype:  generator
         """
-        metadata_urls = [urljoin(self.parent._feed_url, 'pypi/%s/json/' % pn)
+        metadata_urls = [urljoin(self.parent._feed_url, 'pypi/%s/json' % pn)
                          for pn in self.parent._project_names]
         for u in metadata_urls:
             if self.canceled:
