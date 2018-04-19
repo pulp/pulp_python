@@ -112,7 +112,7 @@ class Package(FileContentUnit):
         package_attrs['summary'] = project_data['summary']
 
         package_attrs['filename'] = package_data['filename']
-        package_attrs['path'] = package_data['path']
+        package_attrs['path'] = package_data.get('path', '')
         package_attrs['packagetype'] = package_data['packagetype']
         package_attrs['md5_digest'] = package_data.get('md5_digest')
 
