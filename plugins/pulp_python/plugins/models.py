@@ -112,7 +112,10 @@ class Package(FileContentUnit):
         package_attrs['summary'] = project_data['summary']
 
         package_attrs['filename'] = package_data['filename']
-        package_attrs['path'] = package_data.get('path', '')
+        if package_data.get('path', None):
+            package_attrs['path'] = package_data['path']
+        else:
+            package_attrs['path'] = package_data['url']
         package_attrs['packagetype'] = package_data['packagetype']
         package_attrs['md5_digest'] = package_data.get('md5_digest')
 
@@ -237,6 +240,8 @@ class Package(FileContentUnit):
         :return: download url of package bits
         :rtype:  basestring
         """
+        if self.path.startswith('http'):
+            return self.path
         return os.path.join(feed_url, 'packages', self.path)
 
     def __repr__(self):
