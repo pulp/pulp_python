@@ -1,2 +1,5 @@
+coveralls
+coverage
 flake8
-pep257
+mock
+pytest
