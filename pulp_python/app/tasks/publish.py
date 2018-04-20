@@ -145,17 +145,11 @@ def write_simple_api(publication):
 
 def sanitize_name(name):
     """
-    As described by the reference doc, the canonical name for a python distribution is
-    "all lowercase, with dashes replaced by underscores."
+    Strips out all non-alphanumeric characters, including underscores, and replaces them with
+    hyphens. Runs of multiple non-alphanumeric characters are replaced by only one hyphen.
 
-    https://wiki.python.org/moin/PyPISimple
-
-    That's not what PyPI/Warehouse actually do though. They strip out all other non-alphanumeric
-    characters, including underscores, and replace them with hyphens. Runs of multiple
-    non-alphanumeric characters are replaced by only one hyphen. Legacy PyPI neglects to strip
-    period characters for the sanitized names as listed in the index, but it seems to also have
-    shadow URLs with the same content but with the Warehouse-style name sanitization, and since
-    this is what pip is actually using, we're doing it that way here.
+    This is to take a given python package name and create an iteration of it that can be
+    used as part of a url, e.g. for the simple api.
 
     Args:
         name (str): A project name to sanitize
