@@ -88,7 +88,7 @@ def _fetch_remote(remote):
     remote_units = []
 
     metadata_urls = [urljoin(remote.url, 'pypi/%s/json' % project)
-                     for project in json.loads(remote.projects)]
+                     for project in remote.projects]
 
     for metadata_url in metadata_urls:
         downloader = remote.get_downloader(metadata_url)
@@ -159,10 +159,10 @@ def _parse_metadata(project, version, distribution):
     package['project_url'] = project.get('project_url') or ""
     package['platform'] = project.get('platform') or ""
     package['supported_platform'] = project.get('supported_platform') or ""
-    package['requires_dist'] = json.dumps(project.get('requires_dist', []))
-    package['provides_dist'] = json.dumps(project.get('provides_dist', []))
-    package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
-    package['requires_external'] = json.dumps(project.get('requires_external', []))
+    package['requires_dist'] = project.get('requires_dist', [])
+    package['provides_dist'] = project.get('provides_dist', [])
+    package['obsoletes_dist'] = project.get('obsoletes_dist', [])
+    package['requires_external'] = project.get('requires_external', [])
     package['url'] = distribution.get('url') or ""
     package['md5_digest'] = distribution.get('md5_digest') or ""
 

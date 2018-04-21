@@ -2,6 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
+from pulpcore.plugin.fields import JSONField
 from pulpcore.plugin.models import Content, Remote, Model, Publisher
 
 
@@ -53,7 +54,7 @@ class PythonPackageContent(Content):
     metadata_version = models.TextField(blank=True)
     summary = models.TextField(blank=True)
     description = models.TextField(blank=True)
-    keywords = models.TextField(blank=True)
+    keywords = JSONField(default=list, blank=True)
     home_page = models.TextField(blank=True)
     download_url = models.TextField(blank=True)
     author = models.TextField(blank=True)
@@ -65,10 +66,10 @@ class PythonPackageContent(Content):
     project_url = models.TextField(blank=True)
     platform = models.TextField(blank=True)
     supported_platform = models.TextField(blank=True)
-    requires_dist = models.TextField(default="[]", blank=False)
-    provides_dist = models.TextField(default="[]", blank=False)
-    obsoletes_dist = models.TextField(default="[]", blank=False)
-    requires_external = models.TextField(default="[]", blank=False)
+    requires_dist = JSONField(default=list, blank=True)
+    provides_dist = JSONField(default=list, blank=True)
+    obsoletes_dist = JSONField(default=list, blank=True)
+    requires_external = JSONField(default=list, blank=True)
 
     class Meta:
         unique_together = (
@@ -112,4 +113,4 @@ class PythonRemote(Remote):
     """
 
     TYPE = 'python'
-    projects = models.TextField()
+    projects = JSONField(default=list, blank=False)
