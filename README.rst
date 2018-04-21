@@ -83,7 +83,7 @@ Create a repository ``foo``
 Add a Remote to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar' download_policy='immediate' sync_mode='additive' repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
+``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar' download_policy='immediate' sync_mode='additive' repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects:='["shelf-reader"]'``
 
 .. code:: json
 
@@ -151,7 +151,7 @@ Create a file with the json bellow and save it as content.json.
         "metadata_version": null,
         "summary": "Make sure your collections are in call number order.",
         "description": "Shelf Reader is a tool for libraries that retrieves call numbers of items \nfrom their barcode and determines if they are in the correct order.",
-        "keywords": "",
+        "keywords": [],
         "home_page": "https://github.com/asmacdo/shelf-reader",
         "download_url": "UNKNOWN",
         "author": "Austin Macdonald",
@@ -163,10 +163,10 @@ Create a file with the json bellow and save it as content.json.
         "project_url": null,
         "platform": "UNKNOWN",
         "supported_platform": null,
-        "requires_dist": "[]",
-        "provides_dist": "[]",
-        "obsoletes_dist": "[]",
-        "requires_external": "[]",
+        "requires_dist": [],
+        "provides_dist": [],
+        "obsoletes_dist": [],
+        "requires_external": [],
         "classifiers": [],
         "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
     }
