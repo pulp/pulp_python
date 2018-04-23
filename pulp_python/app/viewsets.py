@@ -1,18 +1,21 @@
-import pkginfo
-import tempfile, shutil, os
-
 from gettext import gettext as _
+import os
+import tempfile
+import shutil
 
 from django.db import transaction
 from django_filters.rest_framework import filterset
-from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import RepositoryVersion, Artifact
+import pkginfo
 from rest_framework import decorators, status, serializers
 from rest_framework.response import Response
 
+from pulpcore.plugin import viewsets as platform
+from pulpcore.plugin.models import RepositoryVersion, Artifact
+from pulpcore.plugin.tasking import enqueue_with_reservation
+
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
-from pulp_python.app.tasks import sync, publish
+from pulp_python.app import tasks
 from pulp_python.app.utils import parse_project_metadata
 
 DIST_EXTENSIONS = {
@@ -131,14 +134,16 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         )
         serializer.is_valid(raise_exception=True)
         repository = serializer.validated_data.get('repository')
-        async_result = sync.apply_async_with_reservation(
+
+        result = enqueue_with_reservation(
+            tasks.sync,
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
                 'repository_pk': repository.pk
             }
         )
-        return platform.OperationPostponedResponse(async_result, request)
+        return platform.OperationPostponedResponse(result, request)
 
 
 class PythonPublisherViewSet(platform.PublisherViewSet):
@@ -172,7 +177,8 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
             repository = serializer.validated_data.get('repository')
             repository_version = RepositoryVersion.latest(repository)
 
-        result = publish.apply_async_with_reservation(
+        result = enqueue_with_reservation(
+            tasks.publish,
             [repository_version.repository, publisher],
             kwargs={
                 'publisher_pk': publisher.pk,

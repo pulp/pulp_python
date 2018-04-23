@@ -5,7 +5,6 @@ from collections import namedtuple
 from gettext import gettext as _
 from urllib.parse import urljoin
 
-from celery import shared_task
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -17,7 +16,7 @@ from pulpcore.plugin.changeset import (
     PendingContent,
     SizedIterable,
 )
-from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
+from pulpcore.plugin.tasking import WorkingDirectory
 
 from pulp_python.app import models as python_models
 from pulp_python.app.utils import parse_metadata
@@ -28,7 +27,6 @@ log = logging.getLogger(__name__)
 Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
-@shared_task(base=UserFacingTask)
 def sync(remote_pk, repository_pk):
     remote = python_models.PythonRemote.objects.get(pk=remote_pk)
     repository = models.Repository.objects.get(pk=repository_pk)
