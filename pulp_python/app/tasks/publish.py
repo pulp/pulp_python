@@ -83,7 +83,8 @@ def write_simple_api(publication):
 
     simple_dir = 'simple'
     os.mkdir(simple_dir)
-    project_names = python_models.PythonPackageContent.objects.order_by('name')\
+    project_names = python_models.PythonPackageContent.objects.filter(
+        pk__in=publication.repository_version.content).order_by('name')\
         .values_list('name', flat=True).distinct()
 
     index_names = [(name, sanitize_name(name)) for name in project_names]
