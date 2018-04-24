@@ -69,30 +69,30 @@ Install ``pulp-python`` From PyPI
 Create a repository ``foo``
 ---------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositories/ name=foo``
+``$ http POST http://localhost:8000/pulp/api/v3/repositories/ name=foo``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
+        "_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
         ...
     }
 
-``$ export REPO_HREF=$(http :8000/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
+``$ export REPO_HREF=$(http :8000/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
 Add a Remote to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
+``$ http POST http://localhost:8000/pulp/api/v3/remotes/python/ name='bar repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
+        "_href": "http://localhost:8000/pulp/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
         ...
     }
 
-``$ export REMOTE_HREF=$(http :8000/api/v3/remotes/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :8000/pulp/api/v3/remotes/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
 Sync repository ``foo`` using Remote ``bar``
@@ -111,10 +111,10 @@ Look at the new Repository Version created
 
     [
       {
-            "_href": "http://localhost:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/",
-            "_content_href": "http://localhost:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/content/",
-            "_added_href": "http://localhost:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/added/",
-            "_removed_href": "http://localhost.dev:8000/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/removed/",
+            "_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/",
+            "_content_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/content/",
+            "_added_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/added/",
+            "_removed_href": "http://localhost.dev:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/versions/1/removed/",
             "number": 1,
             "created": "2018-01-03T19:15:17.974275Z",
             "content_summary": {}
@@ -127,12 +127,12 @@ Upload ``shelf_reader-0.1-py2-none-any.whl`` to Pulp
 
 Create an Artifact by uploading the wheel to Pulp.
 
-``$ http --form POST http://localhost:8000/api/v3/artifacts/ file@./shelf_reader-0.1-py2-none-any.whl``
+``$ http --form POST http://localhost:8000/pulp/api/v3/artifacts/ file@./shelf_reader-0.1-py2-none-any.whl``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
+        "_href": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
         ...
     }
 
@@ -168,17 +168,17 @@ Create a file with the json bellow and save it as content.json.
         "obsoletes_dist": "[]",
         "requires_external": "[]",
         "classifiers": [],
-        "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
+        "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
     }
 
-``$ http POST http://localhost:8000/api/v3/content/python/packages/ < content.json``
+``$ http POST http://localhost:8000/pulp/api/v3/content/python/packages/ < content.json``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
+        "_href": "http://localhost:8000/pulp/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
         "artifacts": {
-            "shelf_reader-0.1-py2-none-any.whl": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
+            "shelf_reader-0.1-py2-none-any.whl": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
         },
         "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
         "notes": {},
@@ -186,7 +186,7 @@ Create a file with the json bellow and save it as content.json.
         "type": "python"
     }
 
-``$ export CONTENT_HREF=$(http :8000/api/v3/content/python/packages | jq -r '.results[] | select(.path == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
+``$ export CONTENT_HREF=$(http :8000/pulp/api/v3/content/python/packages | jq -r '.results[] | select(.path == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
 
 Add content to repository ``foo``
 ---------------------------------
@@ -197,16 +197,16 @@ will be added before pulp3 beta is released.
 Add a Publisher to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/publishers/python/ name=bar``
+``$ http POST http://localhost:8000/pulp/api/v3/publishers/python/ name=bar``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/publishers/python/bar/",
+        "_href": "http://localhost:8000/pulp/api/v3/repositories/foo/publishers/python/bar/",
         ...
     }
 
-``$ export PUBLISHER_HREF=$(http :8000/api/v3/publishers/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export PUBLISHER_HREF=$(http :8000/pulp/api/v3/publishers/python/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 Create a Publication for Publisher ``bar``
 ------------------------------------------
@@ -217,23 +217,23 @@ Create a Publication for Publisher ``bar``
 
     [
         {
-            "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
+            "_href": "http://localhost:8000/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
             "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
         }
     ]
 
-``$ export PUBLICATION_HREF=$(http :8000/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
+``$ export PUBLICATION_HREF=$(http :8000/pulp/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
 
 Add a Distribution to Publisher ``bar``
 ---------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/distributions/ name='baz' base_path='foo' publication=$PUBLICATION_HREF``
+``$ http POST http://localhost:8000/pulp/api/v3/distributions/ name='baz' base_path='foo' publication=$PUBLICATION_HREF``
 
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+        "_href": "http://localhost:8000/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
        ...
     }
 
@@ -266,7 +266,7 @@ Alternatively, you can modify your ``pip.conf`` file. See the
 Check status of a task
 ----------------------
 
-``$ http GET http://localhost:8000/api/v3/tasks/82e64412-47f8-4dd4-aa55-9de89a6c549b/``
+``$ http GET http://localhost:8000/pulp/api/v3/tasks/82e64412-47f8-4dd4-aa55-9de89a6c549b/``
 
 Download ``shelf_reader-0.1-py2-none-any.whl`` from Pulp
 --------------------------------------------------------
