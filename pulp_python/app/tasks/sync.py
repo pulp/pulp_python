@@ -50,8 +50,7 @@ def sync(remote_pk, repository_pk):
             remote_metadata = _fetch_remote(remote)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
-            mirror = remote.sync_mode == 'mirror'
-            delta = _find_delta(inventory=inventory, remote=remote_keys, mirror=mirror)
+            delta = _find_delta(inventory=inventory, remote=remote_keys)
 
             additions = _build_additions(delta, remote_metadata)
             removals = _build_removals(delta, base_version)
@@ -102,7 +101,7 @@ def _fetch_remote(remote):
     return remote_units
 
 
-def _find_delta(inventory, remote, mirror=False):
+def _find_delta(inventory, remote):
     """
     Using the existing and remote set of filenames, determine the set of content to be
     added and deleted from the repository.
@@ -111,15 +110,13 @@ def _find_delta(inventory, remote, mirror=False):
         inventory (set): existing natural keys (filename) of content associated
             with the repository
         remote (set): metadata keys (filename) of packages on the remote index
-        mirror (bool): When true, any content removed from remote repository is added to
-            the delta.removals. When false, delta.removals is an empty set.
 
     Returns:
         Delta (namedtuple): tuple of content to add, and content to remove from the repository
     """
 
     additions = remote - inventory
-    removals = inventory - remote if mirror else set()
+    removals = inventory - remote
 
     return Delta(additions=additions, removals=removals)
 
