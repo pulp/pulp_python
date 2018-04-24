@@ -83,7 +83,7 @@ Create a repository ``foo``
 Add a Remote to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar' download_policy='immediate' sync_mode='additive' repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
+``$ http POST http://localhost:8000/api/v3/remotes/python/ name='bar repository=$REPO_HREF url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' projects='["shelf-reader"]'``
 
 .. code:: json
 
