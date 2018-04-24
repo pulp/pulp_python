@@ -243,13 +243,13 @@ View the newly created distribution
 
 The metadata and packages can now be retrieved from the distribution:
 
-``$ curl localhost:8000/content/foo/simple/``
+``$ curl localhost:8000/pulp/content/foo/simple/``
 
-``$ curl localhost:8000/content/foo/simple/shelf-reader/``
+``$ curl localhost:8000/pulp/content/foo/simple/shelf-reader/``
 
 The content is also pip installable:
 
-``pip install --trusted-host dev.pulp3 -i http://dev.pulp3:8000/content/foo/simple/ shelf-reader``
+``pip install --trusted-host dev.pulp3 -i http://dev.pulp3:8000/pulp/content/foo/simple/ shelf-reader``
 
 Alternatively, you can modify your ``pip.conf`` file. See the
 `pip docs <https://pip.pypa.io/en/stable/user_guide/#configuration>`_ for more detail.
@@ -259,7 +259,7 @@ Alternatively, you can modify your ``pip.conf`` file. See the
 .. code::
 
   [global]
-  index-url = http://dev.pulp3:8000/content/foo/simple/
+  index-url = http://dev.pulp3:8000/pulp/content/foo/simple/
 
 ``pip install --trusted-host dev.pulp3 shelf-reader``
 
@@ -272,4 +272,4 @@ Download ``shelf_reader-0.1-py2-none-any.whl`` from Pulp
 --------------------------------------------------------
 
 
-``$ http GET http://localhost:8000/content/foo/shelf_reader-0.1-py2-none-any.whl``
+``$ http GET http://localhost:8000/pulp/content/foo/shelf_reader-0.1-py2-none-any.whl``
