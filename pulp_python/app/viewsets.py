@@ -5,9 +5,8 @@ from gettext import gettext as _
 
 from django.db import transaction
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Repository, RepositoryVersion, Artifact
+from pulpcore.plugin.models import RepositoryVersion, Artifact
 from rest_framework import decorators, status, serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from pulp_python.app import models as python_models
@@ -95,14 +94,19 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
 
-    @decorators.detail_route(methods=('post',))
+    @decorators.detail_route(methods=('post',),
+                             serializer_class=python_serializers.PythonSyncSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
         remote = self.get_object()
-        repository = self.get_resource(request.data['repository'], Repository)
-
+        serializer = python_serializers.PythonSyncSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        repository = serializer.validated_data.get('repository')
         async_result = sync.apply_async_with_reservation(
             [repository, remote],
             kwargs={
@@ -125,31 +129,23 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     queryset = python_models.PythonPublisher.objects.all()
     serializer_class = python_serializers.PythonPublisherSerializer
 
-    @decorators.detail_route(methods=('post',))
+    @decorators.detail_route(methods=('post',),
+                             serializer_class=python_serializers.PythonPublishSerializer)
     def publish(self, request, pk):
         """
         Dispatches a publish task.
         """
         publisher = self.get_object()
-        repository = None
-        repository_version = None
+        serializer = python_serializers.PythonPublishSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        repository_version = serializer.validated_data.get('repository_version')
 
-        if 'repository' not in request.data and 'repository_version' not in request.data:
-            raise ValidationError("Either the 'repository' or 'repository_version' "
-                                  "need to be specified.")
-
-        if 'repository' in request.data and request.data['repository']:
-            repository = self.get_resource(request.data['repository'], Repository)
-
-        if 'repository_version' in request.data and request.data['repository_version']:
-            repository_version = self.get_resource(request.data['repository_version'],
-                                                   RepositoryVersion)
-
-        if repository and repository_version:
-            raise ValidationError("Either the 'repository' or 'repository_version' "
-                                  "can be specified - not both.")
-
+        # Safe because version OR repository is enforced by serializer.
         if not repository_version:
+            repository = serializer.validated_data.get('repository')
             repository_version = RepositoryVersion.latest(repository)
 
         result = publish.apply_async_with_reservation(
