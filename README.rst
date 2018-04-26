@@ -168,7 +168,7 @@ Create a file with the json bellow and save it as content.json.
         "obsoletes_dist": "[]",
         "requires_external": "[]",
         "classifiers": [],
-        "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
+        "artifact": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
     }
 
 ``$ http POST http://localhost:8000/pulp/api/v3/content/python/packages/ < content.json``
@@ -177,9 +177,7 @@ Create a file with the json bellow and save it as content.json.
 
     {
         "_href": "http://localhost:8000/pulp/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
-        "artifacts": {
-            "shelf_reader-0.1-py2-none-any.whl": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
-        },
+        "artifact": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
         "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
         "notes": {},
         "path": "shelf_reader-0.1-py2-none-any.whl",

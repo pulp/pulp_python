@@ -4,6 +4,7 @@ from rest_framework import serializers
 from pulpcore.plugin import serializers as platform
 
 from pulp_python.app import models as python_models
+from pulpcore.plugin.models import Artifact
 
 
 class ClassifierSerializer(serializers.ModelSerializer):
@@ -130,6 +131,11 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         required=False,
         many=True
     )
+    artifact = serializers.HyperlinkedRelatedField(
+        view_name='artifacts-detail',
+        help_text="Artifact file representing the physical content",
+        queryset=Artifact.objects.all()
+    )
 
     def create(self, validated_data):
         """
@@ -140,19 +146,21 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         :return:
         """
         classifiers = validated_data.pop('classifiers')
+        artifact = validated_data.pop('artifact')
         PythonPackageContent = python_models.PythonPackageContent.objects.create(**validated_data)
         for classifier in classifiers:
             python_models.Classifier.objects.create(python_package_content=PythonPackageContent,
                                                     **classifier)
+        PythonPackageContent.artifact = artifact
         return PythonPackageContent
 
     class Meta:
-        fields = platform.ContentSerializer.Meta.fields + (
-            'filename', 'packagetype', 'name', 'version', 'metadata_version', 'summary',
+        fields = (
+            '_href', 'filename', 'packagetype', 'name', 'version', 'metadata_version', 'summary',
             'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
             'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
-            'platform', 'supported_platform', 'requires_dist', 'provides_dist',
-            'obsoletes_dist', 'requires_external', 'classifiers'
+            'platform', 'supported_platform', 'requires_dist', 'provides_dist', 'obsoletes_dist',
+            'requires_external', 'classifiers', 'artifact', 'notes',
         )
         model = python_models.PythonPackageContent
 
