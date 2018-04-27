@@ -1,3 +1,5 @@
+from gettext import gettext as _
+
 from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import Repository, RepositoryVersion
 from rest_framework import decorators
@@ -86,6 +88,9 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
 
         if not repository_version:
             repository_version = RepositoryVersion.latest(repository)
+
+        if not repository_version:
+            raise ValidationError(_('Repository has no version available to publish'))
 
         result = publish.apply_async_with_reservation(
             [repository_version.repository, publisher],
