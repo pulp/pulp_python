@@ -62,7 +62,10 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
 
     endpoint_name = 'python/packages'
     queryset = python_models.PythonPackageContent.objects.all()
-    serializer_class = python_serializers.PythonPackageContentSerializer
+    serializers = {
+        'list': python_serializers.MinimalPythonPackageContentSerializer,
+        'default': python_serializers.PythonPackageContentSerializer
+    }
     filter_class = PythonPackageContentFilter
 
     @transaction.atomic

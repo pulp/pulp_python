@@ -234,6 +234,18 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
         model = python_models.PythonPackageContent
 
 
+class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
+    """
+    A Serializer for PythonPackageContent.
+    """
+
+    class Meta:
+        fields = core_serializers.ContentSerializer.Meta.fields + (
+            'filename', 'packagetype', 'name', 'version'
+        )
+        model = python_models.PythonPackageContent
+
+
 class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     """
     A Serializer for PythonRemote.

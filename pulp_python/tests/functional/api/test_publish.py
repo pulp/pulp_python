@@ -65,10 +65,10 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         # Step 1
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        for file_content in client.get(PYTHON_CONTENT_PATH)['results']:
+        for python_content in client.get(PYTHON_CONTENT_PATH)['results']:
             client.post(
                 repo['_versions_href'],
-                {'add_content_units': [file_content['_href']]}
+                {'add_content_units': [python_content['_href']]}
             )
         versions = get_versions(repo)
         non_latest = choice(versions[:-1])['_href']
