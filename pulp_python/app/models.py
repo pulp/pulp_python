@@ -96,12 +96,6 @@ class PythonPublisher(Publisher):
 
     TYPE = 'python'
 
-    def publish(self):
-        """
-        Publish the repository.
-        """
-        raise NotImplementedError
-
 
 class PythonRemote(Remote):
     """
