@@ -37,8 +37,8 @@ simple_detail_template = """<!DOCTYPE html>
 </head>
 <body>
     <h1>Links for {{ project_name }}</h1>
-    {% for name, path, md5 in project_packages %}
-    <a href="{{ path }}#md5={{ md5 }}" rel="internal">{{ name }}</a><br/>
+    {% for name, path, sha256 in project_packages %}
+    <a href="{{ path }}#sha256={{ sha256 }}" rel="internal">{{ name }}</a><br/>
     {% endfor %}
 </body>
 </html>
@@ -122,9 +122,9 @@ def write_simple_api(publication):
                     content_artifact=content_artifact)
                 published_artifact.save()
 
-                md5sum = content_artifact.artifact.md5
+                checksum = content_artifact.artifact.sha256
                 path = "../../{}".format(package.filename)
-                package_detail_data.append((package.filename, path, md5sum))
+                package_detail_data.append((package.filename, path, checksum))
 
         metadata_relative_path = '{project_dir}/index.html'.format(project_dir=project_dir)
 
