@@ -87,11 +87,6 @@ class PythonPackageContent(Content):
 class PythonPublisher(Publisher):
     """
     A Publisher for PythonContent.
-
-    Define any additional fields for your new publisher if needed.
-    A ``publish`` method should be defined.
-    It is responsible for publishing metadata and artifacts
-    which belongs to a specific repository.
     """
 
     TYPE = 'python'
