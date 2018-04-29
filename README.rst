@@ -127,7 +127,7 @@ Upload ``shelf_reader-0.1-py2-none-any.whl`` to Pulp
 
 Create an Artifact by uploading the wheel to Pulp.
 
-``$ http --form POST http://localhost:8000/pulp/api/v3/artifacts/ file@./shelf_reader-0.1-py2-none-any.whl``
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/pulp/api/v3/artifacts/ file@./shelf_reader-0.1-py2-none-any.whl | jq -r '._href')``
 
 .. code:: json
 
@@ -136,63 +136,28 @@ Create an Artifact by uploading the wheel to Pulp.
         ...
     }
 
+
 Create ``python`` content from an Artifact
 -------------------------------------------
 
-Create a file with the json bellow and save it as content.json.
-
-.. code:: json
-
-    {
-        "filename": "shelf_reader-0.1-py2-none-any.whl",
-        "packagetype": "bdist_wheel",
-        "name": "shelf-reader",
-        "version": "0.1",
-        "metadata_version": null,
-        "summary": "Make sure your collections are in call number order.",
-        "description": "Shelf Reader is a tool for libraries that retrieves call numbers of items \nfrom their barcode and determines if they are in the correct order.",
-        "keywords": "",
-        "home_page": "https://github.com/asmacdo/shelf-reader",
-        "download_url": "UNKNOWN",
-        "author": "Austin Macdonald",
-        "author_email": "asmacdo@gmail.com",
-        "maintainer": null,
-        "maintainer_email": null,
-        "license": "GNU GENERAL PUBLIC LICENSE Version 2",
-        "requires_python": null,
-        "project_url": null,
-        "platform": "UNKNOWN",
-        "supported_platform": null,
-        "requires_dist": "[]",
-        "provides_dist": "[]",
-        "obsoletes_dist": "[]",
-        "requires_external": "[]",
-        "classifiers": [],
-        "artifacts": {"shelf_reader-0.1-py2-none-any.whl":"http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"}
-    }
-
-``$ http POST http://localhost:8000/pulp/api/v3/content/python/packages/ < content.json``
+``$ http POST http://localhost:8000/pulp/api/v3/content/python/packages/ artifact=$ARTIFACT_HREF filename=shelf_reader-0.1-py2-none-any.whl``
 
 .. code:: json
 
     {
         "_href": "http://localhost:8000/pulp/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
-        "artifacts": {
-            "shelf_reader-0.1-py2-none-any.whl": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"
-        },
+        "artifact": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
         "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
-        "notes": {},
-        "path": "shelf_reader-0.1-py2-none-any.whl",
+        "filename": "shelf_reader-0.1-py2-none-any.whl",
         "type": "python"
     }
 
-``$ export CONTENT_HREF=$(http :8000/pulp/api/v3/content/python/packages | jq -r '.results[] | select(.path == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
+``$ export CONTENT_HREF=$(http :8000/pulp/api/v3/content/python/packages/ | jq -r '.results[] | select(.filename == "shelf_reader-0.1-py2-none-any.whl") | ._href')``
 
 Add content to repository ``foo``
 ---------------------------------
 
-Currently there is no endpoint to manually associate content to a repository. This functionality
-will be added before pulp3 beta is released.
+``$ http POST $REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
 
 Add a Publisher to repository ``foo``
 -------------------------------------

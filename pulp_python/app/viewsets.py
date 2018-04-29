@@ -1,11 +1,35 @@
+import pkginfo
+import tempfile, shutil, os
+
+from gettext import gettext as _
+
+from django.db import transaction
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Repository, RepositoryVersion
-from rest_framework import decorators
+from pulpcore.plugin.models import Repository, RepositoryVersion, Artifact
+from rest_framework import decorators, status, serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app.tasks import sync, publish
+from pulp_python.app.utils import parse_project_metadata
+
+DIST_EXTENSIONS = {
+    ".whl": "bdist_wheel",
+    ".exe": "bdist_wininst",
+    ".egg": "bdist_egg",
+    ".tar.bz2": "sdist",
+    ".tar.gz": "sdist",
+    ".zip": "sdist",
+}
+
+DIST_TYPES = {
+    "bdist_wheel": pkginfo.Wheel,
+    "bdist_wininst": pkginfo.Distribution,
+    "bdist_egg": pkginfo.BDist,
+    "sdist": pkginfo.SDist,
+}
 
 
 class PythonPackageContentViewSet(platform.ContentViewSet):
@@ -16,6 +40,47 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     endpoint_name = 'python/packages'
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
+
+    @transaction.atomic
+    def create(self, request):
+        try:
+            artifact = self.get_resource(request.data['artifact'], Artifact)
+        except KeyError:
+            raise serializers.ValidationError(detail={'artifact': _('This field is required')})
+
+        filename = request.data['filename']
+
+        # iterate through extensions since splitext does not support things like .tar.gz
+        for ext, packagetype in DIST_EXTENSIONS.items():
+            if filename.endswith(ext):
+
+                # Copy file to a temp directory under the user provided filename, we do this
+                # because pkginfo validates that the filename has a valid extension before
+                # reading it
+                with tempfile.TemporaryDirectory() as td:
+                    temp_path = os.path.join(td, filename)
+                    shutil.copy2(artifact.file.path, temp_path)
+                    metadata = DIST_TYPES[packagetype](temp_path)
+                    metadata.packagetype = packagetype
+                    break
+        else:
+            raise serializers.ValidationError(_("Extension on {} is not a valid python"
+                                                " extension (.whl, .exe, .egg, .tar.gz, .tar.bz2, "
+                                                ".zip)").format(filename))
+
+        data = parse_project_metadata(vars(metadata))
+        data['classifiers'] = [{'name': classifier} for classifier in metadata.classifiers]
+        data['packagetype'] = metadata.packagetype
+        data['version'] = metadata.version
+        data['filename'] = filename
+        data['artifact'] = request.data['artifact']
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        headers = self.get_success_headers(request.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PythonRemoteViewSet(platform.RemoteViewSet):

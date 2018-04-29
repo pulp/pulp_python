@@ -4,6 +4,7 @@ from setuptools import setup
 
 requirements = [
     'pulpcore-plugin',
+    'pkginfo'
 ]
 
 setup(
