@@ -4,7 +4,6 @@ from django.db import models
 
 from pulpcore.plugin.models import Content, Remote, Model, Publisher
 
-
 log = getLogger(__name__)
 
 
@@ -69,6 +68,10 @@ class PythonPackageContent(Content):
     provides_dist = models.TextField(default="[]", blank=False)
     obsoletes_dist = models.TextField(default="[]", blank=False)
     requires_external = models.TextField(default="[]", blank=False)
+
+    @property
+    def artifact(self):
+        return self.artifacts.get().pk
 
     class Meta:
         unique_together = (

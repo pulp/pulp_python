@@ -20,7 +20,7 @@ from pulpcore.plugin.changeset import (
 from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
 
 from pulp_python.app import models as python_models
-
+from pulp_python.app.utils import parse_metadata
 
 log = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def _fetch_remote(remote):
         metadata = json.load(open(downloader.path))
         for version, packages in metadata['releases'].items():
             for package in packages:
-                remote_units.append(_parse_metadata(metadata['info'], version, package))
+                remote_units.append(parse_metadata(metadata['info'], version, package))
 
     return remote_units
 
@@ -121,51 +121,6 @@ def _find_delta(inventory, remote):
     return Delta(additions=additions, removals=removals)
 
 
-def _parse_metadata(project, version, distribution):
-    """
-    Create a dictionary of metadata needed to create a PythonContentUnit from
-    the project, version, and distribution metadata
-
-    Args:
-        project (dict): of metadata relevant to the entire Python project
-        version (string): version of distribution
-        distribution (dict): of metadata of a single Python distribution
-
-    Returns:
-        dictionary: of useful python metadata
-    """
-
-    package = {}
-
-    package['filename'] = distribution.get('filename') or ""
-    package['packagetype'] = distribution.get('packagetype') or ""
-    package['name'] = project.get('name') or ""
-    package['version'] = version
-    package['metadata_version'] = project.get('metadata_version') or ""
-    package['summary'] = project.get('summary') or ""
-    package['description'] = project.get('description') or ""
-    package['keywords'] = project.get('keywords') or ""
-    package['home_page'] = project.get('home_page') or ""
-    package['download_url'] = project.get('download_url') or ""
-    package['author'] = project.get('author') or ""
-    package['author_email'] = project.get('author_email') or ""
-    package['maintainer'] = project.get('maintainer') or ""
-    package['maintainer_email'] = project.get('maintainer_email') or ""
-    package['license'] = project.get('license') or ""
-    package['requires_python'] = project.get('requires_python') or ""
-    package['project_url'] = project.get('project_url') or ""
-    package['platform'] = project.get('platform') or ""
-    package['supported_platform'] = project.get('supported_platform') or ""
-    package['requires_dist'] = json.dumps(project.get('requires_dist', []))
-    package['provides_dist'] = json.dumps(project.get('provides_dist', []))
-    package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
-    package['requires_external'] = json.dumps(project.get('requires_external', []))
-    package['url'] = distribution.get('url') or ""
-    package['md5_digest'] = distribution.get('md5_digest') or ""
-
-    return package
-
-
 def _build_additions(delta, remote_metadata):
     """
     Generate the content to be added.
@@ -183,7 +138,7 @@ def _build_additions(delta, remote_metadata):
                 continue
 
             url = entry.pop('url')
-            artifact = models.Artifact(md5=entry.pop('md5_digest'))
+            artifact = models.Artifact(sha256=entry.pop('sha256_digest'))
 
             package = python_models.PythonPackageContent(**entry)
             content = PendingContent(
