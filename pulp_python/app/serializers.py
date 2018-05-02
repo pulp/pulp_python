@@ -1,8 +1,9 @@
 from gettext import gettext as _
 
 from rest_framework import serializers
-from pulpcore.plugin import serializers as platform
-from pulpcore.plugin.models import Artifact, ContentArtifact
+from rest_framework_nested.relations import NestedHyperlinkedRelatedField
+from pulpcore.plugin import models as core_models
+from pulpcore.plugin import serializers as core_serializers
 
 from pulp_python.app import models as python_models
 
@@ -21,7 +22,7 @@ class ClassifierSerializer(serializers.ModelSerializer):
         fields = ('name',)
 
 
-class PythonPackageContentSerializer(platform.ContentSerializer):
+class PythonPackageContentSerializer(core_serializers.ContentSerializer):
     """
     A Serializer for PythonPackageContent.
     """
@@ -135,7 +136,7 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
     artifact = serializers.HyperlinkedRelatedField(
         view_name='artifacts-detail',
         help_text="Artifact file representing the physical content",
-        queryset=Artifact.objects.all()
+        queryset=core_models.Artifact.objects.all()
     )
 
     def create(self, validated_data):
@@ -154,9 +155,9 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         for classifier in classifiers:
             python_models.Classifier.objects.create(python_package_content=PythonPackageContent,
                                                     **classifier)
-        ca = ContentArtifact(artifact=artifact,
-                             content=PythonPackageContent,
-                             relative_path=validated_data['filename'])
+        ca = core_models.ContentArtifact(artifact=artifact,
+                                         content=PythonPackageContent,
+                                         relative_path=validated_data['filename'])
         ca.save()
 
         return PythonPackageContent
@@ -173,7 +174,7 @@ class PythonPackageContentSerializer(platform.ContentSerializer):
         model = python_models.PythonPackageContent
 
 
-class PythonRemoteSerializer(platform.RemoteSerializer):
+class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     """
     A Serializer for PythonRemote.
     """
@@ -184,11 +185,11 @@ class PythonRemoteSerializer(platform.RemoteSerializer):
     )
 
     class Meta:
-        fields = platform.RemoteSerializer.Meta.fields + ('projects',)
+        fields = core_serializers.RemoteSerializer.Meta.fields + ('projects',)
         model = python_models.PythonRemote
 
 
-class PythonPublisherSerializer(platform.PublisherSerializer):
+class PythonPublisherSerializer(core_serializers.PublisherSerializer):
     """
     A Serializer for PythonPublisher.
 
@@ -203,5 +204,61 @@ class PythonPublisherSerializer(platform.PublisherSerializer):
     """
 
     class Meta:
-        fields = platform.PublisherSerializer.Meta.fields
+        fields = core_serializers.PublisherSerializer.Meta.fields
         model = python_models.PythonPublisher
+
+
+class PythonSyncSerializer(serializers.Serializer):
+    repository = serializers.HyperlinkedRelatedField(
+        required=True,
+        help_text=_('A URI of the repository to be synchronized.'),
+        queryset=core_models.Repository.objects.all(),
+        view_name='repositories-detail',
+        label=_('Repository'),
+        error_messages={
+            'required': _('The repository URI must be specified.')
+        })
+
+
+class PythonPublishSerializer(serializers.Serializer):
+
+    repository = serializers.HyperlinkedRelatedField(
+        help_text=_('A URI of the repository to be synchronized.'),
+        required=False,
+        label=_('Repository'),
+        queryset=core_models.Repository.objects.all(),
+        view_name='repositories-detail',
+    )
+
+    repository_version = NestedHyperlinkedRelatedField(
+        help_text=_('A URI of the repository version to be published.'),
+        required=False,
+        label=_('Repository Version'),
+        queryset=core_models.RepositoryVersion.objects.all(),
+        view_name='versions-detail',
+        lookup_field='number',
+        parent_lookup_kwargs={'repository_pk': 'repository__pk'},
+    )
+
+    def validate(self, data):
+        repository = data.get('repository')
+        repository_version = data.get('repository_version')
+
+        if not repository and not repository_version:
+            raise serializers.ValidationError(
+                _("Either the 'repository' or 'repository_version' need to be specified"))
+        elif not repository and repository_version:
+            return data
+        elif repository and not repository_version:
+            version = core_models.RepositoryVersion.latest(repository)
+            if version:
+                new_data = {'repository_version': version}
+                new_data.update(data)
+                return new_data
+            else:
+                raise serializers.ValidationError(
+                    detail=_('Repository has no version available to publish'))
+        raise serializers.ValidationError(
+            _("Either the 'repository' or 'repository_version' need to be specified "
+              "but not both.")
+        )
