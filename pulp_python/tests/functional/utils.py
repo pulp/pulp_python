@@ -11,11 +11,12 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'})
 
 
-def gen_remote():
+def gen_remote(url):
     """Return a semi-random dict for use in creating an remote."""
     return {
         'name': str(uuid.uuid4()),
         'projects': PYTHON_PROJECT_LIST,
+        'url': url
     }
 
 

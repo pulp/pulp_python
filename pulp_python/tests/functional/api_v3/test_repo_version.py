@@ -83,8 +83,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         * The ``_latest_version_href + removed_content/`` API call is correct.
         * The ``content_summary`` attribute is correct.
         """
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         self.remote.update(self.client.post(PYTHON_REMOTE_PATH, body))
         sync_repo(self.cfg, self.remote, self.repo)
         repo = self.client.get(self.repo['_href'])
@@ -197,8 +196,7 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = {}
         repo = {}
         try:
@@ -309,8 +307,7 @@ class ContentImmutableRepoVersionTestCase(unittest.TestCase):
         client.request_kwargs['auth'] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         sync_repo(cfg, remote, repo)

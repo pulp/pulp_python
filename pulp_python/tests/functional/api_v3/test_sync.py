@@ -43,8 +43,7 @@ class SyncPythonRepoTestCase(unittest.TestCase, utils.SmokeTest):
         client.request_kwargs['auth'] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -86,8 +85,7 @@ class SyncChangeRepoVersionTestCase(unittest.TestCase):
         client.request_kwargs['auth'] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -128,8 +126,7 @@ class MultiResourceLockingTestCase(unittest.TestCase, utils.SmokeTest):
         client.request_kwargs['auth'] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL  # TODO: use 2 repos and don't sync the same one twice
+        body = gen_remote(PYTHON_PYPI_URL)  # TODO: use 2 repos and don't sync the same one twice
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         url = {'url': PYTHON_PYPI_URL}
