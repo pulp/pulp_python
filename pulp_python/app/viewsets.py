@@ -4,6 +4,7 @@ import tempfile, shutil, os
 from gettext import gettext as _
 
 from django.db import transaction
+from django_filters.rest_framework import filterset
 from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import RepositoryVersion, Artifact
 from rest_framework import decorators, status, serializers
@@ -31,6 +32,17 @@ DIST_TYPES = {
 }
 
 
+class PythonPackageContentFilter(filterset.FilterSet):
+    class Meta:
+        model = python_models.PythonPackageContent
+        fields = {
+            'type': ['exact', 'in'],
+            'author': ['exact', 'in'],
+            'packagetype': ['exact', 'in'],
+            'filename': ['exact', 'in', 'contains'],
+        }
+
+
 class PythonPackageContentViewSet(platform.ContentViewSet):
     """
     The ViewSet for PythonPackageContent.
@@ -39,6 +51,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     endpoint_name = 'python/packages'
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
+    filter_class = PythonPackageContentFilter
 
     @transaction.atomic
     def create(self, request):
@@ -82,6 +95,16 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
+class PythonRemoteFilter(filterset.FilterSet):
+    class Meta:
+        model = python_models.PythonRemote
+        fields = {
+            'name': ['exact', 'in'],
+            'last_updated': ['lt', 'lte', 'gt', 'gte', 'range'],
+            'projects': ['contains']
+        }
+
+
 class PythonRemoteViewSet(platform.RemoteViewSet):
     """
     A ViewSet for PythonRemote.
@@ -93,6 +116,7 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
+    filter_class = PythonRemoteFilter
 
     @decorators.detail_route(methods=('post',),
                              serializer_class=python_serializers.PythonSyncSerializer)
