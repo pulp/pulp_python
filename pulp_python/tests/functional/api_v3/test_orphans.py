@@ -56,8 +56,7 @@ class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
         """
         repo = self.api_client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.api_client.delete, repo['_href'])
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = self.api_client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(self.api_client.delete, remote['_href'])
         sync_repo(self.cfg, remote, repo)

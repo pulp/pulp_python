@@ -38,8 +38,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         # Create an remote and publisher.
         client = api.Client(cfg, api.json_handler)
         client.request_kwargs['auth'] = get_auth()
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())

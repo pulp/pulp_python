@@ -41,8 +41,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
         client.request_kwargs['auth'] = get_auth()
-        body = gen_remote()
-        body['url'] = PYTHON_PYPI_URL
+        body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         repo = client.post(REPO_PATH, gen_repo())

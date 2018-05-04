@@ -28,8 +28,7 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
         cls.repo = {}
         try:
             cls.repo.update(cls.client.post(REPO_PATH, gen_repo()))
-            body = gen_remote()
-            body['url'] = PYTHON_PYPI_URL
+            body = gen_remote(PYTHON_PYPI_URL)
             cls.remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
             cls.publisher.update(cls.client.post(PYTHON_PUBLISHER_PATH, gen_publisher()))
             sync_repo(cls.cfg, cls.remote, cls.repo)
