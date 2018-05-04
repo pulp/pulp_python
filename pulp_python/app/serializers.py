@@ -53,10 +53,9 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
         required=False, allow_blank=True,
         help_text=_('A longer description of the package that can run to several paragraphs.')
     )
-    keywords = serializers.ListField(
-        child=serializers.CharField(),
-        required=False, default=[],
-        help_text=_('A list of additional keywords to be used to assist searching for the '
+    keywords = serializers.CharField(
+        required=False, allow_blank=True,
+        help_text=_('Additional keywords to be used to assist searching for the '
                     'package in a larger catalog.')
     )
     home_page = serializers.CharField(

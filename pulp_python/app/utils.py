@@ -17,7 +17,7 @@ def parse_project_metadata(project):
     package['metadata_version'] = project.get('metadata_version') or ""
     package['summary'] = project.get('summary') or ""
     package['description'] = project.get('description') or ""
-    package['keywords'] = project.get('keywords') or []
+    package['keywords'] = project.get('keywords') or ""
     package['home_page'] = project.get('home_page') or ""
     package['download_url'] = project.get('download_url') or ""
     package['author'] = project.get('author') or ""
