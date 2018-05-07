@@ -1,23 +1,29 @@
-Pulp Python Support
-===================
+pulp-python Plugin
+==================
 
-Welcome to the Pulp Python Plugin documentation. These plugins extend the Pulp Project so that
-it is capable of handling Python packages. With these plugins, you can create Python
-repositories in Pulp, upload Python packages to those repositories, and use pip to install
-packages from client machines.
+The ``pulp_python`` plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
+hosting pip compatible Python packages. This plugin is a part of the `Pulp Project
+<http://www.pulpproject.org>`_, and assumes some familiarity with the `pulpcore documentation
+<https://docs.pulpproject.org/en/3.0/nightly/>`_.
 
-We plan to add support for more features in the future, and community contributions are welcome.
-Send us pull requests on `our GitHub repository <https://github.com/pulp/pulp_python>`_. See existing
-bugs in the `Pulp's Redmine <https://pulp.plan.io/projects/pulp_python/issues?set_filter=1&tracker_id=1>`_
-instance or file a `new bug <https://pulp.plan.io/projects/pulp_python/issues/new>`_.
+If you are just getting started, we recommend getting to know the :doc:`basic
+workflows<workflows/index>`.
+
+Community contributions are encouraged.
+
+* Send us pull requests on `our GitHub repository <https://github.com/pulp/pulp_python>`_.
+* View and file issues in the `Redmine Tracker
+  <https://pulp.plan.io/projects/pulp_python/issues>`_.
+
+
+Table of Contents
+-----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   release-notes/index
-   admin-docs/index
-   user-docs/index
-   reference/index
+   installation
+   workflows/index
 
 
 Indices and tables
