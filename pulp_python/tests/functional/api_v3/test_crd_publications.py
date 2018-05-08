@@ -4,7 +4,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH, PUBLICATIONS_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, publish_repo, sync_repo
+from pulp_smash.tests.pulp3.utils import get_auth, publish, sync
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_distribution, gen_repo
 
 from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_PYPI_URL, # noqa
@@ -31,7 +31,7 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
             body = gen_remote(PYTHON_PYPI_URL)
             cls.remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
             cls.publisher.update(cls.client.post(PYTHON_PUBLISHER_PATH, gen_publisher()))
-            sync_repo(cls.cfg, cls.remote, cls.repo)
+            sync(cls.cfg, cls.remote, cls.repo)
         except Exception:
             cls.tearDownClass()
             raise
@@ -46,7 +46,7 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
     def test_01_create_publication(self):
         """Create a publication."""
         self.publication.update(
-            publish_repo(self.cfg, self.publisher, self.repo)
+            publish(self.cfg, self.publisher, self.repo)
         )
 
     @selectors.skip_if(bool, 'publication', False)

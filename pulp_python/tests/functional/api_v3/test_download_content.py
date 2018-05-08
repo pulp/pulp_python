@@ -6,7 +6,7 @@ from unittest import skip
 
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, sync_repo, publish_repo  # get_content,
+from pulp_smash.tests.pulp3.utils import get_auth, sync, publish  # get_content,
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_distribution, gen_repo
 
 from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL, PYTHON_REMOTE_PATH,
@@ -56,7 +56,7 @@ class DownloadContentTestCase(unittest.TestCase, utils.SmokeTest):
         body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
-        sync_repo(cfg, remote, repo)
+        sync(cfg, remote, repo)
         repo = client.get(repo['_href'])
 
         # Create a publisher.
@@ -64,7 +64,7 @@ class DownloadContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.addCleanup(client.delete, publisher['_href'])
 
         # Create a publication.
-        publication = publish_repo(cfg, publisher, repo)
+        publication = publish(cfg, publisher, repo)
         self.addCleanup(client.delete, publication['_href'])
 
         # Create a distribution.

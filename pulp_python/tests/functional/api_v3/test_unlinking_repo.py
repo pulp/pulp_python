@@ -3,7 +3,7 @@ import unittest
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
-from pulp_smash.tests.pulp3.utils import get_auth, get_content, sync_repo, publish_repo
+from pulp_smash.tests.pulp3.utils import get_auth, get_content, sync, publish
 
 from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_PYPI_URL, # noqa
                                                     PYTHON_REMOTE_PATH)
@@ -49,7 +49,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         for _ in range(2):
             repo = client.post(REPO_PATH, gen_repo())
             self.addCleanup(client.delete, repo['_href'])
-            sync_repo(cfg, remote, repo)
+            sync(cfg, remote, repo)
             repos.append(client.get(repo['_href']))
 
         # Compare contents of repositories.
@@ -64,7 +64,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         # Publish repositories.
         publications = []
         for repo in repos:
-            publications.append(publish_repo(cfg, publisher, repo))
+            publications.append(publish(cfg, publisher, repo))
             if selectors.bug_is_testable(3354, cfg.pulp_version):
                 self.addCleanup(client.delete, publications[-1]['_href'])
         self.assertEqual(
