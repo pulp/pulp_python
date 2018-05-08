@@ -6,7 +6,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, get_version_hrefs, sync, publish
+from pulp_smash.tests.pulp3.utils import get_auth, get_versions, sync, publish
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
 from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH, PYTHON_PYPI_URL,
@@ -58,14 +58,14 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
                 repo['_versions_href'],
                 {'add_content_units': [file_content['_href']]}
             )
-        versions = get_version_hrefs(repo)
-        non_latest = choice(versions[:-1])
+        versions = get_versions(repo)
+        non_latest = choice(versions[:-1])['_href']
 
         # Step 2
         publication = publish(cfg, publisher, repo)
 
         # Step 3
-        self.assertEqual(publication['repository_version'], versions[-1])
+        self.assertEqual(publication['repository_version'], versions[-1]['_href'])
 
         # Step 4
         publication = publish(cfg, publisher, repo, non_latest)

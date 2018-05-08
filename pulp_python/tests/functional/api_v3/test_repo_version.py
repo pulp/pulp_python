@@ -8,7 +8,7 @@ from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import (
     get_auth, get_artifact_paths, get_content, get_added_content, get_removed_content,
-    get_version_hrefs, sync, publish, delete_version
+    get_versions, sync, publish, delete_version
 )
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
@@ -227,7 +227,7 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
                 {'add_content_units': [content['_href']]}
             )
         self.repo = self.client.get(self.repo['_href'])
-        self.repo_versions = get_version_hrefs(self.repo)
+        self.repo_versions = get_versions(self.repo)
 
     def test_delete_first_version(self):
         """Delete the first repository version."""

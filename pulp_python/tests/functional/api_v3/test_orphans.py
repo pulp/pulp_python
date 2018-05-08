@@ -5,7 +5,7 @@ from random import choice
 from pulp_smash import api, cli, config, utils
 from pulp_smash.exceptions import CalledProcessError
 from pulp_smash.tests.pulp3.constants import ARTIFACTS_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.utils import (get_auth, get_content, get_version_hrefs,  # noqa
+from pulp_smash.tests.pulp3.utils import (get_auth, get_content, get_versions,  # noqa
                                           delete_orphans, delete_version, sync)
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
@@ -76,7 +76,7 @@ class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
 
         # Delete first repo version. The previous removed content unit will be
         # an orphan.
-        delete_version(repo, get_version_hrefs(repo)[0])
+        delete_version(repo, get_versions(repo)[0]['_href'])
         content_units = self.api_client.get(PYTHON_CONTENT_PATH)['results']
         self.assertIn(content, content_units)
         delete_orphans()
