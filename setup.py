@@ -9,7 +9,7 @@ requirements = [
 
 setup(
     name='pulp-python',
-    version='3.0.0a1.dev0',
+    version='3.0.0b1.dev0',
     description='pulp-python plugin for the Pulp Project',
     license='GPLv2+',
     author='Pulp Project Developers',
