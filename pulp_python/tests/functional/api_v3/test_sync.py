@@ -7,7 +7,7 @@ from pulp_smash import api, config, utils
 
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
-from pulp_smash.tests.pulp3.utils import get_auth, get_content, sync_repo
+from pulp_smash.tests.pulp3.utils import get_auth, get_content, sync
 
 from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL,
                                                     PYTHON_REMOTE_PATH, PYTHON_PACKAGE_COUNT)
@@ -49,13 +49,13 @@ class SyncPythonRepoTestCase(unittest.TestCase, utils.SmokeTest):
 
         # Sync the repository.
         self.assertIsNone(repo['_latest_version_href'])
-        sync_repo(self.cfg, remote, repo)
+        sync(self.cfg, remote, repo)
         repo = client.get(repo['_href'])
         self.assertIsNotNone(repo['_latest_version_href'])
 
         # Sync the repository again.
         latest_version_href = repo['_latest_version_href']
-        sync_repo(self.cfg, remote, repo)
+        sync(self.cfg, remote, repo)
         repo = client.get(repo['_href'])
         self.assertNotEqual(latest_version_href, repo['_latest_version_href'])
 
@@ -91,7 +91,7 @@ class SyncChangeRepoVersionTestCase(unittest.TestCase):
 
         number_of_syncs = randint(1, 10)
         for _ in range(number_of_syncs):
-            sync_repo(cfg, remote, repo)
+            sync(cfg, remote, repo)
 
         repo = client.get(repo['_href'])
         path = urlsplit(repo['_latest_version_href']).path
@@ -131,7 +131,7 @@ class MultiResourceLockingTestCase(unittest.TestCase, utils.SmokeTest):
         self.addCleanup(client.delete, remote['_href'])
         url = {'url': PYTHON_PYPI_URL}
         client.patch(remote['_href'], url)
-        sync_repo(cfg, remote, repo)
+        sync(cfg, remote, repo)
         repo = client.get(repo['_href'])
         remote = client.get(remote['_href'])
         self.assertEqual(remote['url'], url['url'])

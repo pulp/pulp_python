@@ -8,7 +8,7 @@ from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import (
     get_auth, get_artifact_paths, get_content, get_added_content, get_removed_content,
-    get_repo_versions, sync_repo, publish_repo, delete_repo_version
+    get_version_hrefs, sync, publish, delete_version
 )
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
@@ -85,7 +85,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         """
         body = gen_remote(PYTHON_PYPI_URL)
         self.remote.update(self.client.post(PYTHON_REMOTE_PATH, body))
-        sync_repo(self.cfg, self.remote, self.repo)
+        sync(self.cfg, self.remote, self.repo)
         repo = self.client.get(self.repo['_href'])
 
         repo_versions = self.client.get(repo['_versions_href'])
@@ -202,7 +202,7 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
         try:
             remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
             repo.update(cls.client.post(REPO_PATH, gen_repo()))
-            sync_repo(cls.cfg, remote, repo)
+            sync(cls.cfg, remote, repo)
         finally:
             if remote:
                 cls.client.delete(remote['_href'])
@@ -227,11 +227,11 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
                 {'add_content_units': [content['_href']]}
             )
         self.repo = self.client.get(self.repo['_href'])
-        self.repo_versions = get_repo_versions(self.repo)
+        self.repo_versions = get_version_hrefs(self.repo)
 
     def test_delete_first_version(self):
         """Delete the first repository version."""
-        delete_repo_version(self.repo, self.repo_versions[0])
+        delete_version(self.repo, self.repo_versions[0])
         with self.assertRaises(HTTPError):
             get_content(self.repo, self.repo_versions[0])
         for repo_version in self.repo_versions[1:]:
@@ -246,7 +246,7 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
         version is not in the new last repository version.
         """
         # Delete the last repo version.
-        delete_repo_version(self.repo, self.repo_versions[-1])
+        delete_version(self.repo, self.repo_versions[-1])
         with self.assertRaises(HTTPError):
             get_content(self.repo, self.repo_versions[-1])
 
@@ -263,7 +263,7 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
     def test_delete_middle_version(self):
         """Delete a middle version."""
         index = randint(1, len(self.repo_versions) - 2)
-        delete_repo_version(self.repo, self.repo_versions[index])
+        delete_version(self.repo, self.repo_versions[index])
         with self.assertRaises(HTTPError):
             get_content(self.repo, self.repo_versions[index])
         for repo_version in self.repo_versions[index + 1:]:
@@ -278,8 +278,8 @@ class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
         """
         publisher = self.client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
         self.addCleanup(self.client.delete, publisher['_href'])
-        publication = publish_repo(self.cfg, publisher, self.repo)
-        delete_repo_version(self.repo)
+        publication = publish(self.cfg, publisher, self.repo)
+        delete_version(self.repo)
         with self.assertRaises(HTTPError):
             self.client.get(publication['_href'])
 
@@ -310,7 +310,7 @@ class ContentImmutableRepoVersionTestCase(unittest.TestCase):
         body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
-        sync_repo(cfg, remote, repo)
+        sync(cfg, remote, repo)
         latest_version_href = client.get(repo['_href'])['_latest_version_href']
         with self.assertRaises(HTTPError):
             client.post(latest_version_href)
