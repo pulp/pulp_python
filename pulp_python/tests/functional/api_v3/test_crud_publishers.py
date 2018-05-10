@@ -8,7 +8,8 @@ from pulp_smash.tests.pulp3.utils import get_auth
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
 from pulp_python.tests.functional.constants import PYTHON_PUBLISHER_PATH
-from pulp_python.tests.functional.utils import gen_publisher, set_up_module as setUpModule  # noqa
+from pulp_python.tests.functional.utils import gen_publisher
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
 class CRUDPublishersTestCase(unittest.TestCase):
