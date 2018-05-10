@@ -3,6 +3,7 @@ from unittest import skip
 from random import choice
 
 from pulp_smash import api, cli, config, utils
+from pulp_smash.constants import FILE2_URL
 from pulp_smash.exceptions import CalledProcessError
 from pulp_smash.tests.pulp3.constants import ARTIFACTS_PATH, REPO_PATH
 from pulp_smash.tests.pulp3.utils import (get_auth, get_content, get_versions,  # noqa
@@ -14,8 +15,6 @@ from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL, PYTHON_REMO
                                                     PYTHON_CONTENT_PATH)
 from pulp_python.tests.functional.utils import (gen_remote, gen_publisher,   # noqa
                                                 set_up_module as setUpModule)
-
-from pulp_smash.constants import FILE2_URL
 
 
 class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
