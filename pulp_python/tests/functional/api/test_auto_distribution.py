@@ -5,13 +5,13 @@ from urllib.parse import urljoin
 
 from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, get_added_content, get_versions, publish, sync
-from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo, gen_distribution
+from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth, get_added_content,
+                                          get_versions, publish, sync)
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,  # noqa
+from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,
                                                     PYTHON_PYPI_URL, PYTHON_CONTENT_PATH)
-from pulp_python.tests.functional.utils import (gen_publisher, gen_remote,  # noqa
-                                                set_up_module as setUpModule)
+from pulp_python.tests.functional.utils import gen_publisher, gen_remote
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 # from pulp_smash.constants import FILE_URL
 

@@ -6,8 +6,7 @@ from unittest import skip
 
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, sync, publish  # get_content,
-from pulp_smash.tests.pulp3.pulpcore.utils import gen_distribution, gen_repo
+from pulp_smash.tests.pulp3.utils import gen_distribution, gen_repo, get_auth, sync, publish
 
 from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL, PYTHON_REMOTE_PATH,
                                                     PYTHON_PUBLISHER_PATH)

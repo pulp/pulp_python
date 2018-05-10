@@ -6,8 +6,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import get_auth, get_versions, sync, publish
-from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
+from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_versions, sync, publish
 
 from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH, PYTHON_PYPI_URL,
                                                     PYTHON_REMOTE_PATH, PYTHON_PUBLISHER_PATH)
