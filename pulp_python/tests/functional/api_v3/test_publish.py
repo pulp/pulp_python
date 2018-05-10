@@ -11,8 +11,8 @@ from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
 from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH, PYTHON_PYPI_URL,
                                                     PYTHON_REMOTE_PATH, PYTHON_PUBLISHER_PATH)
-from pulp_python.tests.functional.utils import (gen_remote, gen_publisher,  # noqa
-                                                set_up_module as setUpModule)
+from pulp_python.tests.functional.utils import gen_remote, gen_publisher
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
 class PublishAnyRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):

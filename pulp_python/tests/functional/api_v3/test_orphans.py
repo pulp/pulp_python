@@ -5,15 +5,15 @@ from random import choice
 from pulp_smash import api, cli, config, utils
 from pulp_smash.exceptions import CalledProcessError
 from pulp_smash.tests.pulp3.constants import ARTIFACTS_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.utils import (get_auth, get_content, get_versions,  # noqa
+from pulp_smash.tests.pulp3.utils import (get_auth, get_content, get_versions,
                                           delete_orphans, delete_version, sync)
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 
 
 from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL, PYTHON_REMOTE_PATH,
                                                     PYTHON_CONTENT_PATH)
-from pulp_python.tests.functional.utils import (gen_remote, gen_publisher,   # noqa
-                                                set_up_module as setUpModule)
+from pulp_python.tests.functional.utils import gen_remote
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 from pulp_smash.constants import FILE2_URL
 

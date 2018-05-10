@@ -5,10 +5,10 @@ from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
 from pulp_smash.tests.pulp3.utils import get_auth, get_content, sync, publish
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_PYPI_URL, # noqa
+from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_PYPI_URL,
                                                     PYTHON_REMOTE_PATH)
-from pulp_python.tests.functional.utils import (gen_remote, gen_publisher,  # noqa
-                                                set_up_module as setUpModule)
+from pulp_python.tests.functional.utils import gen_remote, gen_publisher
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
 class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
