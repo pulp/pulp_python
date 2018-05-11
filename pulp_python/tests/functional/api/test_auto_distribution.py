@@ -6,11 +6,11 @@ from urllib.parse import urljoin
 from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
 from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth, get_added_content,
-                                          get_versions, publish, sync)
+                                          get_versions, publish)
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,
+from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH,
                                                     PYTHON_PYPI_URL, PYTHON_CONTENT_PATH)
-from pulp_python.tests.functional.utils import gen_publisher, gen_remote
+from pulp_python.tests.functional.utils import gen_publisher, populate_pulp
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 # from pulp_smash.constants import FILE_URL
@@ -29,18 +29,7 @@ class AutoDistributionTestCase(unittest.TestCase):
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()
-        body = gen_remote(PYTHON_PYPI_URL)
-        remote = {}
-        repo = {}
-        try:
-            remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
-            repo.update(cls.client.post(REPO_PATH, gen_repo()))
-            sync(cls.cfg, remote, repo)
-        finally:
-            if remote:
-                cls.client.delete(remote['_href'])
-            if repo:
-                cls.client.delete(repo['_href'])
+        populate_pulp(cls.cfg, PYTHON_PYPI_URL)
         cls.contents = cls.client.get(PYTHON_CONTENT_PATH)['results'][:2]
 
     def test_repo_auto_distribution(self):
