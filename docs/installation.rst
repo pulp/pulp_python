@@ -26,8 +26,8 @@ From Source
 
    sudo -u pulp -i
    source ~/pulpvenv/bin/activate
-   git clone -b 3.0-dev https://github.com/pulp/pulp\_python.git
-   cd pulp\_python
+   git clone -b 3.0-dev https://github.com/pulp/pulp_python.git
+   cd pulp_python
    pip install -e .
 
 Make and Run Migrations
@@ -35,8 +35,8 @@ Make and Run Migrations
 
 .. code-block:: bash
 
-   pulp-manager makemigrations pulp\_python
-   pulp-manager migrate pulp\_python
+   pulp-manager makemigrations pulp_python
+   pulp-manager migrate pulp_python
 
 Run Services
 ------------
@@ -44,6 +44,6 @@ Run Services
 .. code-block:: bash
 
    pulp-manager runserver
-   sudo systemctl restart pulp\_resource\_manager
-   sudo systemctl restart pulp\_worker@1
-   sudo systemctl restart pulp\_worker@2
+   sudo systemctl restart pulp_resource_manager
+   sudo systemctl restart pulp_worker@1
+   sudo systemctl restart pulp_worker@2
