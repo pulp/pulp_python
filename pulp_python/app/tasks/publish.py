@@ -3,11 +3,10 @@ import logging
 import os
 import re
 
-from celery import shared_task
 from django.core.files import File
 from django.template import Context, Template
 from pulpcore.plugin import models
-from pulpcore.plugin.tasking import WorkingDirectory, UserFacingTask
+from pulpcore.plugin.tasking import WorkingDirectory
 
 from pulp_python.app import models as python_models
 
@@ -45,7 +44,6 @@ simple_detail_template = """<!DOCTYPE html>
 """
 
 
-@shared_task(base=UserFacingTask)
 def publish(publisher_pk, repository_version_pk):
     """
     Use provided publisher to create a Publication based on a RepositoryVersion.
