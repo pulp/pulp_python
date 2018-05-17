@@ -12,10 +12,11 @@ with open('README.rst') as f:
 
 setup(
     name='pulp-python',
-    version='3.0.0b1',
+    version='3.0.0b2',
     description='pulp-python plugin for the Pulp Project',
     long_description=long_description,
     license='GPLv2+',
+    python_requires='>=3.5',
     author='Pulp Project Developers',
     author_email='pulp-list@redhat.com',
     url='http://www.pulpproject.org',
