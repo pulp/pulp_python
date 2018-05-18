@@ -3,14 +3,16 @@ import unittest
 from unittest import skip
 from urllib.parse import urljoin
 
+from requests import HTTPError
+
 from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
-from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth, get_added_content,
-                                          get_versions, publish)
+from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth,
+                                          get_added_content, get_versions, sync, publish)
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH,
+from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,
                                                     PYTHON_PYPI_URL, PYTHON_CONTENT_PATH)
-from pulp_python.tests.functional.utils import gen_publisher, populate_pulp
+from pulp_python.tests.functional.utils import gen_remote, gen_publisher, populate_pulp
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 # from pulp_smash.constants import FILE_URL
@@ -113,3 +115,77 @@ class AutoDistributionTestCase(unittest.TestCase):
 
         # Verify checksum. Step 9.
         # self.assertEqual(fixtures_hash, pulp_hash)
+
+
+class SetupAutoDistributionTestCase(unittest.TestCase):
+    """Verify the set up of parameters related to auto distribution."""
+
+    def setUp(self):
+        """Create test-wide variables."""
+        self.cfg = config.get_config()
+        self.client = api.Client(self.cfg, api.json_handler)
+        self.client.request_kwargs['auth'] = get_auth()
+
+    def test_all(self):
+        """Verify the set up of parameters related to auto distribution.
+        This test targets the following issues:
+        * `Pulp #3295 <https://pulp.plan.io/issues/3295>`_
+        * `Pulp #3392 <https://pulp.plan.io/issues/3392>`_
+        * `Pulp #3394 <https://pulp.plan.io/issues/3394>`_
+        * `Pulp #3671 <https://pulp.plan.io/issues/3671>`_
+        * `Pulp Smash #883 <https://github.com/PulpQE/pulp-smash/issues/883>`_
+        * `Pulp Smash #917 <https://github.com/PulpQE/pulp-smash/issues/917>`_
+        """
+        # Create a repository and a publisher.
+        repo = self.client.post(REPO_PATH, gen_repo())
+        self.addCleanup(self.client.delete, repo['_href'])
+        publisher = self.client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
+        self.addCleanup(self.client.delete, publisher['_href'])
+
+        # Create a distribution.
+        self.try_create_distribution(publisher=publisher['_href'])
+        self.try_create_distribution(repository=repo['_href'])
+        body = gen_distribution()
+        body['publisher'] = publisher['_href']
+        body['repository'] = repo['_href']
+        distribution = self.client.post(DISTRIBUTION_PATH, body)
+        self.addCleanup(self.client.delete, distribution['_href'])
+
+        # Update the distribution.
+        self.try_update_distribution(distribution, publisher=None)
+        self.try_update_distribution(distribution, repository=None)
+        distribution = self.client.patch(distribution['_href'], {
+            'publisher': None,
+            'repository': None,
+        })
+        self.assertIsNone(distribution['publisher'], distribution)
+        self.assertIsNone(distribution['repository'], distribution)
+
+        # Publish the repository. Assert that distribution does not point to
+        # the new publication (because publisher and repository are unset).
+        remote = self.client.post(PYTHON_REMOTE_PATH, gen_remote(PYTHON_PYPI_URL))
+        self.addCleanup(self.client.delete, remote['_href'])
+        sync(self.cfg, remote, repo)
+        publication = publish(self.cfg, publisher, repo)
+        self.addCleanup(self.client.delete, publication['_href'])
+        distribution = self.client.get(distribution['_href'])
+        self.assertNotEqual(distribution['publication'], publication['_href'])
+
+    def try_create_distribution(self, **kwargs):
+        """Unsuccessfully create a distribution.
+        Merge the given kwargs into the body of the request.
+        """
+        body = gen_distribution()
+        body.update(kwargs)
+        with self.assertRaises(HTTPError):
+            self.client.post(DISTRIBUTION_PATH, body)
+
+    def try_update_distribution(self, distribution, **kwargs):
+        """Unsuccessfully update a distribution with HTTP PATCH.
+        Use the given kwargs as the body of the request.
+        """
+        with self.assertRaises(HTTPError):
+            self.client.patch(distribution['_href'], kwargs)
+        distribution = self.client.get(distribution['_href'])
+        self.assertIsNotNone(distribution['publisher'], distribution)
+        self.assertIsNotNone(distribution['repository'], distribution)
