@@ -4,7 +4,8 @@ from setuptools import setup, find_packages
 
 requirements = [
     'pulpcore-plugin',
-    'pkginfo'
+    'pkginfo',
+    'packaging',
 ]
 
 with open('README.rst') as f:

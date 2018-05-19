@@ -105,7 +105,6 @@ class PythonRemoteFilter(filterset.FilterSet):
         fields = {
             'name': ['exact', 'in'],
             'last_updated': ['lt', 'lte', 'gt', 'gte', 'range'],
-            'projects': ['contains']
         }
 
 

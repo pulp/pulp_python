@@ -34,6 +34,47 @@ class Classifier(Model):
                                                on_delete=models.CASCADE)
 
 
+class DistributionDigest(Model):
+    """
+    A model of digests on an individual distribution.
+    """
+    type = models.TextField()
+    digest = models.TextField()
+    project_specifier = models.ForeignKey("ProjectSpecifier",
+                                          related_name="digests",
+                                          related_query_name="distributiondigest",
+                                          on_delete=models.CASCADE)
+
+
+class ProjectSpecifier(Model):
+    """
+    A specifier of a python project.
+
+    Example:
+
+        digests: ["sha256:0000"] will only match the distributions that has the exact hash
+        name: "projectname" without specifiers will match every distribution in the project.
+        version_specifier: "==1.0.0" will match all distributions matching version
+        version_specifier: "~=1.0.0" will match all major version 1 distributions
+        version_specifier: "==1.0.0" digests: ["sha256:0000"] will only match the distributions
+            with the hash and with version 1.0.0
+        version_specifier: ">=0.9,<1.0" will match all versions matching 0.9.*
+
+    Fields:
+
+        name (models.TextField): The name of a python project
+        version_specifier (models.TextField):  Used to filter the versions of a project to sync
+        remote (models.ForeignKey): The remote this project specifier is associated with
+    """
+
+    name = models.TextField()
+    version_specifier = models.TextField(blank=True, default="")
+    remote = models.ForeignKey("PythonRemote",
+                               related_name="projects",
+                               related_query_name="projectspecifier",
+                               on_delete=models.CASCADE)
+
+
 class PythonPackageContent(Content):
     """
     A Content Type representing Python's Distribution Package as
@@ -104,4 +145,3 @@ class PythonRemote(Remote):
     """
 
     TYPE = 'python'
-    projects = models.TextField()
