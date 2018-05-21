@@ -469,7 +469,7 @@ class TestDownloadMetadataStep(unittest.TestCase):
 
         self.assertEqual(len(requests), 1)
         request = requests[0]
-        self.assertEqual(request.url, 'http://pulpproject.org/pypi/foo/json')
+        self.assertEqual(request.url, 'http://pulpproject.org/pypi/foo/json/')
         self.assertEqual(type(request.destination), type(StringIO()))
 
     def test_generate_download_requests_canceled(self):
