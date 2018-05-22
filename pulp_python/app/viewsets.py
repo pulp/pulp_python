@@ -43,6 +43,7 @@ class PythonPackageContentFilter(filterset.FilterSet):
             'author': ['exact', 'in'],
             'packagetype': ['exact', 'in'],
             'filename': ['exact', 'in', 'contains'],
+            'keywords': ['in', 'contains'],
         }
 
 
