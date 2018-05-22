@@ -35,7 +35,7 @@ def gen_publisher():
 
 
 def populate_pulp(cfg, url=None):
-    """Add file contents to Pulp.
+    """Add python contents to Pulp.
 
     Arguments:
         cfg (pulp_smash.config.PulpSmashConfig): Information about a Pulp application.
