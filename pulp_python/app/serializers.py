@@ -222,7 +222,7 @@ class PythonSyncSerializer(serializers.Serializer):
 class PythonPublishSerializer(serializers.Serializer):
 
     repository = serializers.HyperlinkedRelatedField(
-        help_text=_('A URI of the repository to be synchronized.'),
+        help_text=_('A URI of the repository to be published.'),
         required=False,
         label=_('Repository'),
         queryset=core_models.Repository.objects.all(),
