@@ -38,7 +38,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.cfg = config.get_config()
-        if selectors.bug_is_untestable(3502, cls.cfg.pulp_version):
+        if not selectors.bug_is_fixed(3502, cls.cfg.pulp_version):
             raise unittest.SkipTest('https://pulp.plan.io/issues/3502')
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()

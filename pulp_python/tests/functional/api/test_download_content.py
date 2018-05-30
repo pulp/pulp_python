@@ -45,7 +45,7 @@ class DownloadContentTestCase(unittest.TestCase, utils.SmokeTest):
         * `Pulp Smash #872 <https://github.com/PulpQE/pulp-smash/issues/872>`_
         """
         cfg = config.get_config()
-        if selectors.bug_is_untestable(3502, cfg.pulp_version):
+        if not selectors.bug_is_fixed(3502, cfg.pulp_version):
             self.skipTest('https://pulp.plan.io/issues/3502')
 
         client = api.Client(cfg, api.json_handler)

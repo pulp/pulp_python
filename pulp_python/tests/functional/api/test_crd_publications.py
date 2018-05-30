@@ -108,7 +108,7 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
     @selectors.skip_if(bool, 'publication', False)
     def test_06_delete(self):
         """Delete a publication."""
-        if selectors.bug_is_untestable(3354, self.cfg.pulp_version):
+        if not selectors.bug_is_fixed(3354, self.cfg.pulp_version):
             self.skipTest('https://pulp.plan.io/issues/3354')
         self.client.delete(self.publication['_href'])
         with self.assertRaises(HTTPError):
