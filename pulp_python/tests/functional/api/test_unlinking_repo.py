@@ -64,7 +64,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         publications = []
         for repo in repos:
             publications.append(publish(cfg, publisher, repo))
-            if selectors.bug_is_testable(3354, cfg.pulp_version):
+            if selectors.bug_is_fixed(3354, cfg.pulp_version):
                 self.addCleanup(client.delete, publications[-1]['_href'])
         self.assertEqual(
             publications[0]['publisher'],
