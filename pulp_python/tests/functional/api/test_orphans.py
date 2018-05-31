@@ -37,7 +37,7 @@ class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
         cls.api_client = api.Client(cls.cfg, api.json_handler)
         cls.api_client.request_kwargs['auth'] = get_auth()
         cls.cli_client = cli.Client(cls.cfg)
-        cls.sudo = () if utils.is_root(cls.cfg) else ('sudo',)
+        cls.sudo = () if cli.is_root(cls.cfg) else ('sudo',)
 
     def test_clean_orphan_content_unit(self):
         """Test whether orphan content units can be clean up.
