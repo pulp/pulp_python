@@ -13,7 +13,7 @@ PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/')
 PYTHON_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, 'python/')
 
 
-PYTHON_PROJECT_LIST = '["shelf-reader"]'
+PYTHON_PROJECT_LIST = [{"digests": [], "name": "shelf-reader", "version_specifier": ""}]
 
 PYTHON_PYPI_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 

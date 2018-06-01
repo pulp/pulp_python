@@ -26,7 +26,7 @@ From Source
 
    sudo -u pulp -i
    source ~/pulpvenv/bin/activate
-   git clone -b 3.0-dev https://github.com/pulp/pulp_python.git
+   git clone https://github.com/pulp/pulp_python.git
    cd pulp_python
    pip install -e .
 

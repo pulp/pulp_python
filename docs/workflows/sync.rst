@@ -32,11 +32,13 @@ itself, a fixture, or even an instance of Pulp 2.
 
 You can use any Python remote to sync content into any repository::
 
-
     $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
         name='bar' \
-        url='https://repos.fedorapeople.org/repos/pulp/pulp/fixtures/python-pypi/' \
-        projects='["shelf-reader"]'
+        url='https://pypi.org/' \
+        projects:='[{"name": "django", "version_specifier":"~=2.0"}]'
+
+
+
 
 Response::
 
@@ -48,6 +50,36 @@ Response::
 Again, you can create an environment variable for convenience::
 
     $ export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
+
+
+A More Complex Remote
+---------------------
+If only the name of a project is specified, every distribution of every version of that project
+will be synced. You can use the version_specifier and digest fields on a project to ensure
+only distributions you care about will be synced::
+
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
+        name='complex-remote' \
+        url='https://pypi.org/' \
+        projects:='[
+            { "name": "django",
+              "version_specifier": "~=2.0,!=2.0.1",
+              "digests":[
+                    {"type": "sha256",
+                     "digest": "3d9916515599f757043c690ae2b5ea28666afa09779636351da505396cbb2f19"}
+              ]
+            },
+            {"name": "pip-tools",
+             "version_specifier": ">=1.12,<=2.0"},
+            {"name": "scipy",
+             "digests":[
+                {"type": "md5",
+                "digest": "044af71389ac2ad3d3ece24d0baf4c07"},
+                {"type": "sha256",
+                "digest": "18b572502ce0b17e3b4bfe50dcaea414a98290358a2fa080c36066ba0651ec14"}]
+            },
+            {"name": "shelf-reader"}
+        ]'
 
 
 Sync repository foo with remote

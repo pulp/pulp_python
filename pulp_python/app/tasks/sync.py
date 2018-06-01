@@ -6,6 +6,7 @@ from gettext import gettext as _
 from urllib.parse import urljoin
 
 from django.db.models import Q
+from packaging import specifiers
 from rest_framework import serializers
 
 from pulpcore.plugin import models
@@ -44,11 +45,13 @@ def sync(remote_pk, repository_pk):
                 .format(repository=repository.name, remote=remote.name)
             )
 
-            inventory = _fetch_inventory(base_version)
-            remote_metadata = _fetch_remote(remote)
+            project_specifiers = python_models.ProjectSpecifier.objects.filter(remote=remote).all()
+
+            inventory_keys = _fetch_inventory(base_version)
+            remote_metadata = _fetch_specified_metadata(remote, project_specifiers)
             remote_keys = set([content['filename'] for content in remote_metadata])
 
-            delta = _find_delta(inventory=inventory, remote=remote_keys)
+            delta = _find_delta(inventory=inventory_keys, remote=remote_keys)
 
             additions = _build_additions(delta, remote_metadata)
             removals = _build_removals(delta, base_version)
@@ -75,27 +78,51 @@ def _fetch_inventory(version):
     return inventory
 
 
-def _fetch_remote(remote):
+def _fetch_specified_metadata(remote, project_specifiers):
     """
-    Fetch contentunits available in the remote repository.
+    Fetch content units matching the project specifiers available in
+    the remote repository.
 
     Returns:
         list: of contentunit metadata.
     """
     remote_units = []
+    for project in project_specifiers:
 
-    metadata_urls = [urljoin(remote.url, 'pypi/%s/json' % project)
-                     for project in json.loads(remote.projects)]
+        digests = python_models.DistributionDigest.objects.filter(project_specifier=project)
 
-    for metadata_url in metadata_urls:
+        metadata_url = urljoin(remote.url, 'pypi/%s/json' % project.name)
         downloader = remote.get_downloader(metadata_url)
+
         downloader.fetch()
 
         metadata = json.load(open(downloader.path))
         for version, packages in metadata['releases'].items():
             for package in packages:
-                remote_units.append(parse_metadata(metadata['info'], version, package))
+                # If neither specifiers nor digests have been set, then we should add the unit
+                if not project.version_specifier and not digests.exists():
+                    remote_units.append(parse_metadata(metadata['info'], version, package))
+                    continue
 
+                specifier = specifiers.SpecifierSet(project.version_specifier)
+
+                # Note: SpecifierSet("").contains(version) will return true for released versions
+                # SpecifierSet("").contains('3.0.0') returns True
+                # SpecifierSet("").contains('3.0.0b1') returns False
+                if specifier.contains(version):
+
+                    # add the package if the project specifier does not have an associated digest
+                    if not digests.exists():
+                        remote_units.append(parse_metadata(metadata['info'], version, package))
+
+                    # otherwise check each digest to see if it matches the specifier
+                    else:
+                        for type, digest in package['digests'].items():
+                            if digests.filter(type=type, digest=digest).exists():
+                                remote_units.append(parse_metadata(metadata['info'],
+                                                                   version,
+                                                                   package))
+                                break
     return remote_units
 
 
