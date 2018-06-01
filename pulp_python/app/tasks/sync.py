@@ -25,7 +25,7 @@ from pulp_python.app.utils import parse_metadata
 log = logging.getLogger(__name__)
 
 
-Delta = namedtuple('Delta', ('additions', 'removals'))
+Delta = namedtuple("Delta", ("additions", "removals"))
 
 
 def sync(remote_pk, repository_pk):
@@ -33,23 +33,23 @@ def sync(remote_pk, repository_pk):
     repository = models.Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise serializers.ValidationError(
-            detail=_("A remote must have a url attribute to sync."))
+        raise serializers.ValidationError(detail=_("A remote must have a url attribute to sync."))
 
     base_version = models.RepositoryVersion.latest(repository)
 
     with models.RepositoryVersion.create(repository) as new_version:
         with WorkingDirectory():
             log.info(
-                _('Creating RepositoryVersion: repository={repository} remote={remote}')
-                .format(repository=repository.name, remote=remote.name)
+                _("Creating RepositoryVersion: repository={repository} remote={remote}").format(
+                    repository=repository.name, remote=remote.name
+                )
             )
 
             project_specifiers = python_models.ProjectSpecifier.objects.filter(remote=remote).all()
 
             inventory_keys = _fetch_inventory(base_version)
             remote_metadata = _fetch_specified_metadata(remote, project_specifiers)
-            remote_keys = set([content['filename'] for content in remote_metadata])
+            remote_keys = set([content["filename"] for content in remote_metadata])
 
             delta = _find_delta(inventory=inventory_keys, remote=remote_keys)
 
@@ -73,7 +73,8 @@ def _fetch_inventory(version):
     inventory = set()
     if version:
         for content in python_models.PythonPackageContent.objects.filter(
-                pk__in=version.content).only("filename"):
+            pk__in=version.content
+        ).only("filename"):
             inventory.add(content.filename)
     return inventory
 
@@ -91,17 +92,17 @@ def _fetch_specified_metadata(remote, project_specifiers):
 
         digests = python_models.DistributionDigest.objects.filter(project_specifier=project)
 
-        metadata_url = urljoin(remote.url, 'pypi/%s/json' % project.name)
+        metadata_url = urljoin(remote.url, "pypi/%s/json" % project.name)
         downloader = remote.get_downloader(metadata_url)
 
         downloader.fetch()
 
         metadata = json.load(open(downloader.path))
-        for version, packages in metadata['releases'].items():
+        for version, packages in metadata["releases"].items():
             for package in packages:
                 # If neither specifiers nor digests have been set, then we should add the unit
                 if not project.version_specifier and not digests.exists():
-                    remote_units.append(parse_metadata(metadata['info'], version, package))
+                    remote_units.append(parse_metadata(metadata["info"], version, package))
                     continue
 
                 specifier = specifiers.SpecifierSet(project.version_specifier)
@@ -113,15 +114,15 @@ def _fetch_specified_metadata(remote, project_specifiers):
 
                     # add the package if the project specifier does not have an associated digest
                     if not digests.exists():
-                        remote_units.append(parse_metadata(metadata['info'], version, package))
+                        remote_units.append(parse_metadata(metadata["info"], version, package))
 
                     # otherwise check each digest to see if it matches the specifier
                     else:
-                        for type, digest in package['digests'].items():
+                        for type, digest in package["digests"].items():
                             if digests.filter(type=type, digest=digest).exists():
-                                remote_units.append(parse_metadata(metadata['info'],
-                                                                   version,
-                                                                   package))
+                                remote_units.append(
+                                    parse_metadata(metadata["info"], version, package)
+                                )
                                 break
     return remote_units
 
@@ -157,20 +158,22 @@ def _build_additions(delta, remote_metadata):
     Returns:
         The PythonPackageContent to be added to the repository.
     """
+
     def generate():
         for entry in remote_metadata:
-            if entry['filename'] not in delta.additions:
+            if entry["filename"] not in delta.additions:
                 continue
 
-            url = entry.pop('url')
-            artifact = models.Artifact(sha256=entry.pop('sha256_digest'))
+            url = entry.pop("url")
+            artifact = models.Artifact(sha256=entry.pop("sha256_digest"))
 
             package = python_models.PythonPackageContent(**entry)
             content = PendingContent(
                 package,
                 artifacts={
-                    PendingArtifact(model=artifact, url=url, relative_path=entry['filename'])
-                })
+                    PendingArtifact(model=artifact, url=url, relative_path=entry["filename"])
+                },
+            )
             yield content
 
     return SizedIterable(generate(), len(delta.additions))
@@ -187,13 +190,14 @@ def _build_removals(delta, version):
     Returns:
         The PythonPackageContent to be removed from the repository.
     """
+
     def generate():
         for removals in BatchIterator(delta.removals):
             q = Q()
             for content_key in removals:
                 q |= Q(pythonpackagecontent__filename=content_key)
             q_set = version.content.filter(q)
-            q_set = q_set.only('id')
+            q_set = q_set.only("id")
             for content in q_set:
                 yield content
 

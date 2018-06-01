@@ -12,7 +12,7 @@ def set_up_module():
     """ Skip tests Pulp 3 isn't under test or if pulp-python isn't installed.
     """
     utils.require_pulp_3()
-    utils.require_pulp_plugins({'pulp_python'})
+    utils.require_pulp_plugins({"pulp_python"})
 
 
 def gen_remote(url):
@@ -21,17 +21,13 @@ def gen_remote(url):
         Arguments:
             url (str): The URL to a Python remote repository
     """
-    return {
-        'name': str(uuid.uuid4()),
-        'projects': PYTHON_PROJECT_LIST,
-        'url': url
-    }
+    return {"name": str(uuid.uuid4()), "projects": PYTHON_PROJECT_LIST, "url": url}
 
 
 def gen_publisher():
     """ Return a semi-random dict for use in creating a publisher.
     """
-    return {'name': str(uuid.uuid4())}
+    return {"name": str(uuid.uuid4())}
 
 
 def populate_pulp(cfg, url=None):
@@ -55,7 +51,7 @@ def populate_pulp(cfg, url=None):
         sync(cfg, remote, repo)
     finally:
         if remote:
-            client.delete(remote['_href'])
+            client.delete(remote["_href"])
         if repo:
-            client.delete(repo['_href'])
-    return client.get(PYTHON_CONTENT_PATH)['results']
+            client.delete(repo["_href"])
+    return client.get(PYTHON_CONTENT_PATH)["results"]
