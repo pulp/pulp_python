@@ -36,14 +36,15 @@ DIST_TYPES = {
 
 
 class PythonPackageContentFilter(filterset.FilterSet):
+
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
-            'type': ['exact', 'in'],
-            'author': ['exact', 'in'],
-            'packagetype': ['exact', 'in'],
-            'filename': ['exact', 'in', 'contains'],
-            'keywords': ['in', 'contains'],
+            "type": ["exact", "in"],
+            "author": ["exact", "in"],
+            "packagetype": ["exact", "in"],
+            "filename": ["exact", "in", "contains"],
+            "keywords": ["in", "contains"],
         }
 
 
@@ -52,7 +53,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     The ViewSet for PythonPackageContent.
     """
 
-    endpoint_name = 'python/packages'
+    endpoint_name = "python/packages"
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
     filter_class = PythonPackageContentFilter
@@ -60,11 +61,11 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     @transaction.atomic
     def create(self, request):
         try:
-            artifact = self.get_resource(request.data['artifact'], Artifact)
+            artifact = self.get_resource(request.data["artifact"], Artifact)
         except KeyError:
-            raise serializers.ValidationError(detail={'artifact': _('This field is required')})
+            raise serializers.ValidationError(detail={"artifact": _("This field is required")})
 
-        filename = request.data['filename']
+        filename = request.data["filename"]
 
         # iterate through extensions since splitext does not support things like .tar.gz
         for ext, packagetype in DIST_EXTENSIONS.items():
@@ -80,16 +81,20 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
                     metadata.packagetype = packagetype
                     break
         else:
-            raise serializers.ValidationError(_("Extension on {} is not a valid python"
-                                                " extension (.whl, .exe, .egg, .tar.gz, .tar.bz2, "
-                                                ".zip)").format(filename))
+            raise serializers.ValidationError(
+                _(
+                    "Extension on {} is not a valid python"
+                    " extension (.whl, .exe, .egg, .tar.gz, .tar.bz2, "
+                    ".zip)"
+                ).format(filename)
+            )
 
         data = parse_project_metadata(vars(metadata))
-        data['classifiers'] = [{'name': classifier} for classifier in metadata.classifiers]
-        data['packagetype'] = metadata.packagetype
-        data['version'] = metadata.version
-        data['filename'] = filename
-        data['artifact'] = request.data['artifact']
+        data["classifiers"] = [{"name": classifier} for classifier in metadata.classifiers]
+        data["packagetype"] = metadata.packagetype
+        data["version"] = metadata.version
+        data["filename"] = filename
+        data["artifact"] = request.data["artifact"]
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -100,12 +105,10 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
 
 
 class PythonRemoteFilter(filterset.FilterSet):
+
     class Meta:
         model = python_models.PythonRemote
-        fields = {
-            'name': ['exact', 'in'],
-            'last_updated': ['lt', 'lte', 'gt', 'gte', 'range'],
-        }
+        fields = {"name": ["exact", "in"], "last_updated": ["lt", "lte", "gt", "gte", "range"]}
 
 
 class PythonRemoteViewSet(platform.RemoteViewSet):
@@ -116,32 +119,29 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     queryset and serializer, at a minimum.
     """
 
-    endpoint_name = 'python'
+    endpoint_name = "python"
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
     filter_class = PythonRemoteFilter
 
-    @decorators.detail_route(methods=('post',),
-                             serializer_class=python_serializers.PythonSyncSerializer)
+    @decorators.detail_route(
+        methods=("post",), serializer_class=python_serializers.PythonSyncSerializer
+    )
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
         remote = self.get_object()
         serializer = python_serializers.PythonSyncSerializer(
-            data=request.data,
-            context={'request': request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        repository = serializer.validated_data.get('repository')
+        repository = serializer.validated_data.get("repository")
 
         result = enqueue_with_reservation(
             tasks.sync,
             [repository, remote],
-            kwargs={
-                'remote_pk': remote.pk,
-                'repository_pk': repository.pk
-            }
+            kwargs={"remote_pk": remote.pk, "repository_pk": repository.pk},
         )
         return platform.OperationPostponedResponse(result, request)
 
@@ -154,35 +154,32 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     queryset and serializer, at a minimum.
     """
 
-    endpoint_name = 'python'
+    endpoint_name = "python"
     queryset = python_models.PythonPublisher.objects.all()
     serializer_class = python_serializers.PythonPublisherSerializer
 
-    @decorators.detail_route(methods=('post',),
-                             serializer_class=python_serializers.PythonPublishSerializer)
+    @decorators.detail_route(
+        methods=("post",), serializer_class=python_serializers.PythonPublishSerializer
+    )
     def publish(self, request, pk):
         """
         Dispatches a publish task.
         """
         publisher = self.get_object()
         serializer = python_serializers.PythonPublishSerializer(
-            data=request.data,
-            context={'request': request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
+        repository_version = serializer.validated_data.get("repository_version")
 
         # Safe because version OR repository is enforced by serializer.
         if not repository_version:
-            repository = serializer.validated_data.get('repository')
+            repository = serializer.validated_data.get("repository")
             repository_version = RepositoryVersion.latest(repository)
 
         result = enqueue_with_reservation(
             tasks.publish,
             [repository_version.repository, publisher],
-            kwargs={
-                'publisher_pk': publisher.pk,
-                'repository_version_pk': repository_version.pk
-            }
+            kwargs={"publisher_pk": publisher.pk, "repository_version_pk": repository_version.pk},
         )
         return platform.OperationPostponedResponse(result, request)

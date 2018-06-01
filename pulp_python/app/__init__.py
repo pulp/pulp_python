@@ -6,5 +6,5 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
     Entry point for pulp_python plugin
     """
 
-    name = 'pulp_python.app'
-    label = 'pulp_python'
+    name = "pulp_python.app"
+    label = "pulp_python"

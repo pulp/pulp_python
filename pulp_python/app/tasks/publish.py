@@ -55,17 +55,19 @@ def publish(publisher_pk, repository_version_pk):
     publisher = python_models.PythonPublisher.objects.get(pk=publisher_pk)
     repository_version = models.RepositoryVersion.objects.get(pk=repository_version_pk)
 
-    log.info(_('Publishing: repository={repo}, version={version}, publisher={pub}').format(
-        repo=repository_version.repository.name,
-        version=repository_version.number,
-        pub=publisher.name
-    ))
+    log.info(
+        _("Publishing: repository={repo}, version={version}, publisher={pub}").format(
+            repo=repository_version.repository.name,
+            version=repository_version.number,
+            pub=publisher.name,
+        )
+    )
 
     with WorkingDirectory():
         with models.Publication.create(repository_version, publisher) as publication:
             write_simple_api(publication)
 
-    log.info(_('Publication: {pk} created').format(pk=publication.pk))
+    log.info(_("Publication: {pk} created").format(pk=publication.pk))
 
 
 def write_simple_api(publication):
@@ -79,32 +81,33 @@ def write_simple_api(publication):
         publication (pulpcore.plugin.models.Publication): A publication to generate metadata for
     """
 
-    simple_dir = 'simple'
+    simple_dir = "simple"
     os.mkdir(simple_dir)
-    project_names = python_models.PythonPackageContent.objects.filter(
-        pk__in=publication.repository_version.content).order_by('name')\
-        .values_list('name', flat=True).distinct()
+    project_names = (
+        python_models.PythonPackageContent.objects.filter(
+            pk__in=publication.repository_version.content
+        )
+        .order_by("name")
+        .values_list("name", flat=True)
+        .distinct()
+    )
 
     index_names = [(name, sanitize_name(name)) for name in project_names]
 
     # write the root index, which lists all of the projects for which there is a package available
-    index_path = '{simple_dir}/index.html'.format(simple_dir=simple_dir)
-    with open(index_path, 'w') as index:
-        context = Context({
-            'projects': index_names
-        })
+    index_path = "{simple_dir}/index.html".format(simple_dir=simple_dir)
+    with open(index_path, "w") as index:
+        context = Context({"projects": index_names})
         template = Template(simple_index_template)
         index.write(template.render(context))
 
     index_metadata = models.PublishedMetadata(
-        relative_path=simple_dir,
-        publication=publication,
-        file=File(open(index_path, 'rb'))
+        relative_path=simple_dir, publication=publication, file=File(open(index_path, "rb"))
     )
     index_metadata.save()
 
     for (name, canonical_name) in index_names:
-        project_dir = '{simple_dir}/{name}'.format(simple_dir=simple_dir, name=canonical_name)
+        project_dir = "{simple_dir}/{name}".format(simple_dir=simple_dir, name=canonical_name)
         os.mkdir(project_dir)
 
         packages = python_models.PythonPackageContent.objects.filter(name=name)
@@ -117,27 +120,25 @@ def write_simple_api(publication):
                 published_artifact = models.PublishedArtifact(
                     relative_path=content_artifact.relative_path,
                     publication=publication,
-                    content_artifact=content_artifact)
+                    content_artifact=content_artifact,
+                )
                 published_artifact.save()
 
                 checksum = content_artifact.artifact.sha256
                 path = "../../{}".format(package.filename)
                 package_detail_data.append((package.filename, path, checksum))
 
-        metadata_relative_path = '{project_dir}/index.html'.format(project_dir=project_dir)
+        metadata_relative_path = "{project_dir}/index.html".format(project_dir=project_dir)
 
-        with open(metadata_relative_path, 'w') as simple_metadata:
-            context = Context({
-                'project_name': name,
-                'project_packages': package_detail_data
-            })
+        with open(metadata_relative_path, "w") as simple_metadata:
+            context = Context({"project_name": name, "project_packages": package_detail_data})
             template = Template(simple_detail_template)
             simple_metadata.write(template.render(context))
 
         project_metadata = models.PublishedMetadata(
             relative_path=project_dir,
             publication=publication,
-            file=File(open(metadata_relative_path, 'rb'))
+            file=File(open(metadata_relative_path, "rb")),
         )
         project_metadata.save()
 
@@ -153,4 +154,4 @@ def sanitize_name(name):
     Args:
         name (str): A project name to sanitize
     """
-    return re.sub('[^A-Za-z0-9]+', '-', name).lower()
+    return re.sub("[^A-Za-z0-9]+", "-", name).lower()

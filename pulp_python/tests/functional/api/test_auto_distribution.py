@@ -7,11 +7,22 @@ from requests import HTTPError
 
 from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
-from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth,
-                                          get_added_content, get_versions, sync, publish)
+from pulp_smash.tests.pulp3.utils import (
+    gen_repo,
+    gen_distribution,
+    get_auth,
+    get_added_content,
+    get_versions,
+    sync,
+    publish,
+)
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,
-                                                    PYTHON_PYPI_URL, PYTHON_CONTENT_PATH)
+from pulp_python.tests.functional.constants import (
+    PYTHON_PUBLISHER_PATH,
+    PYTHON_REMOTE_PATH,
+    PYTHON_PYPI_URL,
+    PYTHON_CONTENT_PATH,
+)
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, populate_pulp
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
@@ -30,9 +41,9 @@ class AutoDistributionTestCase(unittest.TestCase):
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.client.request_kwargs['auth'] = get_auth()
+        cls.client.request_kwargs["auth"] = get_auth()
         populate_pulp(cls.cfg, PYTHON_PYPI_URL)
-        cls.contents = cls.client.get(PYTHON_CONTENT_PATH)['results'][:2]
+        cls.contents = cls.client.get(PYTHON_CONTENT_PATH)["results"][:2]
 
     def test_repo_auto_distribution(self):
         """Test auto distribution of a repository.
@@ -63,50 +74,41 @@ class AutoDistributionTestCase(unittest.TestCase):
 
         # Create a repository.
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
-        self.client.post(
-            repo['_versions_href'],
-            {'add_content_units': [self.contents[0]['_href']]}
-        )
-        repo = self.client.get(repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
+        self.client.post(repo["_versions_href"], {"add_content_units": [self.contents[0]["_href"]]})
+        repo = self.client.get(repo["_href"])
 
         # Create publisher.
         publisher = self.client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
-        self.addCleanup(self.client.delete, publisher['_href'])
+        self.addCleanup(self.client.delete, publisher["_href"])
 
         # Create a distribution
         body = gen_distribution()
-        body['repository'] = repo['_href']
-        body['publisher'] = publisher['_href']
+        body["repository"] = repo["_href"]
+        body["publisher"] = publisher["_href"]
         distribution = self.client.post(DISTRIBUTION_PATH, body)
-        self.addCleanup(self.client.delete, distribution['_href'])
-        last_version_href = get_versions(repo)[-1]['_href']
-        publication = publish(
-            self.cfg, publisher, repo, last_version_href)
-        self.addCleanup(self.client.delete, publication['_href'])
-        distribution = self.client.get(distribution['_href'])
+        self.addCleanup(self.client.delete, distribution["_href"])
+        last_version_href = get_versions(repo)[-1]["_href"]
+        publication = publish(self.cfg, publisher, repo, last_version_href)
+        self.addCleanup(self.client.delete, publication["_href"])
+        distribution = self.client.get(distribution["_href"])
 
         # Assert that distribution was updated as per step 5.
-        self.assertEqual(distribution['publication'], publication['_href'])
+        self.assertEqual(distribution["publication"], publication["_href"])
 
         # Create a new repository version.
-        self.client.post(
-            repo['_versions_href'],
-            {'add_content_units': [self.contents[1]['_href']]}
-        )
-        repo = self.client.get(repo['_href'])
-        last_version_href = get_versions(repo)[-1]['_href']
-        publication = publish(
-            self.cfg, publisher, repo, last_version_href)
-        self.addCleanup(self.client.delete, publication['_href'])
-        distribution = self.client.get(distribution['_href'])
+        self.client.post(repo["_versions_href"], {"add_content_units": [self.contents[1]["_href"]]})
+        repo = self.client.get(repo["_href"])
+        last_version_href = get_versions(repo)[-1]["_href"]
+        publication = publish(self.cfg, publisher, repo, last_version_href)
+        self.addCleanup(self.client.delete, publication["_href"])
+        distribution = self.client.get(distribution["_href"])
 
         # Assert that distribution was updated as per step 8.
-        self.assertEqual(distribution['publication'], publication['_href'])
-        unit_path = get_added_content(
-            repo, last_version_href)['results'][0]['relative_path']
-        unit_url = self.cfg.get_systems('api')[0].roles['api']['scheme']
-        unit_url += '://' + distribution['base_url'] + '/'
+        self.assertEqual(distribution["publication"], publication["_href"])
+        unit_path = get_added_content(repo, last_version_href)["results"][0]["relative_path"]
+        unit_url = self.cfg.get_systems("api")[0].roles["api"]["scheme"]
+        unit_url += "://" + distribution["base_url"] + "/"
         unit_url = urljoin(unit_url, unit_path)
 
         self.client.response_handler = api.safe_handler
@@ -124,7 +126,7 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
         """Create test-wide variables."""
         self.cfg = config.get_config()
         self.client = api.Client(self.cfg, api.json_handler)
-        self.client.request_kwargs['auth'] = get_auth()
+        self.client.request_kwargs["auth"] = get_auth()
 
     def test_all(self):
         """Verify the set up of parameters related to auto distribution.
@@ -138,38 +140,37 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
         """
         # Create a repository and a publisher.
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
         publisher = self.client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
-        self.addCleanup(self.client.delete, publisher['_href'])
+        self.addCleanup(self.client.delete, publisher["_href"])
 
         # Create a distribution.
-        self.try_create_distribution(publisher=publisher['_href'])
-        self.try_create_distribution(repository=repo['_href'])
+        self.try_create_distribution(publisher=publisher["_href"])
+        self.try_create_distribution(repository=repo["_href"])
         body = gen_distribution()
-        body['publisher'] = publisher['_href']
-        body['repository'] = repo['_href']
+        body["publisher"] = publisher["_href"]
+        body["repository"] = repo["_href"]
         distribution = self.client.post(DISTRIBUTION_PATH, body)
-        self.addCleanup(self.client.delete, distribution['_href'])
+        self.addCleanup(self.client.delete, distribution["_href"])
 
         # Update the distribution.
         self.try_update_distribution(distribution, publisher=None)
         self.try_update_distribution(distribution, repository=None)
-        distribution = self.client.patch(distribution['_href'], {
-            'publisher': None,
-            'repository': None,
-        })
-        self.assertIsNone(distribution['publisher'], distribution)
-        self.assertIsNone(distribution['repository'], distribution)
+        distribution = self.client.patch(
+            distribution["_href"], {"publisher": None, "repository": None}
+        )
+        self.assertIsNone(distribution["publisher"], distribution)
+        self.assertIsNone(distribution["repository"], distribution)
 
         # Publish the repository. Assert that distribution does not point to
         # the new publication (because publisher and repository are unset).
         remote = self.client.post(PYTHON_REMOTE_PATH, gen_remote(PYTHON_PYPI_URL))
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
         sync(self.cfg, remote, repo)
         publication = publish(self.cfg, publisher, repo)
-        self.addCleanup(self.client.delete, publication['_href'])
-        distribution = self.client.get(distribution['_href'])
-        self.assertNotEqual(distribution['publication'], publication['_href'])
+        self.addCleanup(self.client.delete, publication["_href"])
+        distribution = self.client.get(distribution["_href"])
+        self.assertNotEqual(distribution["publication"], publication["_href"])
 
     def try_create_distribution(self, **kwargs):
         """Unsuccessfully create a distribution.
@@ -185,7 +186,7 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
         Use the given kwargs as the body of the request.
         """
         with self.assertRaises(HTTPError):
-            self.client.patch(distribution['_href'], kwargs)
-        distribution = self.client.get(distribution['_href'])
-        self.assertIsNotNone(distribution['publisher'], distribution)
-        self.assertIsNotNone(distribution['repository'], distribution)
+            self.client.patch(distribution["_href"], kwargs)
+        distribution = self.client.get(distribution["_href"])
+        self.assertIsNotNone(distribution["publisher"], distribution)
+        self.assertIsNotNone(distribution["repository"], distribution)

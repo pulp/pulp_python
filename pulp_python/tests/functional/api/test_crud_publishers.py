@@ -22,14 +22,14 @@ class CRUDPublishersTestCase(unittest.TestCase):
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.client.request_kwargs['auth'] = get_auth()
+        cls.client.request_kwargs["auth"] = get_auth()
         cls.publisher = {}
         cls.repo = cls.client.post(REPO_PATH, gen_repo())
 
     @classmethod
     def tearDownClass(cls):
         """Clean class-wide variable."""
-        cls.client.delete(cls.repo['_href'])
+        cls.client.delete(cls.repo["_href"])
 
     def test_01_create_publisher(self):
         """Create a publisher."""
@@ -39,48 +39,46 @@ class CRUDPublishersTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.publisher[key], val)
 
-    @selectors.skip_if(bool, 'publisher', False)
+    @selectors.skip_if(bool, "publisher", False)
     def test_02_read_publisher(self):
         """Read a publisher by its href."""
-        publisher = self.client.get(self.publisher['_href'])
+        publisher = self.client.get(self.publisher["_href"])
         for key, val in self.publisher.items():
             with self.subTest(key=key):
                 self.assertEqual(publisher[key], val)
 
-    @selectors.skip_if(bool, 'publisher', False)
+    @selectors.skip_if(bool, "publisher", False)
     def test_02_read_publishers(self):
         """Read a publisher by its name."""
-        page = self.client.get(PYTHON_PUBLISHER_PATH, params={
-            'name': self.publisher['name']
-        })
-        self.assertEqual(len(page['results']), 1)
+        page = self.client.get(PYTHON_PUBLISHER_PATH, params={"name": self.publisher["name"]})
+        self.assertEqual(len(page["results"]), 1)
         for key, val in self.publisher.items():
             with self.subTest(key=key):
-                self.assertEqual(page['results'][0][key], val)
+                self.assertEqual(page["results"][0][key], val)
 
-    @selectors.skip_if(bool, 'publisher', False)
+    @selectors.skip_if(bool, "publisher", False)
     def test_03_partially_update(self):
         """Update a publisher using HTTP PATCH."""
         body = gen_publisher()
-        self.client.patch(self.publisher['_href'], body)
-        type(self).publisher = self.client.get(self.publisher['_href'])
+        self.client.patch(self.publisher["_href"], body)
+        type(self).publisher = self.client.get(self.publisher["_href"])
         for key, val in body.items():
             with self.subTest(key=key):
                 self.assertEqual(self.publisher[key], val)
 
-    @selectors.skip_if(bool, 'publisher', False)
+    @selectors.skip_if(bool, "publisher", False)
     def test_04_fully_update(self):
         """Update a publisher using HTTP PUT."""
         body = gen_publisher()
-        self.client.put(self.publisher['_href'], body)
-        type(self).publisher = self.client.get(self.publisher['_href'])
+        self.client.put(self.publisher["_href"], body)
+        type(self).publisher = self.client.get(self.publisher["_href"])
         for key, val in body.items():
             with self.subTest(key=key):
                 self.assertEqual(self.publisher[key], val)
 
-    @selectors.skip_if(bool, 'publisher', False)
+    @selectors.skip_if(bool, "publisher", False)
     def test_05_delete(self):
         """Delete a publisher."""
-        self.client.delete(self.publisher['_href'])
+        self.client.delete(self.publisher["_href"])
         with self.assertRaises(HTTPError):
-            self.client.get(self.publisher['_href'])
+            self.client.get(self.publisher["_href"])

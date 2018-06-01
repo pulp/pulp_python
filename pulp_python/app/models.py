@@ -7,10 +7,16 @@ from pulpcore.plugin.models import Content, Remote, Model, Publisher
 log = getLogger(__name__)
 
 
-PACKAGE_TYPES = (("bdist_dmg", "bdist_dmg"), ("bdist_dumb", "bdist_dumb"),
-                 ("bdist_egg", "bdist_egg"), ("bdist_msi", "bdist_msi"),
-                 ("bdist_rpm", "bdist_rpm"), ("bdist_wheel", "bdist_wheel"),
-                 ("bdist_wininst", "bdist_wininst"), ("sdist", "sdist"))
+PACKAGE_TYPES = (
+    ("bdist_dmg", "bdist_dmg"),
+    ("bdist_dumb", "bdist_dumb"),
+    ("bdist_egg", "bdist_egg"),
+    ("bdist_msi", "bdist_msi"),
+    ("bdist_rpm", "bdist_rpm"),
+    ("bdist_wheel", "bdist_wheel"),
+    ("bdist_wininst", "bdist_wininst"),
+    ("sdist", "sdist"),
+)
 
 
 class Classifier(Model):
@@ -29,9 +35,12 @@ class Classifier(Model):
     """
 
     name = models.TextField()
-    python_package_content = models.ForeignKey("PythonPackageContent", related_name="classifiers",
-                                               related_query_name="classifier",
-                                               on_delete=models.CASCADE)
+    python_package_content = models.ForeignKey(
+        "PythonPackageContent",
+        related_name="classifiers",
+        related_query_name="classifier",
+        on_delete=models.CASCADE,
+    )
 
 
 class DistributionDigest(Model):
@@ -40,10 +49,12 @@ class DistributionDigest(Model):
     """
     type = models.TextField()
     digest = models.TextField()
-    project_specifier = models.ForeignKey("ProjectSpecifier",
-                                          related_name="digests",
-                                          related_query_name="distributiondigest",
-                                          on_delete=models.CASCADE)
+    project_specifier = models.ForeignKey(
+        "ProjectSpecifier",
+        related_name="digests",
+        related_query_name="distributiondigest",
+        on_delete=models.CASCADE,
+    )
 
 
 class ProjectSpecifier(Model):
@@ -69,10 +80,12 @@ class ProjectSpecifier(Model):
 
     name = models.TextField()
     version_specifier = models.TextField(blank=True, default="")
-    remote = models.ForeignKey("PythonRemote",
-                               related_name="projects",
-                               related_query_name="projectspecifier",
-                               on_delete=models.CASCADE)
+    remote = models.ForeignKey(
+        "PythonRemote",
+        related_name="projects",
+        related_query_name="projectspecifier",
+        on_delete=models.CASCADE,
+    )
 
 
 class PythonPackageContent(Content):
@@ -83,7 +96,7 @@ class PythonPackageContent(Content):
     https://www.python.org/dev/peps/pep-0345/
     """
 
-    TYPE = 'python'
+    TYPE = "python"
     # Required metadata
     filename = models.TextField(unique=True, db_index=True, blank=False)
     packagetype = models.TextField(blank=False, choices=PACKAGE_TYPES)
@@ -115,17 +128,16 @@ class PythonPackageContent(Content):
         return self.artifacts.get().pk
 
     class Meta:
-        unique_together = (
-            'filename',
-        )
+        unique_together = ("filename",)
 
     def __str__(self):
         """
         Overrides Content.str to provide the distribution version and type at the end.
         e.g. <PythonPackageContent: shelf-reader [version] (whl)>
         """
-        return '<{}: {} [{}] ({})>'.format(
-            self._meta.object_name, self.name, self.version, self.packagetype)
+        return "<{}: {} [{}] ({})>".format(
+            self._meta.object_name, self.name, self.version, self.packagetype
+        )
 
 
 class PythonPublisher(Publisher):
@@ -133,7 +145,7 @@ class PythonPublisher(Publisher):
     A Publisher for PythonContent.
     """
 
-    TYPE = 'python'
+    TYPE = "python"
 
 
 class PythonRemote(Remote):
@@ -144,4 +156,4 @@ class PythonRemote(Remote):
         projects (list): A list of python projects to sync
     """
 
-    TYPE = 'python'
+    TYPE = "python"

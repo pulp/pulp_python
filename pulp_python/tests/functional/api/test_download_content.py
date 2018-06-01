@@ -1,6 +1,7 @@
 # import hashlib
 import unittest
 from unittest import skip
+
 # from random import choice
 # from urllib.parse import urljoin
 
@@ -8,8 +9,11 @@ from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_distribution, gen_repo, get_auth, sync, publish
 
-from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL, PYTHON_REMOTE_PATH,
-                                                    PYTHON_PUBLISHER_PATH)
+from pulp_python.tests.functional.constants import (
+    PYTHON_PYPI_URL,
+    PYTHON_REMOTE_PATH,
+    PYTHON_PUBLISHER_PATH,
+)
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
@@ -46,31 +50,31 @@ class DownloadContentTestCase(unittest.TestCase, utils.SmokeTest):
         """
         cfg = config.get_config()
         if not selectors.bug_is_fixed(3502, cfg.pulp_version):
-            self.skipTest('https://pulp.plan.io/issues/3502')
+            self.skipTest("https://pulp.plan.io/issues/3502")
 
         client = api.Client(cfg, api.json_handler)
-        client.request_kwargs['auth'] = get_auth()
+        client.request_kwargs["auth"] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo["_href"])
         body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote["_href"])
         sync(cfg, remote, repo)
-        repo = client.get(repo['_href'])
+        repo = client.get(repo["_href"])
 
         # Create a publisher.
         publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
-        self.addCleanup(client.delete, publisher['_href'])
+        self.addCleanup(client.delete, publisher["_href"])
 
         # Create a publication.
         publication = publish(cfg, publisher, repo)
-        self.addCleanup(client.delete, publication['_href'])
+        self.addCleanup(client.delete, publication["_href"])
 
         # Create a distribution.
         body = gen_distribution()
-        body['publication'] = publication['_href']
+        body["publication"] = publication["_href"]
         distribution = client.post(DISTRIBUTION_PATH, body)
-        self.addCleanup(client.delete, distribution['_href'])
+        self.addCleanup(client.delete, distribution["_href"])
 
         # TODO: re-enable with new fixtures
 

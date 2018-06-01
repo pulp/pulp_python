@@ -4,8 +4,11 @@ from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_content, sync, publish
 
-from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_PYPI_URL,
-                                                    PYTHON_REMOTE_PATH)
+from pulp_python.tests.functional.constants import (
+    PYTHON_PUBLISHER_PATH,
+    PYTHON_PYPI_URL,
+    PYTHON_REMOTE_PATH,
+)
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
@@ -36,28 +39,28 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         cfg = config.get_config()
         # Create an remote and publisher.
         client = api.Client(cfg, api.json_handler)
-        client.request_kwargs['auth'] = get_auth()
+        client.request_kwargs["auth"] = get_auth()
         body = gen_remote(PYTHON_PYPI_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote["_href"])
         publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
-        self.addCleanup(client.delete, publisher['_href'])
+        self.addCleanup(client.delete, publisher["_href"])
 
         # Create and sync repos.
         repos = []
         for _ in range(2):
             repo = client.post(REPO_PATH, gen_repo())
-            self.addCleanup(client.delete, repo['_href'])
+            self.addCleanup(client.delete, repo["_href"])
             sync(cfg, remote, repo)
-            repos.append(client.get(repo['_href']))
+            repos.append(client.get(repo["_href"]))
 
         # Compare contents of repositories.
         contents = []
         for repo in repos:
-            contents.append(get_content(repo)['results'])
+            contents.append(get_content(repo)["results"])
         self.assertEqual(
-            {content['_href'] for content in contents[0]},
-            {content['_href'] for content in contents[1]},
+            {content["_href"] for content in contents[0]},
+            {content["_href"] for content in contents[1]},
         )
 
         # Publish repositories.
@@ -65,12 +68,8 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         for repo in repos:
             publications.append(publish(cfg, publisher, repo))
             if selectors.bug_is_fixed(3354, cfg.pulp_version):
-                self.addCleanup(client.delete, publications[-1]['_href'])
-        self.assertEqual(
-            publications[0]['publisher'],
-            publications[1]['publisher']
-        )
+                self.addCleanup(client.delete, publications[-1]["_href"])
+        self.assertEqual(publications[0]["publisher"], publications[1]["publisher"])
         self.assertNotEqual(
-            publications[0]['repository_version'],
-            publications[1]['repository_version']
+            publications[0]["repository_version"], publications[1]["repository_version"]
         )
