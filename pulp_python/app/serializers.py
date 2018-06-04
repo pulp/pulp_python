@@ -12,7 +12,7 @@ from pulp_python.app import models as python_models
 
 class ClassifierSerializer(serializers.ModelSerializer):
     """
-    A serializer for Python Classifiers
+    A serializer for Python Classifiers.
     """
 
     name = serializers.CharField(
@@ -26,12 +26,12 @@ class ClassifierSerializer(serializers.ModelSerializer):
 
 class DistributionDigestSerializer(serializers.ModelSerializer):
     """
-    A serializer for the Distribution Digest in a Project Specifier
+    A serializer for the Distribution Digest in a Project Specifier.
     """
+
     type = serializers.CharField(
         help_text=_("A type of digest: i.e. sha256, md5")
     )
-
     digest = serializers.CharField(
         help_text=_("The digest of the distribution")
     )
@@ -43,24 +43,22 @@ class DistributionDigestSerializer(serializers.ModelSerializer):
 
 class ProjectSpecifierSerializer(serializers.ModelSerializer):
     """
-    A serializer for Python project specifiers
+    A serializer for Python project specifiers.
     """
 
     name = serializers.CharField(
         help_text=_("A python project name.")
     )
-
     version_specifier = serializers.CharField(
-        help_text=_("A version specifier, accepts standard python versions "
-                    "syntax: >=, <=, ==, ~=, >, <, ! can be used in conjunction with"
-                    "other specifiers i.e. >1,<=3,!=3.0.2. Note that the specifiers "
-                    "treat pre-released versions as < released versions, so 3.0.0a1 < 3.0.0."
-                    "Not setting the version_specifier will sync all the pre-released and"
-                    "released versions."),
+        help_text=_(
+            "A version specifier, accepts standard python versions syntax:"
+            " >=, <=, ==, ~=, >, <, ! can be used in conjunction with other specifiers i.e."
+            " >1,<=3,!=3.0.2. Note that the specifiers treat pre-released versions as < released"
+            " versions, so 3.0.0a1 < 3.0.0. Not setting the version_specifier will sync all the "
+            "pre-released and released versions."),
         required=False,
         allow_blank=True
     )
-
     digests = DistributionDigestSerializer(
         required=False,
         many=True
@@ -68,7 +66,7 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
 
     def validate_version_specifier(self, value):
         """
-        Check that the Version Specifier is valid
+        Check that the Version Specifier is valid.
         """
         try:
             specifiers.SpecifierSet(value)
@@ -199,17 +197,17 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
 
     def create(self, validated_data):
         """
-        Creates a PythonPackageContent
+        Create a PythonPackageContent.
+
         Overriding default create() to write the classifiers nested field
 
-         args:
-            validated_data (dict): data used to create the PythonPackageContent
+        Args:
+            validated_data (dict): Data used to create the PythonPackageContent
 
-        returns:
-            models.PythonPackageContent: the created PythonPackageContent
+        Returns:
+            models.PythonPackageContent: The created PythonPackageContent
 
         """
-
         classifiers = validated_data.pop('classifiers')
         artifact = validated_data.pop('artifact')
 
@@ -253,19 +251,18 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         """
-        Updates a PythonRemote
+        Update a PythonRemote.
+
         Overriding default update() to write the projects nested field
 
-        args:
+        Args:
             instance (models.PythonRemote): instance of the python remote to update
             validated_data (dict): of validated data to update
-            partial (bool): True for partial update, False otherwise
 
-        returns:
+        Returns:
             models.PythonRemote: the updated PythonRemote
 
         """
-
         projects = validated_data.pop('projects', [])
 
         python_remote = python_models.PythonRemote.objects.get(pk=instance.pk)
@@ -288,17 +285,17 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     @transaction.atomic
     def create(self, validated_data):
         """
-        Creates a PythonRemote
+        Create a PythonRemote.
+
         Overriding default create() to write the projects nested field, and the nested digest field
 
-        args:
+        Args:
             validated_data (dict): data used to create the remote
 
-        returns:
+        Returns:
             models.PythonRemote: the created PythonRemote
 
         """
-
         projects = validated_data.pop('projects', [])
 
         python_remote = python_models.PythonRemote.objects.create(**validated_data)

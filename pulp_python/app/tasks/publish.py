@@ -46,11 +46,12 @@ simple_detail_template = """<!DOCTYPE html>
 
 def publish(publisher_pk, repository_version_pk):
     """
-    Use provided publisher to create a Publication based on a RepositoryVersion.
+    Create a Publication based on a RepositoryVersion.
 
     Args:
         publisher_pk (str): Use the publish settings provided by this publisher.
-        repository_pk (str): Create a Publication from the latest version of this Repository.
+        repository_version_pk (str): Create a Publication from this RepositoryVersion.
+
     """
     publisher = python_models.PythonPublisher.objects.get(pk=publisher_pk)
     repository_version = models.RepositoryVersion.objects.get(pk=repository_version_pk)
@@ -70,29 +71,34 @@ def publish(publisher_pk, repository_version_pk):
 
 def write_simple_api(publication):
     """
-    Writes metadata mimicking the simple api of PyPI for all python packages in the
-    repository version.
+    Write metadata for the simple API.
+
+    Writes metadata mimicking the simple api of PyPI for all python packages
+    in the repository version.
 
     https://wiki.python.org/moin/PyPISimple
 
     Args:
         publication (pulpcore.plugin.models.Publication): A publication to generate metadata for
-    """
 
+    """
     simple_dir = 'simple'
     os.mkdir(simple_dir)
-    project_names = python_models.PythonPackageContent.objects.filter(
-        pk__in=publication.repository_version.content).order_by('name')\
-        .values_list('name', flat=True).distinct()
+    project_names = (
+        python_models.PythonPackageContent.objects.filter(
+            pk__in=publication.repository_version.content
+        )
+        .order_by('name')
+        .values_list('name', flat=True)
+        .distinct()
+    )
 
     index_names = [(name, sanitize_name(name)) for name in project_names]
 
     # write the root index, which lists all of the projects for which there is a package available
     index_path = '{simple_dir}/index.html'.format(simple_dir=simple_dir)
     with open(index_path, 'w') as index:
-        context = Context({
-            'projects': index_names
-        })
+        context = Context({'projects': index_names})
         template = Template(simple_index_template)
         index.write(template.render(context))
 
@@ -117,7 +123,8 @@ def write_simple_api(publication):
                 published_artifact = models.PublishedArtifact(
                     relative_path=content_artifact.relative_path,
                     publication=publication,
-                    content_artifact=content_artifact)
+                    content_artifact=content_artifact
+                )
                 published_artifact.save()
 
                 checksum = content_artifact.artifact.sha256
@@ -144,13 +151,17 @@ def write_simple_api(publication):
 
 def sanitize_name(name):
     """
-    Strips out all non-alphanumeric characters, including underscores, and replaces them with
-    hyphens. Runs of multiple non-alphanumeric characters are replaced by only one hyphen.
+    Sanitize the project name.
 
-    This is to take a given python package name and create an iteration of it that can be
-    used as part of a url, e.g. for the simple api.
+    Strips out all non-alphanumeric characters, including underscores, and
+    replaces them with hyphens. Runs of multiple non-alphanumeric characters
+    are replaced by only one hyphen.
+
+    This is to take a given python package name and create an iteration of it
+    that can be used as part of a url, e.g. for the simple api.
 
     Args:
         name (str): A project name to sanitize
+
     """
     return re.sub('[^A-Za-z0-9]+', '-', name).lower()

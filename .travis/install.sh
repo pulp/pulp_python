@@ -5,9 +5,6 @@ export COMMIT_MSG=$(git show HEAD^2 -s)
 export PULP_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp\/pull\/(\d+)' | awk -F'/' '{print $7}')
 export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/PulpQE\/pulp-smash\/pull\/(\d+)' | awk -F'/' '{print $7}')
 
-# temporary workaround until a newer RQ release is available
-pip install git+https://github.com/rq/rq.git@3133d94b58e59cb86e8f4677492d48b2addcf5f8
-
 pip install -r test_requirements.txt
 
 cd .. && git clone https://github.com/pulp/pulp.git

@@ -1,2 +1,6 @@
-from .publish import publish  # noqa
-from .sync import sync  # noqa
+"""
+Asynchronous task definitions.
+"""
+
+from .publish import publish  # noqa:E722
+from .sync import sync  # noqa:E722

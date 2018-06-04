@@ -186,8 +186,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PulpPythonSupport.tex', u'Pulp Python Support Documentation',
-   u'Pulp Project', 'manual'),
+    ('index', 'PulpPythonSupport.tex', u'Pulp Python Support Documentation',
+     u'Pulp Project', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -217,7 +217,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'pulppythonsupport', u'Pulp Python Support Documentation',
-     [u'Pulp Project'], 1)
+     [u'Pulp Project'], 1),
 ]
 
 # If true, show URL addresses after external links.
@@ -230,9 +230,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'PulpPythonSupport', u'Pulp Python Support Documentation',
-   u'Pulp Project', 'PulpPythonSupport', 'One line description of project.',
-   'Miscellaneous'),
+    ('index', 'PulpPythonSupport', u'Pulp Python Support Documentation',
+     u'Pulp Project', 'PulpPythonSupport', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -244,12 +244,17 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
-extlinks = {'redmine': ('https://pulp.plan.io/issues/%s', '#'),
-            'fixedbugs_pulp_python': ('https://pulp.plan.io/projects/pulp_python/issues?c%%5B%%5D='
-                                      'tracker&c%%5B%%5D=status&c%%5B%%5D=priority&c%%5B%%5D=cf_5&'
-                                      'c%%5B%%5D=subject&c%%5B%%5D=author&c%%5B%%5D=assigned_to&c%'
-                                      '%5B%%5D=cf_3&f%%5B%%5D=cf_11&f%%5B%%5D=tracker_id&f%%5B%%5D'
-                                      '=&group_by=&op%%5Bcf_11%%5D=%%3D&op%%5Btracker_id%%5D=%%3D&'
-                                      'set_filter=1&sort=priority%%3Adesc%%2Ccf_5%%3Adesc%%2Cstatu'
-                                      's&utf8=%%E2%%9C%%93&v%%5Bcf_11%%5D%%5B%%5D=%s&v%%5Btracker_'
-                                      'id%%5D%%5B%%5D=1', 'bugs fixed in '),}
+extlinks = {
+    "redmine": ("https://pulp.plan.io/issues/%s", "#"),
+    "fixedbugs_pulp_python": (
+        "https://pulp.plan.io/projects/pulp_python/issues?c%%5B%%5D="
+        "tracker&c%%5B%%5D=status&c%%5B%%5D=priority&c%%5B%%5D=cf_5&"
+        "c%%5B%%5D=subject&c%%5B%%5D=author&c%%5B%%5D=assigned_to&c%"
+        "%5B%%5D=cf_3&f%%5B%%5D=cf_11&f%%5B%%5D=tracker_id&f%%5B%%5D"
+        "=&group_by=&op%%5Bcf_11%%5D=%%3D&op%%5Btracker_id%%5D=%%3D&"
+        "set_filter=1&sort=priority%%3Adesc%%2Ccf_5%%3Adesc%%2Cstatu"
+        "s&utf8=%%E2%%9C%%93&v%%5Bcf_11%%5D%%5B%%5D=%s&v%%5Btracker_"
+        "id%%5D%%5B%%5D=1",
+        "bugs fixed in ",
+    ),
+}

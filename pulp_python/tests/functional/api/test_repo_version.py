@@ -7,13 +7,26 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import (gen_repo, get_auth, get_artifact_paths, get_content,
-                                          get_added_content, get_removed_content, get_versions,
-                                          sync, publish, delete_version)
+from pulp_smash.tests.pulp3.utils import (
+    gen_repo,
+    get_auth,
+    get_artifact_paths,
+    get_content,
+    get_added_content,
+    get_removed_content,
+    get_versions,
+    sync,
+    publish,
+    delete_version
+)
 
-from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH, PYTHON_PYPI_URL,
-                                                    PYTHON_REMOTE_PATH, PYTHON_PUBLISHER_PATH,
-                                                    PYTHON_PACKAGE_COUNT)
+from pulp_python.tests.functional.constants import (
+    PYTHON_CONTENT_PATH,
+    PYTHON_PYPI_URL,
+    PYTHON_REMOTE_PATH,
+    PYTHON_PUBLISHER_PATH,
+    PYTHON_PACKAGE_COUNT
+)
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, populate_pulp
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
@@ -422,7 +435,8 @@ class FilterRepoVersionTestCase(unittest.TestCase):
         return self.client.get(self.repo['_versions_href'], params=params)
 
     def get_repo_versions_attr(self, attr):
-        """ Get an ``attr`` about each version of ``self.repo``.
+        """Get an ``attr`` about each version of ``self.repo``.
+
         Return as sorted list.
         """
         attributes = [

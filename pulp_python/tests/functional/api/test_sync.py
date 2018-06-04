@@ -6,8 +6,11 @@ from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_content, sync
 
-from pulp_python.tests.functional.constants import (PYTHON_PYPI_URL,
-                                                    PYTHON_REMOTE_PATH, PYTHON_PACKAGE_COUNT)
+from pulp_python.tests.functional.constants import (
+    PYTHON_PYPI_URL,
+    PYTHON_REMOTE_PATH,
+    PYTHON_PACKAGE_COUNT
+)
 from pulp_python.tests.functional.utils import gen_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 

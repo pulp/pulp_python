@@ -2,20 +2,26 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Remote, Model, Publisher
+from pulpcore.plugin.models import Content, Model, Publisher, Remote
 
 log = getLogger(__name__)
 
 
-PACKAGE_TYPES = (("bdist_dmg", "bdist_dmg"), ("bdist_dumb", "bdist_dumb"),
-                 ("bdist_egg", "bdist_egg"), ("bdist_msi", "bdist_msi"),
-                 ("bdist_rpm", "bdist_rpm"), ("bdist_wheel", "bdist_wheel"),
-                 ("bdist_wininst", "bdist_wininst"), ("sdist", "sdist"))
+PACKAGE_TYPES = (
+    ("bdist_dmg", "bdist_dmg"),
+    ("bdist_dumb", "bdist_dumb"),
+    ("bdist_egg", "bdist_egg"),
+    ("bdist_msi", "bdist_msi"),
+    ("bdist_rpm", "bdist_rpm"),
+    ("bdist_wheel", "bdist_wheel"),
+    ("bdist_wininst", "bdist_wininst"),
+    ("sdist", "sdist"),
+)
 
 
 class Classifier(Model):
     """
-    Custom tags for classifier
+    Custom tags for classifier.
 
     Fields:
 
@@ -25,25 +31,30 @@ class Classifier(Model):
 
         python_package_content (models.ForeignKey): The PythonPackageContent this classifier
         is associated with.
-
     """
 
     name = models.TextField()
-    python_package_content = models.ForeignKey("PythonPackageContent", related_name="classifiers",
-                                               related_query_name="classifier",
-                                               on_delete=models.CASCADE)
+    python_package_content = models.ForeignKey(
+        "PythonPackageContent",
+        related_name="classifiers",
+        related_query_name="classifier",
+        on_delete=models.CASCADE
+    )
 
 
 class DistributionDigest(Model):
     """
     A model of digests on an individual distribution.
     """
+
     type = models.TextField()
     digest = models.TextField()
-    project_specifier = models.ForeignKey("ProjectSpecifier",
-                                          related_name="digests",
-                                          related_query_name="distributiondigest",
-                                          on_delete=models.CASCADE)
+    project_specifier = models.ForeignKey(
+        "ProjectSpecifier",
+        related_name="digests",
+        related_query_name="distributiondigest",
+        on_delete=models.CASCADE
+    )
 
 
 class ProjectSpecifier(Model):
@@ -69,16 +80,20 @@ class ProjectSpecifier(Model):
 
     name = models.TextField()
     version_specifier = models.TextField(blank=True, default="")
-    remote = models.ForeignKey("PythonRemote",
-                               related_name="projects",
-                               related_query_name="projectspecifier",
-                               on_delete=models.CASCADE)
+    remote = models.ForeignKey(
+        "PythonRemote",
+        related_name="projects",
+        related_query_name="projectspecifier",
+        on_delete=models.CASCADE
+    )
 
 
 class PythonPackageContent(Content):
     """
-    A Content Type representing Python's Distribution Package as
-    defined in pep-0426 and pep-0345
+    A Content Type representing Python's Distribution Package.
+
+    As defined in pep-0426 and pep-0345.
+
     https://www.python.org/dev/peps/pep-0491/
     https://www.python.org/dev/peps/pep-0345/
     """
@@ -112,20 +127,30 @@ class PythonPackageContent(Content):
 
     @property
     def artifact(self):
+        """
+        Return the artifact id (there is only one for this content type).
+        """
         return self.artifacts.get().pk
 
     class Meta:
-        unique_together = (
-            'filename',
-        )
+        unique_together = ('filename',)
 
     def __str__(self):
         """
-        Overrides Content.str to provide the distribution version and type at the end.
+        Provide more useful repr information.
+
+        Overrides Content.str to provide the distribution version and type at
+        the end.
+
         e.g. <PythonPackageContent: shelf-reader [version] (whl)>
+
         """
-        return '<{}: {} [{}] ({})>'.format(
-            self._meta.object_name, self.name, self.version, self.packagetype)
+        return '<{obj_name}: {name} [{version}] ({type})>'.format(
+            obj_name=self._meta.object_name,
+            name=self.name,
+            version=self.version,
+            type=self.packagetype
+        )
 
 
 class PythonPublisher(Publisher):
@@ -139,9 +164,6 @@ class PythonPublisher(Publisher):
 class PythonRemote(Remote):
     """
     A Remote for Python Content.
-
-    Attributes:
-        projects (list): A list of python projects to sync
     """
 
     TYPE = 'python'
