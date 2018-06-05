@@ -7,7 +7,7 @@ from requests import HTTPError
 
 from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
-from pulp_smash.tests.pulp3.utils import (gen_repo, gen_distribution, get_auth,
+from pulp_smash.tests.pulp3.utils import (delete_orphans, gen_repo, gen_distribution, get_auth,
                                           get_added_content, get_versions, sync, publish)
 
 from pulp_python.tests.functional.constants import (PYTHON_PUBLISHER_PATH, PYTHON_REMOTE_PATH,
@@ -29,6 +29,7 @@ class AutoDistributionTestCase(unittest.TestCase):
         Add content to Pulp.
         """
         cls.cfg = config.get_config()
+        delete_orphans(cls.cfg)
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()
         populate_pulp(cls.cfg, PYTHON_PYPI_URL)
