@@ -24,6 +24,7 @@ Table of Contents
 
    installation
    workflows/index
+   release-notes/3.0.z.rst
 
 
 Indices and tables

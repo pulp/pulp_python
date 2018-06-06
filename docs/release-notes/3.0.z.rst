@@ -1,0 +1,37 @@
+=============================
+pulp-python 3.0 Release Notes
+=============================
+
+pulp-python 3.0 is currently in Beta. Backwards incompatible changes
+might be made until Beta is over.
+
+3.0.0b3
+=======
+
+* Add support for project specifier whitelisting.
+
+  Sync now takes in a project specifier of project name, version, and digest.
+  In the previous implementation a project list would be given on PythonRemote creation,
+  sync downloaded every package of all the projects in the list::
+
+        projects=['django', 'scipy']
+
+
+  This is still possible in the new implementation like so::
+
+        projects=[{"name": "django"}, {"name": "scipy"}]
+
+
+  But it is now also possible to sync only certain versions of projects, and to sync only
+  packages matching a given hash::
+
+        projects=[{"name": "django", "version_specifier":"~=2.0"},
+                  {"name": "scipy",
+                   "digests":[
+                        {"type": "md5",
+                         "digest": "044af71389ac2ad3d3ece24d0baf4c07"},
+                        {"type": "sha256",
+                         "digest": "18b572502ce0b17e3b4bfe50dcaea414a98290358a2fa080c36066ba0651ec14"}]
+                  }
+                 ]
+
