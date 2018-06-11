@@ -299,7 +299,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
 
         """
 
-        projects = validated_data.pop('projects')
+        projects = validated_data.pop('projects', [])
 
         python_remote = python_models.PythonRemote.objects.create(**validated_data)
         for project in projects:

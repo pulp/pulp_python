@@ -15,10 +15,10 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'})
 
 
-def gen_remote(url):
+def gen_remote(url=PYTHON_PYPI_URL):
     """ Return a semi-random dict for use in creating an remote.
 
-        Arguments:
+        Kwargs:
             url (str): The URL to a Python remote repository
     """
     return {
