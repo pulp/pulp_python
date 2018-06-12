@@ -11,6 +11,7 @@ from pulp.plugins.util.publish_step import AtomicDirectoryPublishStep, PluginSte
 from pulp_python.common import constants
 from pulp_python.plugins import models
 from pulp_python.plugins.distributors import configuration
+from pulp_python.plugins.utils import sanitize_name
 
 
 logger = logging.getLogger(__name__)
@@ -92,6 +93,7 @@ class PublishMetadataStep(PluginStep):
             body = ElementTree.SubElement(html, 'body')
             # Create a reference in index.html that points to the index for each project.
             for project_name, packages in projects.items():
+                project_name = sanitize_name(project_name)
                 element = ElementTree.SubElement(body, 'a', {'href': project_name})
                 element.text = project_name
                 ElementTree.SubElement(body, 'br')
@@ -149,6 +151,7 @@ class PublishMetadataStep(PluginStep):
         """
         api_path = os.path.join(self.parent.web_working_dir, 'pypi')
         for project_name, packages in projects.items():
+            project_name = sanitize_name(project_name)
             project_metadata_path = os.path.join(api_path, project_name, 'json')
             os.makedirs(project_metadata_path)
             project_index_metadata_path = os.path.join(project_metadata_path, 'index.json')

@@ -158,7 +158,7 @@ class TestPublishMetadataStep(unittest.TestCase):
         mock_package_qs.packages_by_project.assert_called_once_with(conduit.repo_id)
         makedirs.assert_has_calls([
             mock.call(os.path.join(step.parent.web_working_dir, 'simple')),
-            mock.call(os.path.join(step.parent.web_working_dir, 'pypi', 'pulp_python_plugins',
+            mock.call(os.path.join(step.parent.web_working_dir, 'pypi', 'pulp-python-plugins',
                                    'json')),
             mock.call(os.path.join(step.parent.web_working_dir, 'pypi', 'nectar', 'json')),
         ])
