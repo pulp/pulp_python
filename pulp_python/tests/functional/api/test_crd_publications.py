@@ -19,7 +19,7 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.cfg = config.get_config()
-        cls.client = api.Client(cls.cfg, api.json_handler)
+        cls.client = api.Client(cls.cfg, api.page_handler)
         cls.client.request_kwargs['auth'] = get_auth()
         cls.remote = {}
         cls.publication = {}
@@ -59,35 +59,35 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
     @selectors.skip_if(bool, 'publication', False)
     def test_02_read_publications(self):
         """Read a publication by its repository version."""
-        page = self.client.get(PUBLICATIONS_PATH, params={
+        publications = self.client.get(PUBLICATIONS_PATH, params={
             'repository_version': self.repo['_href']
         })
-        self.assertEqual(len(page['results']), 1)
+        self.assertEqual(len(publications), 1, publications)
         for key, val in self.publication.items():
             with self.subTest(key=key):
-                self.assertEqual(page['results'][0][key], val)
+                self.assertEqual(publications[0][key], val)
 
     @selectors.skip_if(bool, 'publication', False)
     def test_03_read_publications(self):
         """Read a publication by its publisher."""
-        page = self.client.get(PUBLICATIONS_PATH, params={
+        publications = self.client.get(PUBLICATIONS_PATH, params={
             'publisher': self.publisher['_href']
         })
-        self.assertEqual(len(page['results']), 1)
+        self.assertEqual(len(publications), 1)
         for key, val in self.publication.items():
             with self.subTest(key=key):
-                self.assertEqual(page['results'][0][key], val)
+                self.assertEqual(publications[0][key], val)
 
     @selectors.skip_if(bool, 'publication', False)
     def test_04_read_publications(self):
         """Read a publication by its created time."""
-        page = self.client.get(PUBLICATIONS_PATH, params={
+        publications = self.client.get(PUBLICATIONS_PATH, params={
             'created': self.publication['created']
         })
-        self.assertEqual(len(page['results']), 1)
+        self.assertEqual(len(publications), 1)
         for key, val in self.publication.items():
             with self.subTest(key=key):
-                self.assertEqual(page['results'][0][key], val)
+                self.assertEqual(publications[0][key], val)
 
     @selectors.skip_if(bool, 'publication', False)
     def test_05_read_publications(self):
@@ -97,13 +97,13 @@ class PublicationsTestCase(unittest.TestCase, utils.SmokeTest):
         distribution = self.client.post(DISTRIBUTION_PATH, body)
         self.addCleanup(self.client.delete, distribution['_href'])
         self.publication.update(self.client.get(self.publication['_href']))
-        page = self.client.get(PUBLICATIONS_PATH, params={
+        publications = self.client.get(PUBLICATIONS_PATH, params={
             'distributions': distribution['_href']
         })
-        self.assertEqual(len(page['results']), 1)
+        self.assertEqual(len(publications), 1)
         for key, val in self.publication.items():
             with self.subTest(key=key):
-                self.assertEqual(page['results'][0][key], val)
+                self.assertEqual(publications[0][key], val)
 
     @selectors.skip_if(bool, 'publication', False)
     def test_06_delete(self):
