@@ -99,7 +99,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertEqual(len(added_content), PYTHON_PACKAGE_COUNT, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 0, removed_content)
+        self.assertEqual(len(removed_content), 0, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT})
@@ -131,7 +131,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertEqual(len(added_content), 0, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 1, removed_content)
+        self.assertEqual(len(removed_content), 1, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT - 1})
@@ -162,7 +162,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertEqual(len(added_content), 1, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 0, removed_content)
+        self.assertEqual(len(removed_content), 0, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT})
