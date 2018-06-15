@@ -60,7 +60,7 @@ class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
         self.addCleanup(self.api_client.delete, remote['_href'])
         sync(self.cfg, remote, repo)
         repo = self.api_client.get(repo['_href'])
-        content = choice(get_content(repo)['results'])
+        content = choice(get_content(repo))
 
         # Create an orphan content unit.
         self.api_client.post(

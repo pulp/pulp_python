@@ -54,7 +54,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         # Compare contents of repositories.
         contents = []
         for repo in repos:
-            contents.append(get_content(repo)['results'])
+            contents.append(get_content(repo))
         self.assertEqual(
             {content['_href'] for content in contents[0]},
             {content['_href'] for content in contents[1]},
