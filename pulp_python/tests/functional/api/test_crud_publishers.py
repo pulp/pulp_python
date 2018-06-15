@@ -40,6 +40,18 @@ class CRUDPublishersTestCase(unittest.TestCase):
                 self.assertEqual(self.publisher[key], val)
 
     @selectors.skip_if(bool, 'publisher', False)
+    def test_02_create_same_name(self):
+        """Try to create a second publisher with an identical name.
+
+        See: `Pulp Smash #1055
+        <https://github.com/PulpQE/pulp-smash/issues/1055>`_.
+        """
+        body = gen_publisher()
+        body['name'] = self.publisher['name']
+        with self.assertRaises(HTTPError):
+            self.client.post(PYTHON_PUBLISHER_PATH, body)
+
+    @selectors.skip_if(bool, 'publisher', False)
     def test_02_read_publisher(self):
         """Read a publisher by its href."""
         publisher = self.client.get(self.publisher['_href'])
