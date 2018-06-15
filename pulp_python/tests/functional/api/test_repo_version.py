@@ -18,7 +18,7 @@ from pulp_python.tests.functional.utils import gen_remote, gen_publisher, popula
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
+class AddRemoveContentTestCase(unittest.TestCase):
     """Add and remove content to a repository. Verify side-effects.
 
     A new repository version is automatically created each time content is
@@ -93,13 +93,13 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertIsNotNone(repo['_latest_version_href'])
 
         content = get_content(repo)
-        self.assertEqual(len(content['results']), PYTHON_PACKAGE_COUNT)
+        self.assertEqual(len(content), PYTHON_PACKAGE_COUNT)
 
         added_content = get_added_content(repo)
-        self.assertEqual(len(added_content['results']), PYTHON_PACKAGE_COUNT, added_content)
+        self.assertEqual(len(added_content), PYTHON_PACKAGE_COUNT, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 0, removed_content)
+        self.assertEqual(len(removed_content), 0, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT})
@@ -112,7 +112,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         Make roughly the same assertions as :meth:`test_02_sync_content`.
         """
         repo = self.client.get(self.repo['_href'])
-        self.content.update(choice(get_content(repo)['results']))
+        self.content.update(choice(get_content(repo)))
         self.client.post(
             repo['_versions_href'],
             {'remove_content_units': [self.content['_href']]}
@@ -125,13 +125,13 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertIsNotNone(repo['_latest_version_href'])
 
         content = get_content(repo)
-        self.assertEqual(len(content['results']), PYTHON_PACKAGE_COUNT - 1)
+        self.assertEqual(len(content), PYTHON_PACKAGE_COUNT - 1)
 
         added_content = get_added_content(repo)
-        self.assertEqual(len(added_content['results']), 0, added_content)
+        self.assertEqual(len(added_content), 0, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 1, removed_content)
+        self.assertEqual(len(removed_content), 1, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT - 1})
@@ -156,13 +156,13 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
         self.assertIsNotNone(repo['_latest_version_href'])
 
         content = get_content(repo)
-        self.assertEqual(len(content['results']), PYTHON_PACKAGE_COUNT)
+        self.assertEqual(len(content), PYTHON_PACKAGE_COUNT)
 
         added_content = get_added_content(repo)
-        self.assertEqual(len(added_content['results']), 1, added_content)
+        self.assertEqual(len(added_content), 1, added_content)
 
         removed_content = get_removed_content(repo)
-        self.assertEqual(len(removed_content['results']), 0, removed_content)
+        self.assertEqual(len(removed_content), 0, removed_content)
 
         content_summary = self.get_content_summary(repo)
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT})
@@ -180,7 +180,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
 
 
 @skip("needs better fixtures")
-class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
+class AddRemoveRepoVersionTestCase(unittest.TestCase):
     """Create and delete repository versions.
 
     This test targets the following issues:
@@ -351,7 +351,7 @@ class FilterRepoVersionTestCase(unittest.TestCase):
         for repo_version in repo_versions:
             self.assertIn(
                 self.client.get(content['_href']),
-                get_content(self.repo, repo_version['_href'])['results']
+                get_content(self.repo, repo_version['_href'])
             )
 
     def test_filter_invalid_date(self):

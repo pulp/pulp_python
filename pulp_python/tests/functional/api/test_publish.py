@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, utils
+from pulp_smash import api, config
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_versions, sync, publish
 
@@ -14,7 +14,7 @@ from pulp_python.tests.functional.utils import gen_remote, gen_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-class PublishAnyRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
+class PublishAnyRepoVersionTestCase(unittest.TestCase):
     """Test whether a particular repository version can be published.
 
     This test targets the following issues:

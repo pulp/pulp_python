@@ -15,7 +15,7 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'})
 
 
-def gen_remote(url=PYTHON_PYPI_URL):
+def gen_remote(url=PYTHON_PYPI_URL, **kwargs):
     """ Return a semi-random dict for use in creating an remote.
 
         Kwargs:
@@ -24,14 +24,15 @@ def gen_remote(url=PYTHON_PYPI_URL):
     return {
         'name': str(uuid.uuid4()),
         'projects': PYTHON_PROJECT_LIST,
-        'url': url
+        'url': url,
+        **kwargs,
     }
 
 
-def gen_publisher():
+def gen_publisher(**kwargs):
     """ Return a semi-random dict for use in creating a publisher.
     """
-    return {'name': str(uuid.uuid4())}
+    return {'name': str(uuid.uuid4()), **kwargs}
 
 
 def populate_pulp(cfg, url=None):

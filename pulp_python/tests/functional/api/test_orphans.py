@@ -17,7 +17,7 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 from pulp_smash.constants import FILE2_URL
 
 
-class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
+class DeleteOrphansTestCase(unittest.TestCase):
     """Test whether orphans can be clean up.
 
     An orphan artifact is an artifact that is not in any content units.
@@ -60,7 +60,7 @@ class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
         self.addCleanup(self.api_client.delete, remote['_href'])
         sync(self.cfg, remote, repo)
         repo = self.api_client.get(repo['_href'])
-        content = choice(get_content(repo)['results'])
+        content = choice(get_content(repo))
 
         # Create an orphan content unit.
         self.api_client.post(

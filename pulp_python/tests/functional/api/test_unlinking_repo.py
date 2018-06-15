@@ -1,6 +1,6 @@
 import unittest
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, selectors
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_content, sync, publish
 
@@ -10,7 +10,7 @@ from pulp_python.tests.functional.utils import gen_remote, gen_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
+class RemotesPublishersTestCase(unittest.TestCase):
     """Verify publisher and remote can be used with different repos."""
 
     def test_all(self):
@@ -54,7 +54,7 @@ class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
         # Compare contents of repositories.
         contents = []
         for repo in repos:
-            contents.append(get_content(repo)['results'])
+            contents.append(get_content(repo))
         self.assertEqual(
             {content['_href'] for content in contents[0]},
             {content['_href'] for content in contents[1]},
