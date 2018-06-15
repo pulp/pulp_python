@@ -18,7 +18,7 @@ from pulp_python.tests.functional.utils import gen_remote, gen_publisher, popula
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
+class AddRemoveContentTestCase(unittest.TestCase):
     """Add and remove content to a repository. Verify side-effects.
 
     A new repository version is automatically created each time content is
@@ -180,7 +180,7 @@ class AddRemoveContentTestCase(unittest.TestCase, utils.SmokeTest):
 
 
 @skip("needs better fixtures")
-class AddRemoveRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
+class AddRemoveRepoVersionTestCase(unittest.TestCase):
     """Create and delete repository versions.
 
     This test targets the following issues:

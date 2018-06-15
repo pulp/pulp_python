@@ -103,7 +103,7 @@ def _gen_content_unit_attrs(artifact):
     return {'artifact': artifact['_href'], 'relative_path': utils.uuid4()}
 
 
-class DeleteContentUnitRepoVersionTestCase(unittest.TestCase, utils.SmokeTest):
+class DeleteContentUnitRepoVersionTestCase(unittest.TestCase):
     """Test whether content unit used by a repo version can be deleted.
 
     This test targets the following issues:

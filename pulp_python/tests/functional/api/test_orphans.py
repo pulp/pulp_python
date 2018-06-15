@@ -17,7 +17,7 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 from pulp_smash.constants import FILE2_URL
 
 
-class DeleteOrphansTestCase(unittest.TestCase, utils.SmokeTest):
+class DeleteOrphansTestCase(unittest.TestCase):
     """Test whether orphans can be clean up.
 
     An orphan artifact is an artifact that is not in any content units.

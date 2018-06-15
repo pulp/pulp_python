@@ -1,6 +1,6 @@
 import unittest
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, selectors
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, get_auth, get_content, sync, publish
 
@@ -10,7 +10,7 @@ from pulp_python.tests.functional.utils import gen_remote, gen_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-class RemotesPublishersTestCase(unittest.TestCase, utils.SmokeTest):
+class RemotesPublishersTestCase(unittest.TestCase):
     """Verify publisher and remote can be used with different repos."""
 
     def test_all(self):

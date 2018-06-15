@@ -4,7 +4,7 @@ from unittest import skip
 # from random import choice
 # from urllib.parse import urljoin
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, selectors
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_distribution, gen_repo, get_auth, sync, publish
 
@@ -15,7 +15,7 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 
 
 @skip("needs better fixtures")
-class DownloadContentTestCase(unittest.TestCase, utils.SmokeTest):
+class DownloadContentTestCase(unittest.TestCase):
     """Verify whether content served by pulp can be downloaded."""
 
     def test_all(self):
