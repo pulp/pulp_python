@@ -18,3 +18,5 @@ PYTHON_PROJECT_LIST = [{"digests": [], "name": "shelf-reader", "version_specifie
 PYTHON_PYPI_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 
 PYTHON_PACKAGE_COUNT = 2
+
+PYTHON_URL = urljoin(PYTHON_PYPI_URL, '.....')  # TODO
