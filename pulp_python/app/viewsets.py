@@ -11,6 +11,10 @@ from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import RepositoryVersion, Artifact
+from pulpcore.plugin.serializers import (
+    RepositoryPublishURLSerializer,
+    RepositorySyncURLSerializer,
+)
 from pulpcore.plugin.tasking import enqueue_with_reservation
 
 from pulp_python.app import models as python_models
@@ -121,14 +125,13 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     serializer_class = python_serializers.PythonRemoteSerializer
     filter_class = PythonRemoteFilter
 
-    @decorators.detail_route(methods=('post',),
-                             serializer_class=python_serializers.PythonSyncSerializer)
+    @decorators.detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
         remote = self.get_object()
-        serializer = python_serializers.PythonSyncSerializer(
+        serializer = RepositorySyncURLSerializer(
             data=request.data,
             context={'request': request}
         )
@@ -158,14 +161,13 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     queryset = python_models.PythonPublisher.objects.all()
     serializer_class = python_serializers.PythonPublisherSerializer
 
-    @decorators.detail_route(methods=('post',),
-                             serializer_class=python_serializers.PythonPublishSerializer)
+    @decorators.detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         """
         Dispatches a publish task.
         """
         publisher = self.get_object()
-        serializer = python_serializers.PythonPublishSerializer(
+        serializer = RepositoryPublishURLSerializer(
             data=request.data,
             context={'request': request}
         )
