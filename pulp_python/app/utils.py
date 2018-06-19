@@ -3,15 +3,15 @@ import json
 
 def parse_project_metadata(project):
     """
-    Create a dictionary of python project metadata
+    Create a dictionary of python project metadata.
 
     Args:
-        project (dict): of metadata relevant to the entire Python project
+        project (dict): Metadata relevant to the entire Python project
 
     Returns:
         dictionary: of python project metadata
-    """
 
+    """
     package = {}
     package['name'] = project.get('name') or ""
     package['metadata_version'] = project.get('metadata_version') or ""
@@ -39,18 +39,20 @@ def parse_project_metadata(project):
 
 def parse_metadata(project, version, distribution):
     """
+    Extract metadata from a distribution.
+
     Create a dictionary of metadata needed to create a PythonContentUnit from
-    the project, version, and distribution metadata
+    the project, version, and distribution metadata.
 
     Args:
-        project (dict): of metadata relevant to the entire Python project
-        version (string): version of distribution
-        distribution (dict): of metadata of a single Python distribution
+        project (dict): Metadata relevant to the entire Python project
+        version (string): Version of distribution
+        distribution (dict): Metadata of a single Python distribution
 
     Returns:
         dictionary: of useful python metadata
-    """
 
+    """
     package = {}
 
     package['filename'] = distribution.get('filename') or ""

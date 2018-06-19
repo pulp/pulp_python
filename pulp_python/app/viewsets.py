@@ -1,7 +1,7 @@
-from gettext import gettext as _
 import os
-import tempfile
+from gettext import gettext as _
 import shutil
+import tempfile
 
 from django.db import transaction
 from django_filters.rest_framework import filterset
@@ -10,7 +10,7 @@ from rest_framework import decorators, status, serializers
 from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import RepositoryVersion, Artifact
+from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     RepositoryPublishURLSerializer,
     RepositorySyncURLSerializer,
@@ -40,6 +40,10 @@ DIST_TYPES = {
 
 
 class PythonPackageContentFilter(filterset.FilterSet):
+    """
+    FilterSet for PythonPackageContent.
+    """
+
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
@@ -63,6 +67,9 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
 
     @transaction.atomic
     def create(self, request):
+        """
+        Create a new PythonPackageContent from a request.
+        """
         try:
             artifact = self.get_resource(request.data['artifact'], Artifact)
         except KeyError:
@@ -84,9 +91,10 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
                     metadata.packagetype = packagetype
                     break
         else:
-            raise serializers.ValidationError(_("Extension on {} is not a valid python"
-                                                " extension (.whl, .exe, .egg, .tar.gz, .tar.bz2, "
-                                                ".zip)").format(filename))
+            raise serializers.ValidationError(_(
+                "Extension on {} is not a valid python extension "
+                "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(filename)
+            )
 
         data = parse_project_metadata(vars(metadata))
         data['classifiers'] = [{'name': classifier} for classifier in metadata.classifiers]
@@ -104,6 +112,10 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
 
 
 class PythonRemoteFilter(filterset.FilterSet):
+    """
+    FilterSet for PythonRemote.
+    """
+
     class Meta:
         model = python_models.PythonRemote
         fields = {
@@ -116,8 +128,8 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     """
     A ViewSet for PythonRemote.
 
-    Similar to the PythonContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
+    Similar to the PythonContentViewSet above, define endpoint_name, queryset and serializer,
+    at a minimum.
     """
 
     endpoint_name = 'python'

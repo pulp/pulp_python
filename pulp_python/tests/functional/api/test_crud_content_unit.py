@@ -1,6 +1,6 @@
+from random import choice
 import unittest
 from unittest import skip
-from random import choice
 
 from requests.exceptions import HTTPError
 
@@ -15,7 +15,11 @@ from pulp_smash.pulp3.utils import (
 )
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_PYPI_URL, PYTHON_REMOTE_PATH, PYTHON_URL, PYTHON_CONTENT_PATH)
+    PYTHON_CONTENT_PATH,
+    PYTHON_PYPI_URL,
+    PYTHON_REMOTE_PATH,
+    PYTHON_URL,
+)
 from pulp_python.tests.functional.utils import gen_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 

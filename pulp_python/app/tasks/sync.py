@@ -29,6 +29,17 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
 def sync(remote_pk, repository_pk):
+    """
+    Sync content from remote repository.
+
+    Args:
+        remote_pk (str): PK of the remote to use
+        repository_pk (str): PK of the repository to sync into
+
+    Raises:
+        serializers: ValidationError
+
+    """
     remote = python_models.PythonRemote.objects.get(pk=remote_pk)
     repository = models.Repository.objects.get(pk=repository_pk)
 
@@ -61,30 +72,37 @@ def sync(remote_pk, repository_pk):
 
 def _fetch_inventory(version):
     """
-    Fetch the contentunits in the specified repository version
+    Fetch the contentunits in the specified repository version.
 
     Args:
-        version (pulpcore.plugin.models.RepositoryVersion): version of repository to fetch
+        version (pulpcore.plugin.models.RepositoryVersion): Version of repository to fetch
             content units from
 
     Returns:
         set: of contentunit filenames.
+
     """
     inventory = set()
     if version:
-        for content in python_models.PythonPackageContent.objects.filter(
-                pk__in=version.content).only("filename"):
+        content_for_version = python_models.PythonPackageContent.objects.filter(
+            pk__in=version.content).only("filename")
+
+        for content in content_for_version:
             inventory.add(content.filename)
     return inventory
 
 
 def _fetch_specified_metadata(remote, project_specifiers):
     """
-    Fetch content units matching the project specifiers available in
-    the remote repository.
+    Fetch metadata for content units matching project specifiers from the remote.
+
+    Args:
+        project_specifiers (dict): Information about a project and which versions of a project
+            to filter
 
     Returns:
         list: of contentunit metadata.
+
     """
     remote_units = []
     for project in project_specifiers:
@@ -119,27 +137,26 @@ def _fetch_specified_metadata(remote, project_specifiers):
                     else:
                         for type, digest in package['digests'].items():
                             if digests.filter(type=type, digest=digest).exists():
-                                remote_units.append(parse_metadata(metadata['info'],
-                                                                   version,
-                                                                   package))
+                                remote_units.append(
+                                    parse_metadata(metadata['info'], version, package)
+                                )
                                 break
     return remote_units
 
 
 def _find_delta(inventory, remote):
     """
-    Using the existing and remote set of filenames, determine the set of content to be
-    added and deleted from the repository.
+    Determine the set of content to be added and deleted from the repository.
 
     Parameters:
-        inventory (set): existing natural keys (filename) of content associated
+        inventory (set): Existing natural keys (filename) of content associated
             with the repository
-        remote (set): metadata keys (filename) of packages on the remote index
+        remote (set): Metadata keys (filename) of packages on the remote index
 
     Returns:
         Delta (namedtuple): tuple of content to add, and content to remove from the repository
-    """
 
+    """
     additions = remote - inventory
     removals = inventory - remote
 
@@ -151,11 +168,12 @@ def _build_additions(delta, remote_metadata):
     Generate the content to be added.
 
     Args:
-        delta (namedtuple): tuple of content to add, and content to remove from the repository
-        remote_metadata (list): list of contentunit metadata
+        delta (namedtuple): Tuple of content to add, and content to remove from the repository
+        remote_metadata (list): List of contentunit metadata
 
     Returns:
         The PythonPackageContent to be added to the repository.
+
     """
     def generate():
         for entry in remote_metadata:
@@ -170,7 +188,8 @@ def _build_additions(delta, remote_metadata):
                 package,
                 artifacts={
                     PendingArtifact(model=artifact, url=url, relative_path=entry['filename'])
-                })
+                }
+            )
             yield content
 
     return SizedIterable(generate(), len(delta.additions))
@@ -181,11 +200,13 @@ def _build_removals(delta, version):
     Generate the content to be removed.
 
     Args:
-        delta (namedtuple): tuple of content to add, and content to remove from the repository
-        version (pulpcore.plugin.models.RepositoryVersion): of repository to remove contents
-            from
+        delta (namedtuple): Tuple of content to add, and content to remove from the repository
+        version (pulpcore.plugin.models.RepositoryVersion): Version of repository to remove
+            contents from
+
     Returns:
         The PythonPackageContent to be removed from the repository.
+
     """
     def generate():
         for removals in BatchIterator(delta.removals):
