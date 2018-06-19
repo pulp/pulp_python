@@ -250,21 +250,69 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     A Serializer for PythonRemote.
     """
 
-    projects = ProjectSpecifierSerializer(
+    includes = ProjectSpecifierSerializer(
         required=False,
-        many=True
+        many=True,
+    )
+    excludes = ProjectSpecifierSerializer(
+        required=False,
+        many=True,
+    )
+    prereleases = serializers.BooleanField(
+        required=False,
+        help_text=_('Whether or not to include pre-release packages in the sync.')
     )
 
     class Meta:
-        fields = core_serializers.RemoteSerializer.Meta.fields + ('projects',)
+        fields = core_serializers.RemoteSerializer.Meta.fields + (
+            'includes', 'excludes', 'prereleases'
+        )
         model = python_models.PythonRemote
+
+    def gen_specifiers(self, remote, includes, excludes):
+        """
+        Generate include and exclude project specifiers.
+
+        Common code for update and create actions.
+
+        Args:
+            remote (PythonRemote): The remote to generate ProjectSpecifiers for
+            includes (list): A list of validated ProjectSpecifier dicts
+            excludes (list): A list of validated ProjectSpecifier dicts
+        """
+        for project in includes:
+            digests = project.pop('digests', None)
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=remote,
+                exclude=False,
+                **project
+            )
+            if digests:
+                for digest in digests:
+                    python_models.DistributionDigest.objects.create(
+                        project_specifier=specifier,
+                        **digest
+                    )
+        for project in excludes:
+            digests = project.pop('digests', None)
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=remote,
+                exclude=True,
+                **project
+            )
+            if digests:
+                for digest in digests:
+                    python_models.DistributionDigest.objects.create(
+                        project_specifier=specifier,
+                        **digest
+                    )
 
     @transaction.atomic
     def update(self, instance, validated_data):
         """
         Update a PythonRemote.
 
-        Overriding default update() to write the projects nested field
+        Overriding default update() to write the projects nested field.
 
         Args:
             instance (models.PythonRemote): instance of the python remote to update
@@ -274,22 +322,22 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             models.PythonRemote: the updated PythonRemote
 
         """
-        projects = validated_data.pop('projects', [])
+        includes = validated_data.pop('includes', [])
+        excludes = validated_data.pop('excludes', [])
 
         python_remote = python_models.PythonRemote.objects.get(pk=instance.pk)
 
         # Remove all project specifier related by foreign key to the remote if it is not a
         # partial update or if new projects list has been passed
-        if not self.partial or projects:
-            python_models.ProjectSpecifier.objects.filter(remote=python_remote).delete()
+        if not self.partial or includes:
+            python_models.ProjectSpecifier.objects.filter(remote=python_remote,
+                                                          exclude=False).delete()
 
-        for project in projects:
-            digests = project.pop('digests', [])
-            specifier = python_models.ProjectSpecifier.objects.create(remote=python_remote,
-                                                                      **project)
-            for digest in digests:
-                python_models.DistributionDigest.objects.create(project_specifier=specifier,
-                                                                **digest)
+        if not self.partial or excludes:
+            python_models.ProjectSpecifier.objects.filter(remote=python_remote,
+                                                          exclude=True).delete()
+
+        self.gen_specifiers(python_remote, includes, excludes)
 
         return super().update(instance, validated_data)
 
@@ -307,17 +355,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             models.PythonRemote: the created PythonRemote
 
         """
-        projects = validated_data.pop('projects', [])
+        includes = validated_data.pop('includes', [])
+        excludes = validated_data.pop('excludes', [])
 
         python_remote = python_models.PythonRemote.objects.create(**validated_data)
-        for project in projects:
-            digests = project.pop('digests', None)
-            specifier = python_models.ProjectSpecifier.objects.create(remote=python_remote,
-                                                                      **project)
-            if digests:
-                for digest in digests:
-                    python_models.DistributionDigest.objects.create(project_specifier=specifier,
-                                                                    **digest)
+        self.gen_specifiers(python_remote, includes, excludes)
 
         return python_remote
 

@@ -29,8 +29,8 @@ class Classifier(Model):
 
     Relations:
 
-        python_package_content (models.ForeignKey): The PythonPackageContent this classifier
-        is associated with.
+        python_package_content (models.ForeignKey):
+            The PythonPackageContent this classifier is associated with.
     """
 
     name = models.TextField()
@@ -75,17 +75,27 @@ class ProjectSpecifier(Model):
 
         name (models.TextField): The name of a python project
         version_specifier (models.TextField):  Used to filter the versions of a project to sync
+        exclude (models.BooleanField): Whether the specified projects should excluded or included
+
+    Relations:
+
         remote (models.ForeignKey): The remote this project specifier is associated with
+        include (models.BooleanField): Used to blacklist/whitelist projects to sync
     """
 
     name = models.TextField()
     version_specifier = models.TextField(blank=True, default="")
+    exclude = models.BooleanField(blank=True, default=False)
+
     remote = models.ForeignKey(
         "PythonRemote",
         related_name="projects",
         related_query_name="projectspecifier",
         on_delete=models.CASCADE
     )
+
+    class Meta:
+        unique_together = ('name', 'version_specifier', 'exclude', 'remote')
 
 
 class PythonPackageContent(Content):
@@ -164,6 +174,25 @@ class PythonPublisher(Publisher):
 class PythonRemote(Remote):
     """
     A Remote for Python Content.
+
+    Fields:
+
+        prereleases (models.BooleanField): Whether to sync pre-release versions of packages.
     """
 
     TYPE = 'python'
+    prereleases = models.BooleanField(default=False, blank=True)
+
+    @property
+    def includes(self):
+        """
+        Specify include list.
+        """
+        return ProjectSpecifier.objects.filter(remote=self, exclude=False)
+
+    @property
+    def excludes(self):
+        """
+        Specify exclude list.
+        """
+        return ProjectSpecifier.objects.filter(remote=self, exclude=True)

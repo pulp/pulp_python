@@ -19,6 +19,8 @@ PYTHON_FIXTURES_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 PYPI_URL = "https://pypi.org/"
 
 
+PYTHON_EMPTY_PROJECT_SPECIFIER = []
+
 PYTHON_XS_PROJECT_SPECIFIER = [
     {"name": "shelf-reader", "version_specifier": "", "digests": []}  # matches 2
 ]

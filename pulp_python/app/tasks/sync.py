@@ -1,10 +1,11 @@
-import itertools
+import collections
 import json
 import logging
 
 from gettext import gettext as _
 from urllib.parse import urljoin
 
+from aiohttp.client_exceptions import ClientResponseError
 from packaging import specifiers
 from rest_framework import serializers
 
@@ -82,19 +83,37 @@ class PythonFirstStage(Stage):
             out_q (asyncio.Queue): The out_q to send `DeclarativeContent` objects to.
 
         """
-        project_specifiers = ProjectSpecifier.objects.filter(remote=self.remote)
+        ps = ProjectSpecifier.objects.filter(remote=self.remote)
 
         with ProgressBar(message='Fetching Project Metadata') as pb:
             # Group multiple specifiers to the same project together, so that we only have to fetch
             # the metadata once, and can re-use it if there are multiple specifiers.
-            for name, project_specifiers in itertools.groupby(project_specifiers,
-                                                              key=lambda x: x.name):
+            for name, project_specifiers in groupby_unsorted(ps, key=lambda x: x.name):
                 # Fetch the metadata from PyPI
-                metadata = await self.get_project_metadata(name)
                 pb.increment()
+                try:
+                    metadata = await self.get_project_metadata(name)
+                except ClientResponseError as e:
+                    # Project doesn't exist, log a message and move on
+                    log.info(_("HTTP 404 'Not Found' for url '{url}'\n"
+                               "Does project '{name}' exist on the remote repository?").format(
+                        url=e.request_info.url,
+                        name=name
+                    ))
+                    continue
+                project_specifiers = list(project_specifiers)
 
                 # Determine which packages from the project match the criteria in the specifiers
-                packages = await self.get_relevant_packages(metadata, project_specifiers)
+                packages = await self.get_relevant_packages(
+                    metadata=metadata,
+                    includes=[
+                        specifier for specifier in project_specifiers if not specifier.exclude
+                    ],
+                    excludes=[
+                        specifier for specifier in project_specifiers if specifier.exclude
+                    ],
+                    prereleases=self.remote.prereleases
+                )
 
                 # For each package, create Declarative objects to pass into the next stage
                 for entry in packages:
@@ -128,7 +147,7 @@ class PythonFirstStage(Stage):
         with open(downloader.path) as metadata_file:
             return json.load(metadata_file)
 
-    async def get_relevant_packages(self, metadata, project_specifiers):
+    async def get_relevant_packages(self, metadata, includes, excludes, prereleases):
         """
         Provided project metadata and specifiers, return the matching packages.
 
@@ -137,64 +156,108 @@ class PythonFirstStage(Stage):
 
         Args:
             metadata (dict): Metadata about the project from PyPI.
-            project_specifiers (iterable): An iterable of project_specifiers.
+            includes (iterable): An iterable of project_specifiers for package versions to include.
+            excludes (iterable): An iterable of project_specifiers for package versions to exclude.
+            prereleases (bool): Whether or not to include pre-release package versions in the sync.
 
         Returns:
             list: List of dictionaries containing Python package metadata
 
         """
+        # The set of project release metadata, in the format {"version": [package1, package2, ...]}
+        releases = metadata['releases']
+        # The packages we want to return
         remote_packages = []
-        # If there is than one specifier, then there is a possibility that they may overlap,
-        # which means we need to do extra checks for deduplication.
-        cache = set()
 
-        for project_specifier in project_specifiers:
-            digests = DistributionDigest.objects.filter(project_specifier=project_specifier)
+        # Delete versions/packages matching the exclude specifiers.
+        for exclude_specifier in excludes:
+            exclude_digests = DistributionDigest.objects.filter(project_specifier=exclude_specifier)
 
-            # Happy path! Very speed, much fast!
-            # Add all of the packages in the project without any further checks, apart from dedup.
-            if not (project_specifier.version_specifier or digests.exists()):
-                for version, packages in metadata['releases'].items():
-                    for package in packages:
-                        # deduplicate
-                        if package['filename'] in cache:
-                            continue
+            # Fast path: If one of the specifiers matches all versions and we don't have any
+            # digests to reference, clear the whole dict, we're done.
+            if not (exclude_specifier.version_specifier or exclude_digests.exists()):
+                releases.clear()
+                break
 
-                        package_metadata = parse_metadata(metadata['info'], version, package)
-                        remote_packages.append(package_metadata)
-                        cache.add(package['filename'])
-
-                return remote_packages
-
-            # (else) we actually have to check the metadata... :(
-            for version, packages in metadata['releases'].items():
-                for package in packages:
-                    # deduplicate
-                    if package['filename'] in cache:
-                        continue
-
-                    specifier = specifiers.SpecifierSet(project_specifier.version_specifier)
-                    # Note: SpecifierSet("").contains(version) will return True for
-                    # released versions
-                    # SpecifierSet("").contains('3.0.0') returns True
-                    # SpecifierSet("").contains('3.0.0b1') returns False
-                    if specifier.contains(version):
-
-                        # add the package if the project specifier does not have an
-                        # associated digest
-                        if not digests.exists():
-                            package_metadata = parse_metadata(metadata['info'], version, package)
-                            remote_packages.append(package_metadata)
-                            cache.add(package['filename'])
-
-                        # otherwise check each digest to see if it matches the specifier
-                        else:
+            # Slow path: We have to check all the metadata.
+            for version, packages in list(releases.items()):  # Prevent iterator invalidation.
+                specifier = specifiers.SpecifierSet(
+                    exclude_specifier.version_specifier,
+                    prereleases=prereleases
+                )
+                # First check the version specifer, if it matches, check the digests and delete
+                # matching packages. If there are no digests, delete them all.
+                if specifier.contains(version):
+                    if exclude_digests.exists():
+                        new_packages = []
+                        for package in packages:
                             for digest_type, digest in package['digests'].items():
-                                if digests.filter(type=digest_type, digest=digest).exists():
-                                    package_metadata = parse_metadata(
-                                        metadata['info'], version, package
+                                if not exclude_digests.filter(digest_type=digest_type,
+                                                              digest=digest).exists():
+                                    new_packages.append(package)
+                        releases[version] = new_packages
+                    else:
+                        del releases[version]
+
+        for version, packages in releases.items():
+            for include_specifier in includes:
+                include_digests = DistributionDigest.objects.filter(
+                    project_specifier=include_specifier
+                )
+                # Fast path: If one of the specifiers matches all versions and we don't have any
+                # digests to reference, return all of the packages for the version.
+                if prereleases and not \
+                        (include_specifier.version_specifier or include_digests.exists()):
+                    for package in packages:
+                        remote_packages.append(parse_metadata(metadata['info'], version, package))
+                    # This breaks the inner loop, e.g. don't check any other include_specifiers.
+                    # We want to continue the outer loop.
+                    break
+
+                specifier = specifiers.SpecifierSet(
+                    include_specifier.version_specifier,
+                    prereleases=prereleases
+                )
+
+                # First check the version specifer, if it matches, check the digests and include
+                # matching packages. If there are no digests, include them all.
+                if specifier.contains(version):
+                    if include_digests.exists():
+                        for package in packages:
+                            for digest_type, digest in package['digests'].items():
+                                if include_digests.filter(type=digest_type, digest=digest).exists():
+                                    remote_packages.append(
+                                        parse_metadata(metadata['info'], version, package)
                                     )
-                                    remote_packages.append(package_metadata)
-                                    cache.add(package['filename'])
                                     break
+                        remote_packages.append(parse_metadata(metadata['info'], version, package))
+                    else:
+                        for package in packages:
+                            remote_packages.append(
+                                parse_metadata(metadata['info'], version, package)
+                            )
         return remote_packages
+
+
+def groupby_unsorted(seq, key=lambda x: x):
+    """
+    Group items by a key.
+
+    This function is similar to itertools.groupby() except it doesn't choke when grouping
+    non-consecutive items together.
+
+    From: http://code.activestate.com/recipes/580800-groupby-for-unsorted-input/#c1
+
+    Args:
+        seq: A sequence
+        key: A key function to sort by (default: {lambda x: x})
+
+    Yields:
+        Groups in the format tuple(group_key, [*items])
+
+    """
+    indexes = collections.defaultdict(list)
+    for i, elem in enumerate(seq):
+        indexes[key(elem)].append(i)
+    for k, idxs in indexes.items():
+        yield k, (seq[i] for i in idxs)

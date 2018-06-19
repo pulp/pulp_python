@@ -49,6 +49,7 @@ class PythonPackageContentFilter(platform.BaseFilterSet):
         model = python_models.PythonPackageContent
         fields = {
             'type': ['exact', 'in'],
+            'name': ['exact', 'in'],
             'author': ['exact', 'in'],
             'packagetype': ['exact', 'in'],
             'filename': ['exact', 'in', 'contains'],
@@ -65,7 +66,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
-    filter_class = PythonPackageContentFilter
+    filterset_class = PythonPackageContentFilter
 
     @transaction.atomic
     def create(self, request):
@@ -137,7 +138,7 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
-    filter_class = PythonRemoteFilter
+    filterset_class = PythonRemoteFilter
 
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to sync python content.",
