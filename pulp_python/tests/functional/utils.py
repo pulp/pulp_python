@@ -24,7 +24,13 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'}, SkipTest)
 
 
-def gen_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **kwargs):
+def gen_remote(
+        url=PYTHON_FIXTURES_URL,
+        projects=PYTHON_XS_PROJECT_SPECIFIER,
+        includes=PYTHON_XS_PROJECT_SPECIFIER,
+        excludes=[],
+        **kwargs
+):
     """
     Return a semi-random dict for use in creating an remote.
 
@@ -36,6 +42,7 @@ def gen_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **
     return {
         'name': str(uuid.uuid4()),
         'projects': projects,
+        'includes': includes,
         'url': url,
         **kwargs,
     }
