@@ -18,7 +18,7 @@ def set_up_module():
     """
     Skip tests Pulp 3 isn't under test or if pulp-python isn't installed.
     """
-    utils.require_pulp_3(SkipTest)
+    utils.require_pulp_3()
     utils.require_pulp_plugins({'pulp_python'}, SkipTest)
 
 
