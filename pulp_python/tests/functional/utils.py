@@ -1,5 +1,4 @@
 import uuid
-from unittest import SkipTest
 
 from pulp_smash import api
 from pulp_smash.tests.pulp3 import utils
@@ -19,7 +18,7 @@ def set_up_module():
     Skip tests Pulp 3 isn't under test or if pulp-python isn't installed.
     """
     utils.require_pulp_3()
-    utils.require_pulp_plugins({'pulp_python'}, SkipTest)
+    utils.require_pulp_plugins({'pulp_python'})
 
 
 def gen_remote(url=PYTHON_PYPI_URL, **kwargs):

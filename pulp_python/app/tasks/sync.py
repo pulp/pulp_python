@@ -30,13 +30,11 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 
 def sync(remote_pk, repository_pk):
     """
-    Sync content from the remote repository.
-
-    Create a new version of the repository that is synchronized with the remote.
+    Sync content from remote repository.
 
     Args:
-        remote_pk (str): The remote PK.
-        repository_pk (str): The repository PK.
+        remote_pk (str): PK of the remote to use
+        repository_pk (str): PK of the repository to sync into
 
     Raises:
         serializers: ValidationError
