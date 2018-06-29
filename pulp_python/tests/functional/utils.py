@@ -1,6 +1,9 @@
 import uuid
 
-from pulp_smash import api
+from functools import partial
+from unittest import SkipTest
+
+from pulp_smash import api, selectors
 from pulp_smash.tests.pulp3 import utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import gen_repo, sync
@@ -17,8 +20,8 @@ def set_up_module():
     """
     Skip tests Pulp 3 isn't under test or if pulp-python isn't installed.
     """
-    utils.require_pulp_3()
-    utils.require_pulp_plugins({'pulp_python'})
+    utils.require_pulp_3(SkipTest)
+    utils.require_pulp_plugins({'pulp_python'}, SkipTest)
 
 
 def gen_remote(url=PYTHON_PYPI_URL, **kwargs):
@@ -75,3 +78,6 @@ def populate_pulp(cfg, url=None):
         if repo:
             client.delete(repo['_href'])
     return client.get(PYTHON_CONTENT_PATH)['results']
+
+
+skip_if = partial(selectors.skip_if, exc=SkipTest)

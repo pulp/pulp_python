@@ -21,4 +21,12 @@ PYTHON_PYPI_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 
 PYTHON_PACKAGE_COUNT = 2
 
-PYTHON_URL = urljoin(PYTHON_PYPI_URL, '.....')  # TODO
+PYTHON_EGG_URL = urljoin(
+    PYTHON_PYPI_URL,
+    'packages/shelf-reader-0.1.tar.gz'
+)
+
+PYTHON_WHEEL_URL = urljoin(
+    PYTHON_PYPI_URL,
+    'packages/shelf_reader-0.1-py2-none-any.whl'
+)

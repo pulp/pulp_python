@@ -21,7 +21,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_PYPI_URL,
     PYTHON_REMOTE_PATH
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher
+from pulp_python.tests.functional.utils import gen_remote, gen_publisher, skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
@@ -61,7 +61,7 @@ class PublicationsTestCase(unittest.TestCase):
             publish(self.cfg, self.publisher, self.repo)
         )
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_02_read_publication(self):
         """Read a publication by its href."""
         publication = self.client.get(self.publication['_href'])
@@ -69,7 +69,7 @@ class PublicationsTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(publication[key], val)
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_02_read_publications(self):
         """Read a publication by its repository version."""
         publications = self.client.get(PUBLICATIONS_PATH, params={
@@ -80,7 +80,7 @@ class PublicationsTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(publications[0][key], val)
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_03_read_publications(self):
         """Read a publication by its publisher."""
         publications = self.client.get(PUBLICATIONS_PATH, params={
@@ -91,7 +91,7 @@ class PublicationsTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(publications[0][key], val)
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_04_read_publications(self):
         """Read a publication by its created time."""
         publications = self.client.get(PUBLICATIONS_PATH, params={
@@ -102,7 +102,7 @@ class PublicationsTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(publications[0][key], val)
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_05_read_publications(self):
         """Read a publication by its distribution."""
         body = gen_distribution()
@@ -118,7 +118,7 @@ class PublicationsTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(publications[0][key], val)
 
-    @selectors.skip_if(bool, 'publication', False)
+    @skip_if(bool, 'publication', False)
     def test_06_delete(self):
         """Delete a publication."""
         if not selectors.bug_is_fixed(3354, self.cfg.pulp_version):

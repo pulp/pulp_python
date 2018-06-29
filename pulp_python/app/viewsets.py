@@ -105,7 +105,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        self.perform_create(serializer)
 
         headers = self.get_success_headers(request.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -127,9 +127,6 @@ class PythonRemoteFilter(filterset.FilterSet):
 class PythonRemoteViewSet(platform.RemoteViewSet):
     """
     A ViewSet for PythonRemote.
-
-    Similar to the PythonContentViewSet above, define endpoint_name, queryset and serializer,
-    at a minimum.
     """
 
     endpoint_name = 'python'
@@ -164,9 +161,6 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
 class PythonPublisherViewSet(platform.PublisherViewSet):
     """
     A ViewSet for PythonPublisher.
-
-    Similar to the PythonContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
     """
 
     endpoint_name = 'python'

@@ -5,7 +5,7 @@ from random import choice, randint, sample
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, selectors, config, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
 from pulp_smash.tests.pulp3.utils import (
     gen_repo,
@@ -27,7 +27,12 @@ from pulp_python.tests.functional.constants import (
     PYTHON_PUBLISHER_PATH,
     PYTHON_PACKAGE_COUNT
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher, populate_pulp
+from pulp_python.tests.functional.utils import (
+    gen_remote,
+    gen_publisher,
+    populate_pulp,
+    skip_if
+)
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
@@ -82,7 +87,7 @@ class AddRemoveContentTestCase(unittest.TestCase):
 
         self.assertIsNone(self.repo['_latest_version_href'])
 
-    @selectors.skip_if(bool, 'repo', False)
+    @skip_if(bool, 'repo', False)
     def test_02_sync_content(self):
         """Sync content into the repository.
 
@@ -118,7 +123,7 @@ class AddRemoveContentTestCase(unittest.TestCase):
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT})
 
     @skip("unknown reason for failure")
-    @selectors.skip_if(bool, 'repo', False)
+    @skip_if(bool, 'repo', False)
     def test_03_remove_content(self):
         """Remove content from the repository.
 
@@ -150,7 +155,7 @@ class AddRemoveContentTestCase(unittest.TestCase):
         self.assertEqual(content_summary, {'python': PYTHON_PACKAGE_COUNT - 1})
 
     @skip("unknown reason for failure")
-    @selectors.skip_if(bool, 'repo', False)
+    @skip_if(bool, 'repo', False)
     def test_04_add_content(self):
         """Add content to the repository.
 
