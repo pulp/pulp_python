@@ -12,13 +12,17 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 
 
 class CRUDPublishersTestCase(unittest.TestCase):
-    """CRUD publishers."""
+    """
+    CRUD publishers.
+    """
 
     @classmethod
     def setUpClass(cls):
-        """Create class-wide variables.
+        """
+        Create class-wide variables.
 
         In order to create a publisher a repository has to be created first.
+
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
@@ -28,11 +32,15 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Clean class-wide variable."""
+        """
+        Clean class-wide variable.
+        """
         cls.client.delete(cls.repo['_href'])
 
     def test_01_create_publisher(self):
-        """Create a publisher."""
+        """
+        Create a publisher.
+        """
         body = gen_publisher()
         type(self).publisher = self.client.post(PYTHON_PUBLISHER_PATH, body)
         for key, val in body.items():
@@ -41,10 +49,12 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_02_create_same_name(self):
-        """Try to create a second publisher with an identical name.
+        """
+        Try to create a second publisher with an identical name.
 
         See: `Pulp Smash #1055
         <https://github.com/PulpQE/pulp-smash/issues/1055>`_.
+
         """
         body = gen_publisher()
         body['name'] = self.publisher['name']
@@ -53,7 +63,9 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_02_read_publisher(self):
-        """Read a publisher by its href."""
+        """
+        Read a publisher by its href.
+        """
         publisher = self.client.get(self.publisher['_href'])
         for key, val in self.publisher.items():
             with self.subTest(key=key):
@@ -61,7 +73,9 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_02_read_publishers(self):
-        """Read a publisher by its name."""
+        """
+        Read a publisher by its name.
+        """
         page = self.client.get(PYTHON_PUBLISHER_PATH, params={
             'name': self.publisher['name']
         })
@@ -72,7 +86,9 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_03_partially_update(self):
-        """Update a publisher using HTTP PATCH."""
+        """
+        Update a publisher using HTTP PATCH.
+        """
         body = gen_publisher()
         self.client.patch(self.publisher['_href'], body)
         type(self).publisher = self.client.get(self.publisher['_href'])
@@ -82,7 +98,9 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_04_fully_update(self):
-        """Update a publisher using HTTP PUT."""
+        """
+        Update a publisher using HTTP PUT.
+        """
         body = gen_publisher()
         self.client.put(self.publisher['_href'], body)
         type(self).publisher = self.client.get(self.publisher['_href'])
@@ -92,7 +110,9 @@ class CRUDPublishersTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publisher', False)
     def test_05_delete(self):
-        """Delete a publisher."""
+        """
+        Delete a publisher.
+        """
         self.client.delete(self.publisher['_href'])
         with self.assertRaises(HTTPError):
             self.client.get(self.publisher['_href'])

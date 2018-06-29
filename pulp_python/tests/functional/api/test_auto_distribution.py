@@ -1,11 +1,10 @@
-# import hashlib
+import hashlib
 import unittest
-from unittest import skip
 from urllib.parse import urljoin
 
 from requests import HTTPError
 
-from pulp_smash import api, config
+from pulp_smash import api, config, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH, DISTRIBUTION_PATH
 from pulp_smash.tests.pulp3.utils import (
     delete_orphans,
@@ -21,34 +20,37 @@ from pulp_smash.tests.pulp3.utils import (
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_PUBLISHER_PATH,
-    PYTHON_PYPI_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
+from pulp_python.tests.functional.constants import PYTHON_WHEEL_URL
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, populate_pulp
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
-# from pulp_smash.constants import FILE_URL
 
-
-@skip("needs better fixtures")
 class AutoDistributionTestCase(unittest.TestCase):
-    """Test auto distribution."""
+    """
+    Test auto distribution.
+    """
 
     @classmethod
     def setUpClass(cls):
-        """Create class-wide variables.
+        """
+        Create class-wide variables.
 
         Add content to Pulp.
+
         """
         cls.cfg = config.get_config()
         delete_orphans(cls.cfg)
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()
-        populate_pulp(cls.cfg, PYTHON_PYPI_URL)
-        cls.contents = cls.client.get(PYTHON_CONTENT_PATH)['results'][:2]
+        populate_pulp(cls.cfg, PYTHON_FIXTURES_URL)
+        cls.contents = cls.client.get(PYTHON_CONTENT_PATH)['results']
 
     def test_repo_auto_distribution(self):
-        """Test auto distribution of a repository.
+        """
+        Test auto distribution of a repository.
 
         This test targets the following issue:
 
@@ -58,7 +60,7 @@ class AutoDistributionTestCase(unittest.TestCase):
 
         1. Create a repository that has at least one repository version.
         2. Create a publisher.
-        3. Create a distribution and set the repository and publishera to the
+        3. Create a distribution and set the repository and publisher to the
            previous created ones.
         4. Create a publication using the latest repository version.
         5. Assert that the previous distribution has a  ``publication`` set as
@@ -71,6 +73,7 @@ class AutoDistributionTestCase(unittest.TestCase):
         9. Verify that content added in the step 7 is now available to download
            from distribution, and verify that the content unit has the same
            checksum when fetched directly from Pulp-Fixtures.
+
         """
         self.assertGreaterEqual(len(self.contents), 2, self.contents)
 
@@ -94,8 +97,7 @@ class AutoDistributionTestCase(unittest.TestCase):
         distribution = self.client.post(DISTRIBUTION_PATH, body)
         self.addCleanup(self.client.delete, distribution['_href'])
         last_version_href = get_versions(repo)[-1]['_href']
-        publication = publish(
-            self.cfg, publisher, repo, last_version_href)
+        publication = publish(self.cfg, publisher, repo, last_version_href)
         self.addCleanup(self.client.delete, publication['_href'])
         distribution = self.client.get(distribution['_href'])
 
@@ -109,37 +111,42 @@ class AutoDistributionTestCase(unittest.TestCase):
         )
         repo = self.client.get(repo['_href'])
         last_version_href = get_versions(repo)[-1]['_href']
-        publication = publish(
-            self.cfg, publisher, repo, last_version_href)
+        publication = publish(self.cfg, publisher, repo, last_version_href)
         self.addCleanup(self.client.delete, publication['_href'])
         distribution = self.client.get(distribution['_href'])
 
         # Assert that distribution was updated as per step 8.
         self.assertEqual(distribution['publication'], publication['_href'])
-        unit_path = get_added_content(repo, last_version_href)[0]['relative_path']
-        unit_url = self.cfg.get_systems('api')[0].roles['api']['scheme']
-        unit_url += '://' + distribution['base_url'] + '/'
-        unit_url = urljoin(unit_url, unit_path)
+
+        unit_path = get_added_content(repo, last_version_href)[0]['artifact']
+        unit_url = urljoin(self.cfg.get_base_url(), unit_path)
 
         self.client.response_handler = api.safe_handler
-        # pulp_hash = hashlib.sha256(self.client.get(unit_url).content).hexdigest()
-        # fixtures_hash = hashlib.sha256(utils.http_get(urljoin(FILE_URL, unit_path))).hexdigest()
+        pulp_hash = hashlib.sha256(self.client.get(unit_url).content).hexdigest()
+        fixtures_hash = hashlib.sha256(
+            utils.http_get(PYTHON_WHEEL_URL)
+        ).hexdigest()
 
         # Verify checksum. Step 9.
-        # self.assertEqual(fixtures_hash, pulp_hash)
+        self.assertEqual(fixtures_hash, pulp_hash)
 
 
 class SetupAutoDistributionTestCase(unittest.TestCase):
-    """Verify the set up of parameters related to auto distribution."""
+    """
+    Verify the set up of parameters related to auto distribution.
+    """
 
     def setUp(self):
-        """Create test-wide variables."""
+        """
+        Create test-wide variables.
+        """
         self.cfg = config.get_config()
         self.client = api.Client(self.cfg, api.json_handler)
         self.client.request_kwargs['auth'] = get_auth()
 
     def test_all(self):
-        """Verify the set up of parameters related to auto distribution.
+        """
+        Verify the set up of parameters related to auto distribution.
 
         This test targets the following issues:
         * `Pulp #3295 <https://pulp.plan.io/issues/3295>`_
@@ -148,6 +155,7 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
         * `Pulp #3671 <https://pulp.plan.io/issues/3671>`_
         * `Pulp Smash #883 <https://github.com/PulpQE/pulp-smash/issues/883>`_
         * `Pulp Smash #917 <https://github.com/PulpQE/pulp-smash/issues/917>`_
+
         """
         # Create a repository and a publisher.
         repo = self.client.post(REPO_PATH, gen_repo())
@@ -176,7 +184,7 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
 
         # Publish the repository. Assert that distribution does not point to
         # the new publication (because publisher and repository are unset).
-        remote = self.client.post(PYTHON_REMOTE_PATH, gen_remote(PYTHON_PYPI_URL))
+        remote = self.client.post(PYTHON_REMOTE_PATH, gen_remote(PYTHON_FIXTURES_URL))
         self.addCleanup(self.client.delete, remote['_href'])
         sync(self.cfg, remote, repo)
         publication = publish(self.cfg, publisher, repo)
@@ -185,9 +193,11 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
         self.assertNotEqual(distribution['publication'], publication['_href'])
 
     def try_create_distribution(self, **kwargs):
-        """Unsuccessfully create a distribution.
+        """
+        Unsuccessfully create a distribution.
 
         Merge the given kwargs into the body of the request.
+
         """
         body = gen_distribution()
         body.update(kwargs)
@@ -195,9 +205,11 @@ class SetupAutoDistributionTestCase(unittest.TestCase):
             self.client.post(DISTRIBUTION_PATH, body)
 
     def try_update_distribution(self, distribution, **kwargs):
-        """Unsuccessfully update a distribution with HTTP PATCH.
+        """
+        Unsuccessfully update a distribution with HTTP PATCH.
 
         Use the given kwargs as the body of the request.
+
         """
         with self.assertRaises(HTTPError):
             self.client.patch(distribution['_href'], kwargs)

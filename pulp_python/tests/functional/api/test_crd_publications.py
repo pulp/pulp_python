@@ -18,7 +18,7 @@ from pulp_smash.tests.pulp3.utils import (
 
 from pulp_python.tests.functional.constants import (
     PYTHON_PUBLISHER_PATH,
-    PYTHON_PYPI_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, skip_if
@@ -40,7 +40,7 @@ class PublicationsTestCase(unittest.TestCase):
         cls.repo = {}
         try:
             cls.repo.update(cls.client.post(REPO_PATH, gen_repo()))
-            body = gen_remote(PYTHON_PYPI_URL)
+            body = gen_remote(PYTHON_FIXTURES_URL)
             cls.remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
             cls.publisher.update(cls.client.post(PYTHON_PUBLISHER_PATH, gen_publisher()))
             sync(cls.cfg, cls.remote, cls.repo)

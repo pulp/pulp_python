@@ -12,7 +12,7 @@ from pulp_smash.tests.pulp3.utils import (
 
 from pulp_python.tests.functional.constants import (
     PYTHON_PUBLISHER_PATH,
-    PYTHON_PYPI_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher
@@ -20,10 +20,13 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 
 
 class RemotesPublishersTestCase(unittest.TestCase):
-    """Verify publisher and remote can be used with different repos."""
+    """
+    Verify publisher and remote can be used with different repos.
+    """
 
     def test_all(self):
-        """Verify publisher and remote can be used with different repos.
+        """
+        Verify publisher and remote can be used with different repos.
 
         This test explores the design choice stated in `Pulp #3341`_ that
         remove the FK from publishers and remotes to repository.
@@ -41,12 +44,13 @@ class RemotesPublishersTestCase(unittest.TestCase):
         5. Publish both repositories using the same publisher.
         6. Assert that each generated publication has the same publisher, but
            are associated with different repositories.
+
         """
         cfg = config.get_config()
         # Create an remote and publisher.
         client = api.Client(cfg, api.json_handler)
         client.request_kwargs['auth'] = get_auth()
-        body = gen_remote(PYTHON_PYPI_URL)
+        body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())

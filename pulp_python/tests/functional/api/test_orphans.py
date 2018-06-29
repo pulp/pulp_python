@@ -1,5 +1,4 @@
 import unittest
-from unittest import skip
 from random import choice
 
 from pulp_smash import api, cli, config, utils
@@ -17,17 +16,17 @@ from pulp_smash.tests.pulp3.utils import (
 
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
-    PYTHON_PYPI_URL,
-    PYTHON_REMOTE_PATH
+    PYTHON_FIXTURES_URL,
+    PYTHON_REMOTE_PATH,
+    PYTHON_WHEEL_URL
 )
 from pulp_python.tests.functional.utils import gen_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
-from pulp_smash.constants import FILE2_URL  # TODO
-
 
 class DeleteOrphansTestCase(unittest.TestCase):
-    """Test whether orphans can be clean up.
+    """
+    Test whether orphans can be clean up.
 
     An orphan artifact is an artifact that is not in any content units.
     An orphan content unit is a content unit that is not in any repository
@@ -41,7 +40,9 @@ class DeleteOrphansTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create class-wide variables."""
+        """
+        Create class-wide variables.
+        """
         cls.cfg = config.get_config()
         cls.api_client = api.Client(cls.cfg, api.json_handler)
         cls.api_client.request_kwargs['auth'] = get_auth()
@@ -49,7 +50,8 @@ class DeleteOrphansTestCase(unittest.TestCase):
         cls.sudo = () if cli.is_root(cls.cfg) else ('sudo',)
 
     def test_clean_orphan_content_unit(self):
-        """Test whether orphan content units can be clean up.
+        """
+        Test whether orphan content units can be clean up.
 
         Do the following:
 
@@ -61,10 +63,11 @@ class DeleteOrphansTestCase(unittest.TestCase):
         4. Delete orphans.
         5. Assert that the orphan content unit was cleaned up, and its artifact
            is not present on disk.
+
         """
         repo = self.api_client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.api_client.delete, repo['_href'])
-        body = gen_remote(PYTHON_PYPI_URL)
+        body = gen_remote(PYTHON_FIXTURES_URL)
         remote = self.api_client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(self.api_client.delete, remote['_href'])
         sync(self.cfg, remote, repo)
@@ -95,12 +98,13 @@ class DeleteOrphansTestCase(unittest.TestCase):
         with self.assertRaises(CalledProcessError):
             self.cli_client.run(cmd)
 
-    @skip("needs better fixtures")
     def test_clean_orphan_artifact(self):
-        """Test whether orphan artifacts units can be clean up."""
+        """
+        Test whether orphan artifacts units can be clean up.
+        """
         repo = self.api_client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.api_client.delete, repo['_href'])
-        files = {'file': utils.http_get(FILE2_URL)}
+        files = {'file': utils.http_get(PYTHON_WHEEL_URL)}
         artifact = self.api_client.post(ARTIFACTS_PATH, files=files)
         cmd = self.sudo + ('ls', artifact['file'])
         self.cli_client.run(cmd)
