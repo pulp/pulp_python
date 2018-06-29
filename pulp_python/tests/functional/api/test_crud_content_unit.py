@@ -1,10 +1,9 @@
 from random import choice
 import unittest
-from unittest import skip
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, utils
 from pulp_smash.pulp3.constants import ARTIFACTS_PATH, REPO_PATH
 from pulp_smash.pulp3.utils import (
     delete_orphans,
@@ -18,15 +17,16 @@ from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_PYPI_URL,
     PYTHON_REMOTE_PATH,
-    PYTHON_URL,
+    PYTHON_WHEEL_URL,
 )
-from pulp_python.tests.functional.utils import gen_remote
+from pulp_python.tests.functional.utils import gen_remote, skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-@skip("better test fixtures")
+@unittest.skip("need better fixtures")
 class ContentUnitTestCase(unittest.TestCase):
-    """CRUD content unit.
+    """
+    CRUD content unit.
 
     This test targets the following issues:
 
@@ -42,7 +42,7 @@ class ContentUnitTestCase(unittest.TestCase):
         cls.content_unit = {}
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.client.request_kwargs['auth'] = get_auth()
-        packages = {'python': utils.http_get(PYTHON_URL)}
+        packages = {'python': utils.http_get(PYTHON_WHEEL_URL)}
         cls.artifact = cls.client.post(ARTIFACTS_PATH, packages=packages)
 
     @classmethod
@@ -58,7 +58,7 @@ class ContentUnitTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.content_unit[key], val)
 
-    @selectors.skip_if(bool, 'content_unit', False)
+    @skip_if(bool, 'content_unit', False)
     def test_02_read_content_unit(self):
         """Read a content unit by its href."""
         content_unit = self.client.get(self.content_unit['_href'])
@@ -66,7 +66,7 @@ class ContentUnitTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(content_unit[key], val)
 
-    @selectors.skip_if(bool, 'content_unit', False)
+    @skip_if(bool, 'content_unit', False)
     def test_02_read_content_units(self):
         """Read a content unit by its relative_path."""
         page = self.client.get(PYTHON_CONTENT_PATH, params={
@@ -77,7 +77,7 @@ class ContentUnitTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(page['results'][0][key], val)
 
-    @selectors.skip_if(bool, 'content_unit', False)
+    @skip_if(bool, 'content_unit', False)
     def test_03_partially_update(self):
         """Attempt to update a content unit using HTTP PATCH.
 
@@ -87,7 +87,7 @@ class ContentUnitTestCase(unittest.TestCase):
         with self.assertRaises(HTTPError):
             self.client.patch(self.content_unit['_href'], attrs)
 
-    @selectors.skip_if(bool, 'content_unit', False)
+    @skip_if(bool, 'content_unit', False)
     def test_03_fully_update(self):
         """Attempt to update a content unit using HTTP PUT.
 
