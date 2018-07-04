@@ -75,7 +75,10 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         except KeyError:
             raise serializers.ValidationError(detail={'artifact': _('This field is required')})
 
-        filename = request.data['filename']
+        try:
+            filename = request.data['filename']
+        except KeyError:
+            raise serializers.ValidationError(detail={'filename': _('This field is required')})
 
         # iterate through extensions since splitext does not support things like .tar.gz
         for ext, packagetype in DIST_EXTENSIONS.items():
