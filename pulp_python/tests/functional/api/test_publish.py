@@ -17,7 +17,7 @@ from pulp_smash.tests.pulp3.utils import (
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_PUBLISHER_PATH,
-    PYTHON_PYPI_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher
@@ -25,7 +25,8 @@ from pulp_python.tests.functional.utils import set_up_module as setUpModule  # n
 
 
 class PublishAnyRepoVersionTestCase(unittest.TestCase):
-    """Test whether a particular repository version can be published.
+    """
+    Test whether a particular repository version can be published.
 
     This test targets the following issues:
 
@@ -34,7 +35,8 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
     """
 
     def test_all(self):
-        """Test whether a particular repository version can be published.
+        """
+        Test whether a particular repository version can be published.
 
         1. Create a repository with at least 2 repository versions.
         2. Create a publication by supplying the latest ``repository_version``.
@@ -46,11 +48,12 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
            to the supplied repository version.
         6. Assert that an exception is raised when providing two different
            repository versions to be published at same time.
+
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
         client.request_kwargs['auth'] = get_auth()
-        body = gen_remote(PYTHON_PYPI_URL)
+        body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         repo = client.post(REPO_PATH, gen_repo())

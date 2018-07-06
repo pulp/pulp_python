@@ -1,10 +1,9 @@
-# import hashlib
+import hashlib
 import unittest
-from unittest import skip
-# from random import choice
-# from urllib.parse import urljoin
+from random import choice
+from urllib.parse import urljoin
 
-from pulp_smash import api, config, selectors
+from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
 from pulp_smash.tests.pulp3.utils import (
     gen_distribution,
@@ -15,20 +14,22 @@ from pulp_smash.tests.pulp3.utils import (
 )
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_PYPI_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
-    PYTHON_PUBLISHER_PATH
+    PYTHON_PUBLISHER_PATH,
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher
+from pulp_python.tests.functional.utils import gen_remote, gen_publisher, get_content_unit_paths
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
 
 
-@skip("needs better fixtures")
 class DownloadContentTestCase(unittest.TestCase):
-    """Verify whether content served by pulp can be downloaded."""
+    """
+    Verify whether content served by pulp can be downloaded.
+    """
 
     def test_all(self):
-        """Verify whether content served by pulp can be downloaded.
+        """
+        Verify whether content served by pulp can be downloaded.
 
         The process of publishing content is more involved in Pulp 3 than it
         was under Pulp 2. Given a repository, the process is as follows:
@@ -61,7 +62,7 @@ class DownloadContentTestCase(unittest.TestCase):
         client.request_kwargs['auth'] = get_auth()
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
-        body = gen_remote(PYTHON_PYPI_URL)
+        body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
         sync(cfg, remote, repo)
@@ -81,18 +82,18 @@ class DownloadContentTestCase(unittest.TestCase):
         distribution = client.post(DISTRIBUTION_PATH, body)
         self.addCleanup(client.delete, distribution['_href'])
 
-        # TODO: re-enable with new fixtures
+        # Pick a file, and download it from both Pulp Fixtures…
+        unit_path = choice(get_content_unit_paths(repo))
+        fixtures_hash = hashlib.sha256(
+            utils.http_get(urljoin(urljoin(PYTHON_FIXTURES_URL, 'packages/'), unit_path))
+        ).hexdigest()
 
-        # # Pick a file, and download it from both Pulp Fixtures…
-        # unit_path = ""
-        # fixtures_hash = hashlib.sha256(
-        #     utils.http_get(urljoin(PYTHON_PYPI_URL, unit_path))
-        # ).hexdigest()
+        # …and Pulp.
+        client.response_handler = api.safe_handler
 
-        # # …and Pulp.
-        # client.response_handler = api.safe_handler
-        # unit_url = cfg.get_systems('api')[0].roles['api']['scheme']
-        # unit_url += '://' + distribution['base_url'] + '/'
-        # unit_url = urljoin(unit_url, unit_path)
-        # pulp_hash = hashlib.sha256(client.get(unit_url).content).hexdigest()
-        # self.assertEqual(fixtures_hash, pulp_hash)
+        unit_url = cfg.get_hosts('api')[0].roles['api']['scheme']
+        unit_url += '://' + distribution['base_url'] + '/'
+        unit_url = urljoin(unit_url, unit_path)
+
+        pulp_hash = hashlib.sha256(client.get(unit_url).content).hexdigest()
+        self.assertEqual(fixtures_hash, pulp_hash)
