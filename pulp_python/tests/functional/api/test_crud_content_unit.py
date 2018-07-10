@@ -8,7 +8,6 @@ from pulp_smash.pulp3.constants import ARTIFACTS_PATH, REPO_PATH
 from pulp_smash.pulp3.utils import (
     delete_orphans,
     gen_repo,
-    get_auth,
     get_content,
     sync,
 )
@@ -43,7 +42,6 @@ class ContentUnitTestCase(unittest.TestCase):
         delete_orphans(cls.cfg)
         cls.content_unit = {}
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.client.request_kwargs['auth'] = get_auth()
         files = {'file': utils.http_get(PYTHON_WHEEL_URL)}
         cls.artifact = cls.client.post(ARTIFACTS_PATH, files=files)
 
@@ -154,7 +152,6 @@ class DeleteContentUnitRepoVersionTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
-        client.request_kwargs['auth'] = get_auth()
         body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])

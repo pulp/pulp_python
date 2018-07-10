@@ -4,7 +4,7 @@ import unittest
 from requests.exceptions import HTTPError
 from pulp_smash import api, config, utils
 from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo, get_auth
+from pulp_smash.tests.pulp3.utils import gen_repo
 
 from pulp_python.tests.functional.constants import PYTHON_FIXTURES_URL, PYTHON_REMOTE_PATH
 from pulp_python.tests.functional.utils import gen_remote, skip_if
@@ -26,7 +26,6 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.client.request_kwargs['auth'] = get_auth()
         cls.remote = {}
         cls.repo = cls.client.post(REPO_PATH, gen_repo())
 
@@ -138,12 +137,10 @@ class CreateRemoteNoURLTestCase(unittest.TestCase):
         * `Pulp Smash #984 <https://github.com/PulpQE/pulp-smash/issues/984>`_
 
         """
-        client = api.Client(config.get_config())
-        client.request_kwargs['auth'] = get_auth()
         body = gen_remote(utils.uuid4())
         del body['url']
         with self.assertRaises(HTTPError):
-            client.post(PYTHON_REMOTE_PATH, body)
+            api.Client(config.get_config()).post(PYTHON_REMOTE_PATH, body)
 
 
 def _gen_verbose_remote():
