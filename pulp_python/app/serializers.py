@@ -223,13 +223,24 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
         return PythonPackageContent
 
     class Meta:
-        fields = (
-            '_href', 'created', 'type',
+        fields = tuple(set(core_serializers.ContentSerializer.Meta.fields) - {'artifacts'}) + (
             'filename', 'packagetype', 'name', 'version', 'metadata_version', 'summary',
             'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
             'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
             'platform', 'supported_platform', 'requires_dist', 'provides_dist',
             'obsoletes_dist', 'requires_external', 'classifiers', 'artifact'
+        )
+        model = python_models.PythonPackageContent
+
+
+class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
+    """
+    A Serializer for PythonPackageContent.
+    """
+
+    class Meta:
+        fields = tuple(set(core_serializers.ContentSerializer.Meta.fields) - {'artifacts'}) + (
+            'filename', 'packagetype', 'name', 'version', 'artifact'
         )
         model = python_models.PythonPackageContent
 
