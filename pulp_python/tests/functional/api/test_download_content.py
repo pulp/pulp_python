@@ -18,7 +18,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_PUBLISHER_PATH,
 )
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, get_content_unit_paths
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class DownloadContentTestCase(unittest.TestCase):

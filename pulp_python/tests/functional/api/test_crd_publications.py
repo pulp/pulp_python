@@ -21,15 +21,19 @@ from pulp_python.tests.functional.constants import (
     PYTHON_REMOTE_PATH
 )
 from pulp_python.tests.functional.utils import gen_remote, gen_publisher, skip_if
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class PublicationsTestCase(unittest.TestCase):
-    """Perform actions over publications."""
+    """
+    Perform actions over publications.
+    """
 
     @classmethod
     def setUpClass(cls):
-        """Create class-wide variables."""
+        """
+        Create class-wide variables.
+        """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.page_handler)
         cls.remote = {}
@@ -48,20 +52,26 @@ class PublicationsTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Clean class-wide variables."""
+        """
+        Clean class-wide variables.
+        """
         for resource in (cls.remote, cls.publisher, cls.repo):
             if resource:
                 cls.client.delete(resource['_href'])
 
     def test_01_create_publication(self):
-        """Create a publication."""
+        """
+        Create a publication.
+        """
         self.publication.update(
             publish(self.cfg, self.publisher, self.repo)
         )
 
     @skip_if(bool, 'publication', False)
     def test_02_read_publication(self):
-        """Read a publication by its href."""
+        """
+        Read a publication by its href.
+        """
         publication = self.client.get(self.publication['_href'])
         for key, val in self.publication.items():
             with self.subTest(key=key):
@@ -69,7 +79,9 @@ class PublicationsTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publication', False)
     def test_02_read_publications(self):
-        """Read a publication by its repository version."""
+        """
+        Read a publication by its repository version.
+        """
         publications = self.client.get(PUBLICATIONS_PATH, params={
             'repository_version': self.repo['_href']
         })
@@ -80,7 +92,9 @@ class PublicationsTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publication', False)
     def test_03_read_publications(self):
-        """Read a publication by its publisher."""
+        """
+        Read a publication by its publisher.
+        """
         publications = self.client.get(PUBLICATIONS_PATH, params={
             'publisher': self.publisher['_href']
         })
@@ -91,7 +105,9 @@ class PublicationsTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publication', False)
     def test_04_read_publications(self):
-        """Read a publication by its created time."""
+        """
+        Read a publication by its created time.
+        """
         publications = self.client.get(PUBLICATIONS_PATH, params={
             'created': self.publication['created']
         })
@@ -102,7 +118,9 @@ class PublicationsTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publication', False)
     def test_05_read_publications(self):
-        """Read a publication by its distribution."""
+        """
+        Read a publication by its distribution.
+        """
         body = gen_distribution()
         body['publication'] = self.publication['_href']
         distribution = self.client.post(DISTRIBUTION_PATH, body)
@@ -118,7 +136,9 @@ class PublicationsTestCase(unittest.TestCase):
 
     @skip_if(bool, 'publication', False)
     def test_06_delete(self):
-        """Delete a publication."""
+        """
+        Delete a publication.
+        """
         if not selectors.bug_is_fixed(3354, self.cfg.pulp_version):
             self.skipTest('https://pulp.plan.io/issues/3354')
         self.client.delete(self.publication['_href'])

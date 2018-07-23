@@ -14,7 +14,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_XS_PROJECT_SPECIFIER,
 )
 from pulp_python.tests.functional.utils import gen_remote
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class SyncPythonRepoTestCase(unittest.TestCase):
