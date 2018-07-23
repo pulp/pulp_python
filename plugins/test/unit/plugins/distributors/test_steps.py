@@ -41,22 +41,22 @@ _PACKAGES = [
         _storage_path='/path/to/nectar-1.3.1.tar.gz'
     ),
     models.Package(
-        name='pulp_python_plugins',
+        name='pulp-python-plugins',
         packagetype='sdist',
         summary='does stuff',
         author='me',
         version='0.0.0',
-        filename='pulp_python_plugins-0.0.0.tar.gz',
+        filename='pulp-python-plugins-0.0.0.tar.gz',
         md5_digest='klmno',
         _checksum='klmno',
         _checksum_type='made_up',
         path='some/url',
-        _storage_path='/path/to/pulp_python_plugins-0.0.0.tar.gz'
+        _storage_path='/path/to/pulp-python-plugins-0.0.0.tar.gz'
     ),
 ]
 
 
-_GET_PROJECTS_RETURN = {'nectar': _PACKAGES[0:1], 'pulp_python_plugins': [_PACKAGES[2]]}
+_GET_PROJECTS_RETURN = {'nectar': _PACKAGES[0:1], 'pulp-python-plugins': [_PACKAGES[2]]}
 
 
 class TestPublishContentStep(unittest.TestCase):
@@ -189,8 +189,8 @@ class TestPublishMetadataStep(unittest.TestCase):
         self.assertEqual(len(body.findall('a')), 2)
         anchors = body.findall('a')
         self.assertEqual(set([a.get('href') for a in anchors]),
-                         set(['nectar', 'pulp_python_plugins']))
-        self.assertEqual(set([a.text for a in anchors]), set(['nectar', 'pulp_python_plugins']))
+                         set(['nectar', 'pulp-python-plugins']))
+        self.assertEqual(set([a.text for a in anchors]), set(['nectar', 'pulp-python-plugins']))
 
     @mock.patch('__builtin__.open', autospec=True)
     @mock.patch('pulp_python.plugins.distributors.steps.os.makedirs')
