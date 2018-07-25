@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
-    AsnycOperationResponseSerializer,
+    AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
     RepositorySyncURLSerializer,
 )
@@ -140,9 +140,10 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     serializer_class = python_serializers.PythonRemoteSerializer
     filter_class = PythonRemoteFilter
 
-    @swagger_auto_schema(operation_description="Trigger an asynchronous task to sync "
-                                               "python content.",
-                         responses={202: AsnycOperationResponseSerializer})
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to sync python content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
     @decorators.detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
@@ -176,9 +177,10 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
     queryset = python_models.PythonPublisher.objects.all()
     serializer_class = python_serializers.PythonPublisherSerializer
 
-    @swagger_auto_schema(operation_description="Trigger an asynchronous task to publish "
-                                               "python content.",
-                         responses={202: AsnycOperationResponseSerializer})
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to publish python content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
     @decorators.detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         """

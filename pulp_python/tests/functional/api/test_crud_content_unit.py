@@ -20,7 +20,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_URL,
 )
 from pulp_python.tests.functional.utils import gen_remote, skip_if
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:E722
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class ContentUnitTestCase(unittest.TestCase):

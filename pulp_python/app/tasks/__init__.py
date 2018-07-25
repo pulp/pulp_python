@@ -2,5 +2,5 @@
 Asynchronous task definitions.
 """
 
-from .publish import publish  # noqa:E722
-from .sync import sync  # noqa:E722
+from .publish import publish  # noqa:F401
+from .sync import sync  # noqa:F401
