@@ -6,5 +6,7 @@ export PULP_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/g
 
 pip install -r test_requirements.txt
 
-cd ../pulp_python
+cd .. && git clone https://github.com/pulp/pulp.git
+
+cd pulp_python
 pip install -e .

@@ -26,7 +26,6 @@ def set_up_module():
 
 def gen_remote(
         url=PYTHON_FIXTURES_URL,
-        projects=PYTHON_XS_PROJECT_SPECIFIER,
         includes=PYTHON_XS_PROJECT_SPECIFIER,
         excludes=[],
         **kwargs
@@ -41,7 +40,6 @@ def gen_remote(
     """
     return {
         'name': str(uuid.uuid4()),
-        'projects': projects,
         'includes': includes,
         'url': url,
         **kwargs,
@@ -73,7 +71,7 @@ def get_content_unit_paths(repo):
     return [content_unit['filename'] for content_unit in get_content(repo)]
 
 
-def populate_pulp(cfg, url=None, projects=None):
+def populate_pulp(cfg, url=None, includes=None):
     """
     Add python content to Pulp.
 
@@ -87,13 +85,13 @@ def populate_pulp(cfg, url=None, projects=None):
     """
     if url is None:
         url = PYTHON_FIXTURES_URL
-    if projects is None:
-        projects = PYTHON_XS_PROJECT_SPECIFIER
+    if includes is None:
+        includes = PYTHON_XS_PROJECT_SPECIFIER
     client = api.Client(cfg, api.json_handler)
     remote = {}
     repo = {}
     try:
-        remote.update(client.post(PYTHON_REMOTE_PATH, gen_remote(url, projects=projects)))
+        remote.update(client.post(PYTHON_REMOTE_PATH, gen_remote(url, includes=includes)))
         repo.update(client.post(REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:
