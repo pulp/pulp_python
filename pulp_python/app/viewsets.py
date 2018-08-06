@@ -5,7 +5,6 @@ import shutil
 import tempfile
 
 from django.db import transaction
-from django_filters.rest_framework import filterset
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import decorators, status, serializers
 from rest_framework.response import Response
@@ -41,7 +40,7 @@ DIST_TYPES = {
 }
 
 
-class PythonPackageContentFilter(filterset.FilterSet):
+class PythonPackageContentFilter(platform.BaseFilterSet):
     """
     FilterSet for PythonPackageContent.
     """
@@ -117,7 +116,7 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class PythonRemoteFilter(filterset.FilterSet):
+class PythonRemoteFilter(platform.BaseFilterSet):
     """
     FilterSet for PythonRemote.
     """
