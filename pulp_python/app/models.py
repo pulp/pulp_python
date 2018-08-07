@@ -76,6 +76,7 @@ class ProjectSpecifier(Model):
         name (models.TextField): The name of a python project
         version_specifier (models.TextField):  Used to filter the versions of a project to sync
         remote (models.ForeignKey): The remote this project specifier is associated with
+        include (models.BooleanField): Used to blacklist/whitelist projects to sync
     """
 
     name = models.TextField()
@@ -86,6 +87,7 @@ class ProjectSpecifier(Model):
         related_query_name="projectspecifier",
         on_delete=models.CASCADE
     )
+    include = models.BooleanField()
 
 
 class PythonPackageContent(Content):
@@ -164,6 +166,22 @@ class PythonPublisher(Publisher):
 class PythonRemote(Remote):
     """
     A Remote for Python Content.
+
+    Specify include and exclude lists.
     """
 
     TYPE = 'python'
+
+    @property
+    def includes_specifiers(self):
+        """
+        Specify include list.
+        """
+        return ProjectSpecifier.objects.filter(remote=self, include=True)
+
+    @property
+    def excludes_specifiers(self):
+        """
+        Specify exclude list.
+        """
+        return ProjectSpecifier.objects.filter(remote=self, include=False)

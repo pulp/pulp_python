@@ -250,13 +250,20 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     A Serializer for PythonRemote.
     """
 
-    projects = ProjectSpecifierSerializer(
+    includes = ProjectSpecifierSerializer(
         required=False,
-        many=True
+        many=True,
+        source='includes_specifiers'
+    )
+
+    excludes = ProjectSpecifierSerializer(
+        required=False,
+        many=True,
+        source='excludes_specifiers',
     )
 
     class Meta:
-        fields = core_serializers.RemoteSerializer.Meta.fields + ('projects',)
+        fields = core_serializers.RemoteSerializer.Meta.fields + ('includes', 'excludes')
         model = python_models.PythonRemote
 
     @transaction.atomic
@@ -274,22 +281,40 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             models.PythonRemote: the updated PythonRemote
 
         """
-        projects = validated_data.pop('projects', [])
+        includes = validated_data.pop('includes', [])
+        excludes = validated_data.pop('excludes', [])
 
         python_remote = python_models.PythonRemote.objects.get(pk=instance.pk)
 
         # Remove all project specifier related by foreign key to the remote if it is not a
         # partial update or if new projects list has been passed
-        if not self.partial or projects:
+        if not self.partial or includes:
             python_models.ProjectSpecifier.objects.filter(remote=python_remote).delete()
 
-        for project in projects:
+        for project in includes:
             digests = project.pop('digests', [])
-            specifier = python_models.ProjectSpecifier.objects.create(remote=python_remote,
-                                                                      **project)
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=python_remote,
+                include=True,
+                **project
+            )
             for digest in digests:
-                python_models.DistributionDigest.objects.create(project_specifier=specifier,
-                                                                **digest)
+                python_models.DistributionDigest.objects.create(
+                    project_specifier=specifier,
+                    **digest
+                )
+        for project in excludes:
+            digests = project.pop('digests', [])
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=python_remote,
+                include=False,
+                **project
+            )
+            for digest in digests:
+                python_models.DistributionDigest.objects.create(
+                    project_specifier=specifier,
+                    **digest
+                )
 
         return super().update(instance, validated_data)
 
@@ -307,17 +332,36 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             models.PythonRemote: the created PythonRemote
 
         """
-        projects = validated_data.pop('projects', [])
+        includes = validated_data.pop('includes', [])
+        excludes = validated_data.pop('excludes', [])
 
         python_remote = python_models.PythonRemote.objects.create(**validated_data)
-        for project in projects:
+        for project in includes:
             digests = project.pop('digests', None)
-            specifier = python_models.ProjectSpecifier.objects.create(remote=python_remote,
-                                                                      **project)
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=python_remote,
+                include=True,
+                **project
+            )
             if digests:
                 for digest in digests:
-                    python_models.DistributionDigest.objects.create(project_specifier=specifier,
-                                                                    **digest)
+                    python_models.DistributionDigest.objects.create(
+                        project_specifier=specifier,
+                        **digest
+                    )
+        for project in excludes:
+            digests = project.pop('digests', None)
+            specifier = python_models.ProjectSpecifier.objects.create(
+                remote=python_remote,
+                include=False,
+                **project
+            )
+            if digests:
+                for digest in digests:
+                    python_models.DistributionDigest.objects.create(
+                        project_specifier=specifier,
+                        **digest
+                    )
 
         return python_remote
 
