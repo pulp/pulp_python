@@ -3,7 +3,7 @@ import unittest
 from random import choice
 from urllib.parse import urljoin
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, utils
 from pulp_smash.tests.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
 from pulp_smash.tests.pulp3.utils import (
     gen_distribution,
@@ -54,15 +54,15 @@ class DownloadContentTestCase(unittest.TestCase):
         * `Pulp Smash #872 <https://github.com/PulpQE/pulp-smash/issues/872>`_
         """
         cfg = config.get_config()
-        if not selectors.bug_is_fixed(3502, cfg.pulp_version):
-            self.skipTest('https://pulp.plan.io/issues/3502')
-
         client = api.Client(cfg, api.json_handler)
+
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
+
         body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
+
         sync(cfg, remote, repo)
         repo = client.get(repo['_href'])
 
