@@ -2,13 +2,13 @@ import unittest
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, selectors
-from pulp_smash.tests.pulp3.constants import (
+from pulp_smash import api, config
+from pulp_smash.pulp3.constants import (
     DISTRIBUTION_PATH,
     PUBLICATIONS_PATH,
     REPO_PATH
 )
-from pulp_smash.tests.pulp3.utils import (
+from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_repo,
     publish,
@@ -139,8 +139,6 @@ class PublicationsTestCase(unittest.TestCase):
         """
         Delete a publication.
         """
-        if not selectors.bug_is_fixed(3354, self.cfg.pulp_version):
-            self.skipTest('https://pulp.plan.io/issues/3354')
         self.client.delete(self.publication['_href'])
         with self.assertRaises(HTTPError):
             self.client.get(self.publication['_href'])

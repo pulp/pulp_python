@@ -3,8 +3,8 @@ from random import randint
 from urllib.parse import urlsplit
 
 from pulp_smash import api, config
-from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo, get_content, sync
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_repo, get_content, sync
 
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
@@ -48,8 +48,10 @@ class SyncPythonRepoTestCase(unittest.TestCase):
 
         """
         client = api.Client(self.cfg, api.json_handler)
+
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
+
         body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
@@ -93,8 +95,10 @@ class SyncChangeRepoVersionTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
+
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
+
         body = gen_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
@@ -136,14 +140,19 @@ class MultiResourceLockingTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
+
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
+
         body = gen_remote(projects=PYTHON_SM_PROJECT_SPECIFIER)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
+
         update = {'projects': PYTHON_XS_PROJECT_SPECIFIER}
         client.patch(remote['_href'], update)
+
         sync(cfg, remote, repo)
+
         repo = client.get(repo['_href'])
         remote = client.get(remote['_href'])
         self.assertEqual(remote['projects'], update['projects'])
