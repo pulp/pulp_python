@@ -3,12 +3,12 @@ import unittest
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
-from pulp_smash.tests.pulp3.constants import (
+from pulp_smash.pulp3.constants import (
     DISTRIBUTION_PATH,
     PUBLICATIONS_PATH,
     REPO_PATH
 )
-from pulp_smash.tests.pulp3.utils import (
+from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_repo,
     publish,

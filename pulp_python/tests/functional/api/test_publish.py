@@ -5,8 +5,8 @@ from urllib.parse import urljoin
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
-from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import (
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import (
     gen_repo,
     get_versions,
     sync,

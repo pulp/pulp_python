@@ -4,9 +4,9 @@ from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import api, selectors
-from pulp_smash.tests.pulp3 import utils
-from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo, get_content, sync
+from pulp_smash.pulp3 import utils
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_repo, get_content, sync
 
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,

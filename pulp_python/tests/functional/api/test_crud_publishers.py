@@ -3,8 +3,8 @@ import unittest
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
-from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_repo
 
 from pulp_python.tests.functional.constants import PYTHON_PUBLISHER_PATH
 from pulp_python.tests.functional.utils import gen_publisher, skip_if

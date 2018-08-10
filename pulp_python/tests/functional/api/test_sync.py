@@ -3,8 +3,8 @@ from random import randint
 from urllib.parse import urlsplit
 
 from pulp_smash import api, config
-from pulp_smash.tests.pulp3.constants import REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo, get_content, sync
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_repo, get_content, sync
 
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
