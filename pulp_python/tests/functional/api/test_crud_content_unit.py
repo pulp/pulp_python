@@ -19,7 +19,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_URL,
 )
-from pulp_python.tests.functional.utils import gen_remote, skip_if
+from pulp_python.tests.functional.utils import gen_python_remote, skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -152,12 +152,16 @@ class DeleteContentUnitRepoVersionTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
-        body = gen_remote(PYTHON_FIXTURES_URL)
+
+        body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
+
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
+
         sync(cfg, remote, repo)
+
         repo = client.get(repo['_href'])
         content = get_content(repo)
         with self.assertRaises(HTTPError):

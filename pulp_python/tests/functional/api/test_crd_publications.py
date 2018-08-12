@@ -20,7 +20,11 @@ from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher, skip_if
+from pulp_python.tests.functional.utils import (
+    gen_python_remote,
+    gen_python_publisher,
+    skip_if
+)
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -42,9 +46,9 @@ class PublicationsTestCase(unittest.TestCase):
         cls.repo = {}
         try:
             cls.repo.update(cls.client.post(REPO_PATH, gen_repo()))
-            body = gen_remote(PYTHON_FIXTURES_URL)
+            body = gen_python_remote(PYTHON_FIXTURES_URL)
             cls.remote.update(cls.client.post(PYTHON_REMOTE_PATH, body))
-            cls.publisher.update(cls.client.post(PYTHON_PUBLISHER_PATH, gen_publisher()))
+            cls.publisher.update(cls.client.post(PYTHON_PUBLISHER_PATH, gen_python_publisher()))
             sync(cls.cfg, cls.remote, cls.repo)
         except Exception:
             cls.tearDownClass()
@@ -125,6 +129,7 @@ class PublicationsTestCase(unittest.TestCase):
         body['publication'] = self.publication['_href']
         distribution = self.client.post(DISTRIBUTION_PATH, body)
         self.addCleanup(self.client.delete, distribution['_href'])
+
         self.publication.update(self.client.get(self.publication['_href']))
         publications = self.client.get(PUBLICATIONS_PATH, params={
             'distributions': distribution['_href']
