@@ -17,7 +17,11 @@ from pulp_python.tests.functional.constants import (
     PYTHON_REMOTE_PATH,
     PYTHON_PUBLISHER_PATH,
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher, get_content_unit_paths
+from pulp_python.tests.functional.utils import (
+    gen_python_publisher,
+    gen_python_remote,
+    get_content_unit_paths
+)
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -59,7 +63,7 @@ class DownloadContentTestCase(unittest.TestCase):
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
 
-        body = gen_remote(PYTHON_FIXTURES_URL)
+        body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -67,7 +71,7 @@ class DownloadContentTestCase(unittest.TestCase):
         repo = client.get(repo['_href'])
 
         # Create a publisher.
-        publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
+        publisher = client.post(PYTHON_PUBLISHER_PATH, gen_python_publisher())
         self.addCleanup(client.delete, publisher['_href'])
 
         # Create a publication.
@@ -88,7 +92,6 @@ class DownloadContentTestCase(unittest.TestCase):
 
         # …and Pulp.
         client.response_handler = api.safe_handler
-
         unit_url = cfg.get_hosts('api')[0].roles['api']['scheme']
         unit_url += '://' + distribution['base_url'] + '/'
         unit_url = urljoin(unit_url, unit_path)

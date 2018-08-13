@@ -7,7 +7,7 @@ from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_repo
 
 from pulp_python.tests.functional.constants import PYTHON_FIXTURES_URL, PYTHON_REMOTE_PATH
-from pulp_python.tests.functional.utils import gen_remote, skip_if
+from pulp_python.tests.functional.utils import gen_python_remote, skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -137,7 +137,7 @@ class CreateRemoteNoURLTestCase(unittest.TestCase):
         * `Pulp Smash #984 <https://github.com/PulpQE/pulp-smash/issues/984>`_
 
         """
-        body = gen_remote(utils.uuid4())
+        body = gen_python_remote(utils.uuid4())
         del body['url']
         with self.assertRaises(HTTPError):
             api.Client(config.get_config()).post(PYTHON_REMOTE_PATH, body)
@@ -155,7 +155,7 @@ def _gen_verbose_remote():
     Note that 'username' and 'password' are write-only attributes.
 
     """
-    attrs = gen_remote(PYTHON_FIXTURES_URL)
+    attrs = gen_python_remote(PYTHON_FIXTURES_URL)
     attrs.update({
         'password': utils.uuid4(),
         'username': utils.uuid4(),

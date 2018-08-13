@@ -13,7 +13,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_XS_PACKAGE_COUNT,
     PYTHON_XS_PROJECT_SPECIFIER,
 )
-from pulp_python.tests.functional.utils import gen_remote
+from pulp_python.tests.functional.utils import gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -52,7 +52,7 @@ class SyncPythonRepoTestCase(unittest.TestCase):
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
 
-        body = gen_remote(PYTHON_FIXTURES_URL)
+        body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -99,7 +99,7 @@ class SyncChangeRepoVersionTestCase(unittest.TestCase):
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
 
-        body = gen_remote(PYTHON_FIXTURES_URL)
+        body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -144,7 +144,7 @@ class MultiResourceLockingTestCase(unittest.TestCase):
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
 
-        body = gen_remote(projects=PYTHON_SM_PROJECT_SPECIFIER)
+        body = gen_python_remote(projects=PYTHON_SM_PROJECT_SPECIFIER)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 

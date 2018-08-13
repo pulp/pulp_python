@@ -1,12 +1,16 @@
-import uuid
-
 from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import api, selectors
 from pulp_smash.pulp3 import utils
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import gen_repo, get_content, sync
+from pulp_smash.pulp3.utils import (
+    gen_publisher,
+    gen_remote,
+    gen_repo,
+    get_content,
+    sync
+)
 
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
@@ -24,7 +28,7 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'}, SkipTest)
 
 
-def gen_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **kwargs):
+def gen_python_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **kwargs):
     """
     Return a semi-random dict for use in creating an remote.
 
@@ -33,15 +37,16 @@ def gen_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **
         **kwargs: Specified parameters for the Remote
 
     """
-    return {
-        'name': str(uuid.uuid4()),
+    remote = gen_remote(url)
+    python_extra_fields = {
         'projects': projects,
-        'url': url,
         **kwargs,
     }
+    remote.update(python_extra_fields)
+    return remote
 
 
-def gen_publisher(**kwargs):
+def gen_python_publisher(**kwargs):
     """
     Return a semi-random dict for use in creating a publisher.
 
@@ -49,7 +54,12 @@ def gen_publisher(**kwargs):
         **kwargs: Specified parameters for the Publisher
 
     """
-    return {'name': str(uuid.uuid4()), **kwargs}
+    publisher = gen_publisher()
+    python_extra_fields = {
+        **kwargs,
+    }
+    publisher.update(python_extra_fields)
+    return publisher
 
 
 def get_content_unit_paths(repo):
@@ -86,7 +96,7 @@ def populate_pulp(cfg, url=None, projects=None):
     remote = {}
     repo = {}
     try:
-        remote.update(client.post(PYTHON_REMOTE_PATH, gen_remote(url, projects=projects)))
+        remote.update(client.post(PYTHON_REMOTE_PATH, gen_python_remote(url, projects=projects)))
         repo.update(client.post(REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:

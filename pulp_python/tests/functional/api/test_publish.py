@@ -19,7 +19,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
 )
-from pulp_python.tests.functional.utils import gen_remote, gen_publisher
+from pulp_python.tests.functional.utils import gen_python_remote, gen_python_publisher
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -52,7 +52,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
 
-        body = gen_remote(PYTHON_FIXTURES_URL)
+        body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 
@@ -61,7 +61,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         sync(cfg, remote, repo)
 
-        publisher = client.post(PYTHON_PUBLISHER_PATH, gen_publisher())
+        publisher = client.post(PYTHON_PUBLISHER_PATH, gen_python_publisher())
         self.addCleanup(client.delete, publisher['_href'])
 
         # Step 1
@@ -89,6 +89,8 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         # Step 6
         with self.assertRaises(HTTPError):
-            body = {'repository': repo['_href'],
-                    'repository_version': non_latest}
+            body = {
+                'repository': repo['_href'],
+                'repository_version': non_latest
+            }
             client.post(urljoin(publisher['_href'], 'publish/'), body)
