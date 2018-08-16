@@ -132,9 +132,6 @@ class PythonPackageContent(Content):
         """
         return self.artifacts.get().pk
 
-    class Meta:
-        unique_together = ('filename',)
-
     def __str__(self):
         """
         Provide more useful repr information.
@@ -151,6 +148,9 @@ class PythonPackageContent(Content):
             version=self.version,
             type=self.packagetype
         )
+
+    class Meta:
+        unique_together = ('filename',)
 
 
 class PythonPublisher(Publisher):

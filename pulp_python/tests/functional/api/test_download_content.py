@@ -69,7 +69,6 @@ class DownloadContentTestCase(unittest.TestCase):
 
         sync(cfg, remote, repo)
         repo = client.get(repo['_href'])
-
         # Create a publisher.
         publisher = client.post(PYTHON_PUBLISHER_PATH, gen_python_publisher())
         self.addCleanup(client.delete, publisher['_href'])

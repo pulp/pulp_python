@@ -1,31 +1,30 @@
+import itertools
 import json
 import logging
 
-from collections import namedtuple
 from gettext import gettext as _
 from urllib.parse import urljoin
 
-from django.db.models import Q
 from packaging import specifiers
 from rest_framework import serializers
 
-from pulpcore.plugin import models
-from pulpcore.plugin.changeset import (
-    BatchIterator,
-    ChangeSet,
-    PendingArtifact,
-    PendingContent,
-    SizedIterable,
+from pulpcore.plugin.models import Artifact, ProgressBar, Repository
+from pulpcore.plugin.stages import (
+    DeclarativeArtifact,
+    DeclarativeContent,
+    DeclarativeVersion,
+    Stage
 )
-from pulpcore.plugin.tasking import WorkingDirectory
 
-from pulp_python.app import models as python_models
+from pulp_python.app.models import (
+    DistributionDigest,
+    ProjectSpecifier,
+    PythonPackageContent,
+    PythonRemote,
+)
 from pulp_python.app.utils import parse_metadata
 
 log = logging.getLogger(__name__)
-
-
-Delta = namedtuple('Delta', ('additions', 'removals'))
 
 
 def sync(remote_pk, repository_pk):
@@ -42,182 +41,160 @@ def sync(remote_pk, repository_pk):
         serializers: ValidationError
 
     """
-    remote = python_models.PythonRemote.objects.get(pk=remote_pk)
-    repository = models.Repository.objects.get(pk=repository_pk)
+    remote = PythonRemote.objects.get(pk=remote_pk)
+    repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
         raise serializers.ValidationError(
             detail=_("A remote must have a url attribute to sync."))
 
-    base_version = models.RepositoryVersion.latest(repository)
-
-    with models.RepositoryVersion.create(repository) as new_version:
-        with WorkingDirectory():
-            log.info(
-                _('Creating RepositoryVersion: repository={repository} remote={remote}')
-                .format(repository=repository.name, remote=remote.name)
-            )
-
-            project_specifiers = python_models.ProjectSpecifier.objects.filter(remote=remote).all()
-
-            inventory_keys = _fetch_inventory(base_version)
-            remote_metadata = _fetch_specified_metadata(remote, project_specifiers)
-            remote_keys = set([content['filename'] for content in remote_metadata])
-
-            delta = _find_delta(inventory=inventory_keys, remote=remote_keys)
-
-            additions = _build_additions(delta, remote_metadata)
-            removals = _build_removals(delta, base_version)
-            changeset = ChangeSet(remote, new_version, additions=additions, removals=removals)
-            changeset.apply_and_drain()
+    first_stage = PythonFirstStage(remote)
+    DeclarativeVersion(first_stage, repository).create()
 
 
-def _fetch_inventory(version):
+class PythonFirstStage(Stage):
     """
-    Fetch the contentunits in the specified repository version.
+    First stage of the Asyncio Stage Pipeline.
 
-    Args:
-        version (pulpcore.plugin.models.RepositoryVersion): Version of repository to fetch
-            content units from
-
-    Returns:
-        set: of contentunit filenames.
-
+    Create a :class:`~pulpcore.plugin.stages.DeclarativeContent` object for each content unit
+    that should exist in the new :class:`~pulpcore.plugin.models.RepositoryVersion`.
     """
-    inventory = set()
-    if version:
-        content_for_version = python_models.PythonPackageContent.objects.filter(
-            pk__in=version.content).only("filename")
 
-        for content in content_for_version:
-            inventory.add(content.filename)
-    return inventory
+    def __init__(self, remote):
+        """
+        The first stage of a pulp_python sync pipeline.
 
+        Args:
+            remote (PythonRemote): The remote data to be used when syncing
 
-def _fetch_specified_metadata(remote, project_specifiers):
-    """
-    Fetch metadata for content units matching project specifiers from the remote.
+        """
+        self.remote = remote
 
-    Args:
-        project_specifiers (dict): Information about a project and which versions of a project
-            to filter
+    async def __call__(self, in_q, out_q):
+        """
+        Build and emit `DeclarativeContent` from the remote metadata.
 
-    Returns:
-        list: of contentunit metadata.
+        Fetch and parse the remote metadata, use the Project Specifiers on the Remote
+        to determine which Python packages should be synced.
 
-    """
-    remote_units = []
-    for project in project_specifiers:
+        Args:
+            in_q (asyncio.Queue): Unused because the first stage doesn't read from an input queue.
+            out_q (asyncio.Queue): The out_q to send `DeclarativeContent` objects to.
 
-        digests = python_models.DistributionDigest.objects.filter(project_specifier=project)
+        """
+        project_specifiers = ProjectSpecifier.objects.filter(remote=self.remote)
 
-        metadata_url = urljoin(remote.url, 'pypi/%s/json' % project.name)
-        downloader = remote.get_downloader(metadata_url)
+        with ProgressBar(message='Fetching Project Metadata') as pb:
+            # Group multiple specifiers to the same project together, so that we only have to fetch
+            # the metadata once, and can re-use it if there are multiple specifiers.
+            for name, project_specifiers in itertools.groupby(project_specifiers,
+                                                              key=lambda x: x.name):
+                # Fetch the metadata from PyPI
+                metadata = await self.get_project_metadata(name)
+                pb.increment()
 
-        downloader.fetch()
+                # Determine which packages from the project match the criteria in the specifiers
+                packages = await self.get_relevant_packages(metadata, project_specifiers)
 
-        metadata = json.load(open(downloader.path))
-        for version, packages in metadata['releases'].items():
-            for package in packages:
-                # If neither specifiers nor digests have been set, then we should add the unit
-                if not project.version_specifier and not digests.exists():
-                    remote_units.append(parse_metadata(metadata['info'], version, package))
-                    continue
+                # For each package, create Declarative objects to pass into the next stage
+                for entry in packages:
+                    url = entry.pop('url')
 
-                specifier = specifiers.SpecifierSet(project.version_specifier)
+                    artifact = Artifact(sha256=entry.pop('sha256_digest'))
+                    package = PythonPackageContent(**entry)
 
-                # Note: SpecifierSet("").contains(version) will return true for released versions
-                # SpecifierSet("").contains('3.0.0') returns True
-                # SpecifierSet("").contains('3.0.0b1') returns False
-                if specifier.contains(version):
+                    da = DeclarativeArtifact(artifact, url, entry['filename'], self.remote)
+                    dc = DeclarativeContent(content=package, d_artifacts=[da])
 
-                    # add the package if the project specifier does not have an associated digest
-                    if not digests.exists():
-                        remote_units.append(parse_metadata(metadata['info'], version, package))
+                    await out_q.put(dc)
+        await out_q.put(None)
 
-                    # otherwise check each digest to see if it matches the specifier
-                    else:
-                        for type, digest in package['digests'].items():
-                            if digests.filter(type=type, digest=digest).exists():
-                                remote_units.append(
-                                    parse_metadata(metadata['info'], version, package)
-                                )
-                                break
-    return remote_units
+    async def get_project_metadata(self, project_name):
+        """
+        Get the metadata for a given project name from PyPI.
 
+        Args:
+            project_name (str): The name of a project, e.g. "Django".
 
-def _find_delta(inventory, remote):
-    """
-    Determine the set of content to be added and deleted from the repository.
+        Returns:
+            dict: Python project metadata from PyPI.
 
-    Parameters:
-        inventory (set): Existing natural keys (filename) of content associated
-            with the repository
-        remote (set): Metadata keys (filename) of packages on the remote index
+        """
+        metadata_url = urljoin(
+            self.remote.url, 'pypi/{project}/json'.format(project=project_name)
+        )
+        downloader = self.remote.get_downloader(metadata_url)
+        await downloader.run()
+        with open(downloader.path) as metadata_file:
+            return json.load(metadata_file)
 
-    Returns:
-        Delta (namedtuple): tuple of content to add, and content to remove from the repository
+    async def get_relevant_packages(self, metadata, project_specifiers):
+        """
+        Provided project metadata and specifiers, return the matching packages.
 
-    """
-    additions = remote - inventory
-    removals = inventory - remote
+        Compare the defined specifiers against the project metadata and create a deduplicated
+        list of metadata for the packages matching the criteria.
 
-    return Delta(additions=additions, removals=removals)
+        Args:
+            metadata (dict): Metadata about the project from PyPI.
+            project_specifiers (iterable): An iterable of project_specifiers.
 
+        Returns:
+            list: List of dictionaries containing Python package metadata
 
-def _build_additions(delta, remote_metadata):
-    """
-    Generate the content to be added.
+        """
+        remote_packages = []
+        # If there is than one specifier, then there is a possibility that they may overlap,
+        # which means we need to do extra checks for deduplication.
+        cache = set()
 
-    Args:
-        delta (namedtuple): Tuple of content to add, and content to remove from the repository
-        remote_metadata (list): List of contentunit metadata
+        for project_specifier in project_specifiers:
+            digests = DistributionDigest.objects.filter(project_specifier=project_specifier)
 
-    Returns:
-        The PythonPackageContent to be added to the repository.
+            # Happy path! Very speed, much fast!
+            # Add all of the packages in the project without any further checks, apart from dedup.
+            if not (project_specifier.version_specifier or digests.exists()):
+                for version, packages in metadata['releases'].items():
+                    for package in packages:
+                        # deduplicate
+                        if package['filename'] in cache:
+                            continue
 
-    """
-    def generate():
-        for entry in remote_metadata:
-            if entry['filename'] not in delta.additions:
-                continue
+                        package_metadata = parse_metadata(metadata['info'], version, package)
+                        remote_packages.append(package_metadata)
+                        cache.add(package['filename'])
 
-            url = entry.pop('url')
-            artifact = models.Artifact(sha256=entry.pop('sha256_digest'))
+                return remote_packages
 
-            package = python_models.PythonPackageContent(**entry)
-            content = PendingContent(
-                package,
-                artifacts={
-                    PendingArtifact(model=artifact, url=url, relative_path=entry['filename'])
-                }
-            )
-            yield content
+            # (else) we actually have to check the metadata... :(
+            for version, packages in metadata['releases'].items():
+                for package in packages:
+                    # deduplicate
+                    if package['filename'] in cache:
+                        continue
 
-    return SizedIterable(generate(), len(delta.additions))
+                    specifier = specifiers.SpecifierSet(project_specifier.version_specifier)
+                    # Note: SpecifierSet("").contains(version) will return True for
+                    # released versions
+                    # SpecifierSet("").contains('3.0.0') returns True
+                    # SpecifierSet("").contains('3.0.0b1') returns False
+                    if specifier.contains(version):
 
+                        # add the package if the project specifier does not have an
+                        # associated digest
+                        if not digests.exists():
+                            package_metadata = parse_metadata(metadata['info'], version, package)
+                            remote_packages.append(package_metadata)
+                            cache.add(package['filename'])
 
-def _build_removals(delta, version):
-    """
-    Generate the content to be removed.
-
-    Args:
-        delta (namedtuple): Tuple of content to add, and content to remove from the repository
-        version (pulpcore.plugin.models.RepositoryVersion): Version of repository to remove
-            contents from
-
-    Returns:
-        The PythonPackageContent to be removed from the repository.
-
-    """
-    def generate():
-        for removals in BatchIterator(delta.removals):
-            q = Q()
-            for content_key in removals:
-                q |= Q(pythonpackagecontent__filename=content_key)
-            q_set = version.content.filter(q)
-            q_set = q_set.only('id')
-            for content in q_set:
-                yield content
-
-    return SizedIterable(generate(), len(delta.removals))
+                        # otherwise check each digest to see if it matches the specifier
+                        else:
+                            for digest_type, digest in package['digests'].items():
+                                if digests.filter(type=digest_type, digest=digest).exists():
+                                    package_metadata = parse_metadata(
+                                        metadata['info'], version, package
+                                    )
+                                    remote_packages.append(package_metadata)
+                                    cache.add(package['filename'])
+                                    break
+        return remote_packages
