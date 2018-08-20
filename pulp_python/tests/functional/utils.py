@@ -30,7 +30,7 @@ def set_up_module():
 
 def gen_python_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **kwargs):
     """
-    Return a semi-random dict for use in creating an remote.
+    Return a semi-random dict for use in creating a remote.
 
     Kwargs:
         url (str): The URL to a Python remote repository

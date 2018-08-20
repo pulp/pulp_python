@@ -33,13 +33,13 @@ class SyncPythonRepoTestCase(unittest.TestCase):
         """
         Sync repositories with the python plugin.
 
-        In order to sync a repository an remote has to be associated within
+        In order to sync a repository a remote has to be associated within
         this repository. When a repository is created this version field is set
         as None. After a sync the repository version is updated.
 
         Do the following:
 
-        1. Create a repository, and an remote.
+        1. Create a repository, and a remote.
         2. Assert that repository version is None.
         3. Sync the remote.
         4. Assert that repository version is not None.
@@ -87,7 +87,7 @@ class SyncChangeRepoVersionTestCase(unittest.TestCase):
 
         Do the following:
 
-        1. Create a repository, and an remote.
+        1. Create a repository, and a remote.
         2. Sync the repository an arbitrary number of times.
         3. Verify that the repository version is equal to the previous number
            of syncs.

@@ -21,7 +21,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         Create class-wide variables.
 
-        In order to create an remote a repository has to be created first.
+        In order to create a remote a repository has to be created first.
 
         """
         cls.cfg = config.get_config()
@@ -64,7 +64,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @skip_if(bool, 'remote', False)
     def test_02_read_remote(self):
         """
-        Read an remote by its href.
+        Read a remote by its href.
         """
         remote = self.client.get(self.remote['_href'])
         for key, val in self.remote.items():
@@ -74,7 +74,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @skip_if(bool, 'remote', False)
     def test_02_read_remotes(self):
         """
-        Read an remote by its name.
+        Read a remote by its name.
         """
         page = self.client.get(PYTHON_REMOTE_PATH, params={
             'name': self.remote['name']
@@ -87,7 +87,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @skip_if(bool, 'remote', False)
     def test_03_partially_update(self):
         """
-        Update an remote using HTTP PATCH.
+        Update a remote using HTTP PATCH.
         """
         body = _gen_verbose_remote()
         self.client.patch(self.remote['_href'], body)
@@ -101,7 +101,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @skip_if(bool, 'remote', False)
     def test_04_fully_update(self):
         """
-        Update an remote using HTTP PUT.
+        Update a remote using HTTP PUT.
         """
         body = _gen_verbose_remote()
         self.client.put(self.remote['_href'], body)
@@ -115,7 +115,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @skip_if(bool, 'remote', False)
     def test_05_delete(self):
         """
-        Delete an remote.
+        Delete a remote.
         """
         self.client.delete(self.remote['_href'])
         with self.assertRaises(HTTPError):
@@ -145,7 +145,7 @@ class CreateRemoteNoURLTestCase(unittest.TestCase):
 
 def _gen_verbose_remote():
     """
-    Return a semi-random dict for use in defining an remote.
+    Return a semi-random dict for use in defining a remote.
 
     For most tests, it's desirable to create remotes with as few attributes
     as possible, so that the tests can specifically target and attempt to break
