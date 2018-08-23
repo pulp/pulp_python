@@ -14,7 +14,7 @@ Start by creating a new repository named "foo"::
 Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
+        "_href": "/pulp/api/v3/repositories/1/",
         ...
     }
 
@@ -35,7 +35,7 @@ You can use any Python remote to sync content into any repository::
     $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
         name='bar' \
         url='https://pypi.org/' \
-        projects:='[{"name": "django", "version_specifier":"~=2.0"}]'
+        includes:='[{"name": "django", "version_specifier":"~=2.0"}]'
 
 
 
@@ -54,6 +54,7 @@ Again, you can create an environment variable for convenience::
 
 A More Complex Remote
 ---------------------
+
 If only the name of a project is specified, every distribution of every version of that project
 will be synced. You can use the version_specifier and digest fields on a project to ensure
 only distributions you care about will be synced::
@@ -61,7 +62,7 @@ only distributions you care about will be synced::
     $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
         name='complex-remote' \
         url='https://pypi.org/' \
-        projects:='[
+        includes:='[
             { "name": "django",
               "version_specifier": "~=2.0,!=2.0.1",
               "digests":[
@@ -81,6 +82,24 @@ only distributions you care about will be synced::
             {"name": "shelf-reader"}
         ]'
 
+You can also use version specifiers to "exclude" certain versions of a project, like so::
+
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
+        name='complex-remote' \
+        url='https://pypi.org/' \
+        includes:='[
+            {"name": "django", "version_specifier": ""},
+            {"name": "scipy", "version_specifier": ""}
+        ]' \
+        excludes:='[
+            {"name": "django", "version_specifier": "~=1.0"},
+            {"name": "scipy", "digests":[
+                {"type": "md5",
+                "digest": "044af71389ac2ad3d3ece24d0baf4c07"},
+                {"type": "sha256",
+                "digest": "18b572502ce0b17e3b4bfe50dcaea414a98290358a2fa080c36066ba0651ec14"}]
+            },
+        ]'
 
 Sync repository foo with remote
 -------------------------------
@@ -108,7 +127,7 @@ Response::
         "_href": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
         "created": "2018-05-01T17:17:46.558997Z",
         "created_resources": [
-            "/pulp/api/v3/repositories/593e2fa9-af64-4d4b-aa7b-7078c96f2443/versions/6/"
+            "/pulp/api/v3/repositories/1/versions/6/"
         ],
         "error": null,
         "finished_at": "2018-05-01T17:17:47.149123Z",

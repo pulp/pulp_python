@@ -6,7 +6,12 @@ from pulp_smash import api, config, utils
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_repo
 
-from pulp_python.tests.functional.constants import PYTHON_FIXTURES_URL, PYTHON_REMOTE_PATH
+from pulp_python.tests.functional.constants import (
+    PYTHON_REMOTE_PATH,
+    PYTHON_INVALID_SPECIFIER_NO_NAME,
+    PYTHON_INVALID_SPECIFIER_BAD_VERSION,
+    PYTHON_VALID_SPECIFIER_NO_VERSION,
+)
 from pulp_python.tests.functional.utils import gen_python_remote, skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -155,10 +160,155 @@ def _gen_verbose_remote():
     Note that 'username' and 'password' are write-only attributes.
 
     """
-    attrs = gen_python_remote(PYTHON_FIXTURES_URL)
+    attrs = gen_python_remote()
     attrs.update({
         'password': utils.uuid4(),
         'username': utils.uuid4(),
         'validate': random.choice((False, True)),
     })
     return attrs
+
+
+class CreateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
+    """
+    Test that creating a remote with an invalid project specifier fails.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Create class-wide variables.
+        """
+        cls.cfg = config.get_config()
+        cls.client = api.Client(cls.cfg, api.json_handler)
+
+    def test_includes_with_no_name(self):
+        """
+        Test an include specifier without a "name" field.
+        """
+        body = gen_python_remote(includes=PYTHON_INVALID_SPECIFIER_NO_NAME)
+        with self.assertRaises(HTTPError):
+            self.client.post(PYTHON_REMOTE_PATH, body)
+
+    def test_includes_with_bad_version(self):
+        """
+        Test an include specifier with an invalid "version_specifier" field value.
+        """
+        body = gen_python_remote(includes=PYTHON_INVALID_SPECIFIER_BAD_VERSION)
+        with self.assertRaises(HTTPError):
+            self.client.post(PYTHON_REMOTE_PATH, body)
+
+    def test_excludes_with_no_name(self):
+        """
+        Test an exclude specifier without a "name" field.
+        """
+        body = gen_python_remote(excludes=PYTHON_INVALID_SPECIFIER_NO_NAME)
+        with self.assertRaises(HTTPError):
+            self.client.post(PYTHON_REMOTE_PATH, body)
+
+    def test_excludes_with_bad_version(self):
+        """
+        Test an exclude specifier with an invalid "version_specifier" field value.
+        """
+        body = gen_python_remote(excludes=PYTHON_INVALID_SPECIFIER_BAD_VERSION)
+        with self.assertRaises(HTTPError):
+            self.client.post(PYTHON_REMOTE_PATH, body)
+
+
+class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
+    """
+    Test that creating a remote with no "version_specifier" on the project specifier works.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Create class-wide variables.
+        """
+        cls.cfg = config.get_config()
+        cls.client = api.Client(cls.cfg, api.json_handler)
+
+    def test_includes_with_no_version(self):
+        """
+        Test an include specifier without a "version_specifier" field.
+        """
+        body = gen_python_remote(includes=PYTHON_VALID_SPECIFIER_NO_VERSION)
+        remote = self.client.post(PYTHON_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote['_href'])
+
+        self.assertEquals(remote['includes'][0]['version_specifier'], "")
+
+    def test_excludes_with_no_version(self):
+        """
+        Test an exclude specifier without a "version_specifier" field.
+        """
+        body = gen_python_remote(excludes=PYTHON_VALID_SPECIFIER_NO_VERSION)
+        remote = self.client.post(PYTHON_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote['_href'])
+
+        self.assertEquals(remote['includes'][0]['version_specifier'], "")
+
+
+@unittest.skip("Broken due to potential DRF issue?")
+class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
+    """
+    Test that updating a remote with an invalid project specifier fails non-destructively.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Create class-wide variables.
+        """
+        cls.cfg = config.get_config()
+        cls.client = api.Client(cls.cfg, api.json_handler)
+
+        cls.remote = cls.client.post(PYTHON_REMOTE_PATH, gen_python_remote())
+        cls._original_remote = cls.remote
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Clean class-wide variable.
+        """
+        cls.client.delete(cls.remote['_href'])
+
+    def test_includes_with_no_name(self):
+        """
+        Test an include specifier without a "name" field.
+        """
+        body = {"includes": PYTHON_INVALID_SPECIFIER_NO_NAME}
+        task_href = self.client.patch(self.remote['_href'], body)
+        update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
+        self.assertEquals(update_task['state'], 'failed')
+        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+
+    def test_includes_with_bad_version(self):
+        """
+        Test an include specifier with an invalid "version_specifier" field value.
+        """
+        body = {"includes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
+        task_href = self.client.patch(self.remote['_href'], body)
+        update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
+        self.assertEquals(update_task['state'], 'failed')
+        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+
+    def test_excludes_with_no_name(self):
+        """
+        Test an exclude specifier without a "name" field.
+        """
+        body = {"excludes": PYTHON_INVALID_SPECIFIER_NO_NAME}
+        task_href = self.client.patch(self.remote['_href'], body)
+        update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
+        self.assertEquals(update_task['state'], 'failed')
+        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+
+    def test_excludes_with_bad_version(self):
+        """
+        Test an exclude specifier with an invalid "version_specifier" field value.
+        """
+        body = {"excludes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
+        task_href = self.client.patch(self.remote['_href'], body)
+        update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
+        self.assertEquals(update_task['state'], 'failed')
+        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
