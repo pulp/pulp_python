@@ -189,7 +189,7 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
         many=True
     )
 
-    artifact = serializers.HyperlinkedRelatedField(
+    artifact = core_serializers.RelatedField(
         view_name='artifacts-detail',
         help_text="Artifact file representing the physical content",
         queryset=core_models.Artifact.objects.all()

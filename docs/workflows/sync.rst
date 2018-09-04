@@ -14,7 +14,7 @@ Start by creating a new repository named "foo"::
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
+        "_href": "/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
         ...
     }
 
@@ -43,7 +43,7 @@ You can use any Python remote to sync content into any repository::
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
+        "_href": "/pulp/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
         ...
     }
 
@@ -88,12 +88,12 @@ Sync repository foo with remote
 Use the remote object to kick off a synchronize task by specifying the repository to
 sync with. You are telling pulp to fetch content from the remote and add to the repository::
 
-    $ http POST $REMOTE_HREF'sync/' repository=$REPO_HREF
+    $ http POST $BASE_ADDR$REMOTE_HREF'sync/' repository=$REPO_HREF
 
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
+        "_href": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
         "task_id": "3896447a-2799-4818-a3e5-df8552aeb903"
     }
 
@@ -105,10 +105,10 @@ synchroinze task completes, it creates a new version, which is specified in ``cr
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
+        "_href": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
         "created": "2018-05-01T17:17:46.558997Z",
         "created_resources": [
-            "http://localhost:8000/pulp/api/v3/repositories/593e2fa9-af64-4d4b-aa7b-7078c96f2443/versions/6/"
+            "/pulp/api/v3/repositories/593e2fa9-af64-4d4b-aa7b-7078c96f2443/versions/6/"
         ],
         "error": null,
         "finished_at": "2018-05-01T17:17:47.149123Z",
@@ -120,7 +120,7 @@ Response::
                 "message": "Add Content",
                 "state": "completed",
                 "suffix": "",
-                "task": "http://localhost:8000/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
+                "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
                 "total": 0
             },
             {
@@ -128,12 +128,12 @@ Response::
                 "message": "Remove Content",
                 "state": "completed",
                 "suffix": "",
-                "task": "http://localhost:8000/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
+                "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
                 "total": 0
             }
         ],
         "spawned_tasks": [],
         "started_at": "2018-05-01T17:17:46.644801Z",
         "state": "completed",
-        "worker": "http://localhost:8000/pulp/api/v3/workers/eaffe1be-111a-421d-a127-0b8fa7077cf7/"
+        "worker": "/pulp/api/v3/workers/eaffe1be-111a-421d-a127-0b8fa7077cf7/"
     }

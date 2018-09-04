@@ -15,7 +15,7 @@ $ http POST $BASE_ADDR/pulp/api/v3/publishers/python/ name=bar
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/foo/publishers/python/bar/",
+        "_href": "/pulp/api/v3/repositories/foo/publishers/python/bar/",
         ...
     }
 
@@ -33,13 +33,13 @@ Alternatively, you can specify repository, which will publish the latest version
 The result of a publish is a publication, which contains all the information needed for ``pip`` to
 use. Publications are not consumable until they are hosted by a distribution::
 
-$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF
+$ http POST $BASE_ADDR$PUBLISHER_HREF'publish/' repository=$REPO_HREF
 
 Response::
 
     [
         {
-            "_href": "http://localhost:8000/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
+            "_href": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
             "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
         }
     ]
@@ -60,7 +60,7 @@ $ http POST $BASE_ADDR/pulp/api/v3/distributions/ name='baz' base_path='foo' pub
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+        "_href": "/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
        ...
     }
 
