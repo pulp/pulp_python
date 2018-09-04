@@ -11,7 +11,7 @@ If you don't already have a repository, create one::
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
+        "_href": "/pulp/api/v3/repositories/e81221c3-9c7a-4681-a435-aa74020753f2/",
         ...
     }
 
@@ -30,7 +30,7 @@ Each artifact in Pulp represents a file. They can be created during sync or crea
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
+        "_href": "/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
         ...
     }
 
@@ -46,8 +46,8 @@ inspect the file and populate its metadata::
 Response::
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
-        "artifact": "http://localhost:8000/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
+        "_href": "/pulp/api/v3/content/python/packages/a9578a5f-c59f-4920-9497-8d1699c112ff/",
+        "artifact": "/pulp/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
         "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
         "filename": "shelf_reader-0.1-py2-none-any.whl",
         "type": "python"
@@ -62,4 +62,4 @@ Add content to a repository
 
 Once there is a content unit, it can be added and removed and from to repositories::
 
-$ http POST $REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"
+$ http POST $BASE_ADDR$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"
