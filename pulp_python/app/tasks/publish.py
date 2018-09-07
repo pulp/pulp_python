@@ -1,10 +1,11 @@
 from gettext import gettext as _
 import logging
 import os
-import re
 
+from packaging.utils import canonicalize_name
 from django.core.files import File
 from django.template import Context, Template
+
 from pulpcore.plugin import models
 from pulpcore.plugin.tasking import WorkingDirectory
 
@@ -93,7 +94,7 @@ def write_simple_api(publication):
         .distinct()
     )
 
-    index_names = [(name, sanitize_name(name)) for name in project_names]
+    index_names = [(name, canonicalize_name(name)) for name in project_names]
 
     # write the root index, which lists all of the projects for which there is a package available
     index_path = '{simple_dir}/index.html'.format(simple_dir=simple_dir)
@@ -147,21 +148,3 @@ def write_simple_api(publication):
             file=File(open(metadata_relative_path, 'rb'))
         )
         project_metadata.save()
-
-
-def sanitize_name(name):
-    """
-    Sanitize the project name.
-
-    Strips out all non-alphanumeric characters, including underscores, and
-    replaces them with hyphens. Runs of multiple non-alphanumeric characters
-    are replaced by only one hyphen.
-
-    This is to take a given python package name and create an iteration of it
-    that can be used as part of a url, e.g. for the simple api.
-
-    Args:
-        name (str): A project name to sanitize
-
-    """
-    return re.sub('[^A-Za-z0-9]+', '-', name).lower()

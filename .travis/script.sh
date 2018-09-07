@@ -3,7 +3,7 @@
 set -veuo pipefail
 
 # Lint code.
-flake8 --config flake8.cfg
+flake8 --config flake8.cfg || exit 1
 
 # Run migrations.
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings

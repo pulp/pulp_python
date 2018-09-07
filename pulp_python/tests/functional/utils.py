@@ -14,9 +14,10 @@ from pulp_smash.pulp3.utils import (
 
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
-    PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH
+    PYTHON_REMOTE_PATH,
+    PYTHON_XS_PROJECT_SPECIFIER,
+    PYTHON_WHEEL_FILENAME
 )
 
 
@@ -28,18 +29,23 @@ def set_up_module():
     utils.require_pulp_plugins({'pulp_python'}, SkipTest)
 
 
-def gen_python_remote(url=PYTHON_FIXTURES_URL, projects=PYTHON_XS_PROJECT_SPECIFIER, **kwargs):
+def gen_python_remote(url=PYTHON_FIXTURES_URL, includes=None, **kwargs):
     """
     Return a semi-random dict for use in creating a remote.
 
     Kwargs:
         url (str): The URL to a Python remote repository
+        includes (iterable): An iterable of dicts containing project specifier dicts.
         **kwargs: Specified parameters for the Remote
 
     """
     remote = gen_remote(url)
+    if includes is None:
+        includes = PYTHON_XS_PROJECT_SPECIFIER
+
+    # Remote also supports "excludes" and "prereleases".
     python_extra_fields = {
-        'projects': projects,
+        'includes': includes,
         **kwargs,
     }
     remote.update(python_extra_fields)
@@ -62,7 +68,7 @@ def gen_python_publisher(**kwargs):
     return publisher
 
 
-def get_content_unit_paths(repo):
+def get_python_content_paths(repo):
     """
     Return the relative path of content units present in a file repository.
 
@@ -76,27 +82,41 @@ def get_content_unit_paths(repo):
     return [content_unit['filename'] for content_unit in get_content(repo)]
 
 
-def populate_pulp(cfg, url=None, projects=None):
+def gen_python_package_attrs(artifact):
+    """
+    Generate a dict with Python content unit attributes.
+
+    Args:
+        artifact (dict): Info about the artifact.
+
+    Returns:
+        dict: A semi-random dict for use in creating a content unit.
+
+    """
+    return {
+        'artifact': artifact['_href'],
+        'filename': PYTHON_WHEEL_FILENAME,
+    }
+
+
+def populate_pulp(cfg, remote=None):
     """
     Add python content to Pulp.
 
     Args:
         cfg (pulp_smash.config.PulpSmashConfig): Information about a Pulp application
-        url (str): The URL to a Python remote repository
+        remote (dict): A dict of information about the remote.
 
     Returns:
         list: A list of dicts, where each dict describes one python content in Pulp.
 
     """
-    if url is None:
-        url = PYTHON_FIXTURES_URL
-    if projects is None:
-        projects = PYTHON_XS_PROJECT_SPECIFIER
+    if remote is None:
+        remote = gen_python_remote()
     client = api.Client(cfg, api.json_handler)
-    remote = {}
     repo = {}
     try:
-        remote.update(client.post(PYTHON_REMOTE_PATH, gen_python_remote(url, projects=projects)))
+        remote.update(client.post(PYTHON_REMOTE_PATH, remote))
         repo.update(client.post(REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:

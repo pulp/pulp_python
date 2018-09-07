@@ -20,7 +20,7 @@ from pulp_python.tests.functional.constants import (
 from pulp_python.tests.functional.utils import (
     gen_python_publisher,
     gen_python_remote,
-    get_content_unit_paths
+    get_python_content_paths
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -84,7 +84,7 @@ class DownloadContentTestCase(unittest.TestCase):
         self.addCleanup(client.delete, distribution['_href'])
 
         # Pick a file, and download it from both Pulp Fixtures…
-        unit_path = choice(get_content_unit_paths(repo))
+        unit_path = choice(get_python_content_paths(repo))
         fixtures_hash = hashlib.sha256(
             utils.http_get(urljoin(urljoin(PYTHON_FIXTURES_URL, 'packages/'), unit_path))
         ).hexdigest()

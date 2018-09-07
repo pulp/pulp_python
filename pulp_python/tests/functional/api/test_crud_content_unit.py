@@ -16,10 +16,13 @@ from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
-    PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_URL,
 )
-from pulp_python.tests.functional.utils import gen_python_remote, skip_if
+from pulp_python.tests.functional.utils import (
+    gen_python_package_attrs,
+    gen_python_remote,
+    skip_if
+)
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -56,7 +59,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """
         Create content unit.
         """
-        attrs = _gen_content_unit_attrs(self.artifact)
+        attrs = gen_python_package_attrs(self.artifact)
         self.content_unit.update(self.client.post(PYTHON_CONTENT_PATH, attrs))
         for key, val in attrs.items():
             with self.subTest(key=key):
@@ -93,7 +96,7 @@ class ContentUnitTestCase(unittest.TestCase):
         This HTTP method is not supported and a HTTP exception is expected.
 
         """
-        attrs = _gen_content_unit_attrs(self.artifact)
+        attrs = gen_python_package_attrs(self.artifact)
         with self.assertRaises(HTTPError):
             self.client.patch(self.content_unit['_href'], attrs)
 
@@ -105,26 +108,9 @@ class ContentUnitTestCase(unittest.TestCase):
         This HTTP method is not supported and a HTTP exception is expected.
 
         """
-        attrs = _gen_content_unit_attrs(self.artifact)
+        attrs = gen_python_package_attrs(self.artifact)
         with self.assertRaises(HTTPError):
             self.client.put(self.content_unit['_href'], attrs)
-
-
-def _gen_content_unit_attrs(artifact):
-    """
-    Generate a dict with content unit attributes.
-
-    Args:
-        artifact (dict): Info about the artifact.
-
-    Returns:
-        dict: A semi-random dict for use in creating a content unit.
-
-    """
-    return {
-        'artifact': artifact['_href'],
-        'filename': PYTHON_WHEEL_FILENAME,
-    }
 
 
 class DeleteContentUnitRepoVersionTestCase(unittest.TestCase):
