@@ -17,7 +17,7 @@ setup(
     description='pulp-python plugin for the Pulp Project',
     long_description=long_description,
     license='GPLv2+',
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     author='Pulp Project Developers',
     author_email='pulp-list@redhat.com',
     url='http://www.pulpproject.org',
@@ -31,8 +31,8 @@ setup(
         'Framework :: Django',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ),
     entry_points={
         'pulpcore.plugin': [
