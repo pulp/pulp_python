@@ -156,13 +156,15 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         )
         serializer.is_valid(raise_exception=True)
         repository = serializer.validated_data.get('repository')
+        mirror = serializer.validated_data.get('mirror')
 
         result = enqueue_with_reservation(
             tasks.sync,
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
-                'repository_pk': repository.pk
+                'repository_pk': repository.pk,
+                'mirror': mirror
             }
         )
         return platform.OperationPostponedResponse(result, request)

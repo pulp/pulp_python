@@ -28,7 +28,7 @@ from pulp_python.app.utils import parse_metadata
 log = logging.getLogger(__name__)
 
 
-def sync(remote_pk, repository_pk):
+def sync(remote_pk, repository_pk, mirror):
     """
     Sync content from the remote repository.
 
@@ -37,6 +37,7 @@ def sync(remote_pk, repository_pk):
     Args:
         remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
+        mirror (boolean): True for mirror mode, False for additive mode.
 
     Raises:
         serializers: ValidationError
@@ -50,7 +51,7 @@ def sync(remote_pk, repository_pk):
             detail=_("A remote must have a url attribute to sync."))
 
     first_stage = PythonFirstStage(remote)
-    DeclarativeVersion(first_stage, repository).create()
+    DeclarativeVersion(first_stage, repository, mirror).create()
 
 
 class PythonFirstStage(Stage):
