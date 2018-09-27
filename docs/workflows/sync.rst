@@ -43,7 +43,7 @@ You can use any Python remote to sync content into any repository::
 Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/foo/remotes/python/3750748b-781f-48df-9734-df014b2a11b4/",
+        "_href": "/pulp/api/v3/repositories/foo/remotes/python/1/",
         ...
     }
 

@@ -15,7 +15,7 @@ $ http POST $BASE_ADDR/pulp/api/v3/publishers/python/ name=bar
 Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/foo/publishers/python/bar/",
+        "_href": "/pulp/api/v3/repositories/foo/publishers/python/1/",
         ...
     }
 
@@ -60,7 +60,7 @@ $ http POST $BASE_ADDR/pulp/api/v3/distributions/ name='baz' base_path='foo' pub
 Response::
 
     {
-        "_href": "/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+        "_href": "/pulp/api/v3/distributions/1/",
        ...
     }
 
