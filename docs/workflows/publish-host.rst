@@ -37,12 +37,9 @@ $ http POST $BASE_ADDR$PUBLISHER_HREF'publish/' repository=$REPO_HREF
 
 Response::
 
-    [
-        {
-            "_href": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
-            "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
-        }
-    ]
+    {
+        "task": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
+    }
 
 Create a variable for convenience.::
 
