@@ -118,8 +118,7 @@ local repository::
 Response::
 
     {
-        "_href": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-        "task_id": "3896447a-2799-4818-a3e5-df8552aeb903"
+        "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/"
     }
 
 You can follow the progress of the task with a GET request to the task href. Notice that when the
