@@ -40,7 +40,7 @@ DIST_TYPES = {
 }
 
 
-class PythonPackageContentFilter(platform.BaseFilterSet):
+class PythonPackageContentFilter(platform.ContentFilter):
     """
     FilterSet for PythonPackageContent.
     """
