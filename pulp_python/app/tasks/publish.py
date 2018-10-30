@@ -22,7 +22,7 @@ simple_index_template = """<!DOCTYPE html>
   </head>
   <body>
     {% for name, canonical_name in projects %}
-    <a href="{{ canonical_name }}">{{ name }}</a>
+    <a href="{{ canonical_name }}">{{ name }}</a><br/>
     {% endfor %}
   </body>
 </html>
