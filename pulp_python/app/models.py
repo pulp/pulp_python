@@ -84,8 +84,8 @@ class ProjectSpecifier(Model):
     """
 
     name = models.TextField()
-    version_specifier = models.TextField(blank=True, default="")
-    exclude = models.BooleanField(blank=True, default=False)
+    version_specifier = models.TextField(default="")
+    exclude = models.BooleanField(default=False)
 
     remote = models.ForeignKey(
         "PythonRemote",
@@ -110,30 +110,30 @@ class PythonPackageContent(Content):
 
     TYPE = 'python'
     # Required metadata
-    filename = models.TextField(unique=True, db_index=True, blank=False)
-    packagetype = models.TextField(blank=False, choices=PACKAGE_TYPES)
-    name = models.TextField(blank=False)
-    version = models.TextField(blank=False)
+    filename = models.TextField(unique=True, db_index=True)
+    packagetype = models.TextField(choices=PACKAGE_TYPES)
+    name = models.TextField()
+    version = models.TextField()
     # Optional metadata
-    metadata_version = models.TextField(blank=True)
-    summary = models.TextField(blank=True)
-    description = models.TextField(blank=True)
-    keywords = models.TextField(blank=True)
-    home_page = models.TextField(blank=True)
-    download_url = models.TextField(blank=True)
-    author = models.TextField(blank=True)
-    author_email = models.TextField(blank=True)
-    maintainer = models.TextField(blank=True)
-    maintainer_email = models.TextField(blank=True)
-    license = models.TextField(blank=True)
-    requires_python = models.TextField(blank=True)
-    project_url = models.TextField(blank=True)
-    platform = models.TextField(blank=True)
-    supported_platform = models.TextField(blank=True)
-    requires_dist = models.TextField(default="[]", blank=False)
-    provides_dist = models.TextField(default="[]", blank=False)
-    obsoletes_dist = models.TextField(default="[]", blank=False)
-    requires_external = models.TextField(default="[]", blank=False)
+    metadata_version = models.TextField()
+    summary = models.TextField()
+    description = models.TextField()
+    keywords = models.TextField()
+    home_page = models.TextField()
+    download_url = models.TextField()
+    author = models.TextField()
+    author_email = models.TextField()
+    maintainer = models.TextField()
+    maintainer_email = models.TextField()
+    license = models.TextField()
+    requires_python = models.TextField()
+    project_url = models.TextField()
+    platform = models.TextField()
+    supported_platform = models.TextField()
+    requires_dist = models.TextField(default="[]")
+    provides_dist = models.TextField(default="[]")
+    obsoletes_dist = models.TextField(default="[]")
+    requires_external = models.TextField(default="[]")
 
     @property
     def artifact(self):
@@ -181,7 +181,7 @@ class PythonRemote(Remote):
     """
 
     TYPE = 'python'
-    prereleases = models.BooleanField(default=False, blank=True)
+    prereleases = models.BooleanField(default=False)
 
     @property
     def includes(self):
