@@ -143,7 +143,7 @@ class PythonFirstStage(Stage):
         metadata_url = urljoin(
             self.remote.url, 'pypi/{project}/json'.format(project=project_name)
         )
-        downloader = self.remote.get_downloader(metadata_url)
+        downloader = self.remote.get_downloader(url=metadata_url)
         await downloader.run()
         with open(downloader.path) as metadata_file:
             return json.load(metadata_file)
