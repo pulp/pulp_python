@@ -117,17 +117,14 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class PythonRemoteFilter(platform.BaseFilterSet):
+class PythonRemoteFilter(platform.RemoteFilter):
     """
     FilterSet for PythonRemote.
     """
 
     class Meta:
         model = python_models.PythonRemote
-        fields = {
-            'name': ['exact', 'in'],
-            'last_updated': ['lt', 'lte', 'gt', 'gte', 'range'],
-        }
+        fields = []
 
 
 class PythonRemoteViewSet(platform.RemoteViewSet):
