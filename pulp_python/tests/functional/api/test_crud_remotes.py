@@ -3,8 +3,6 @@ import unittest
 
 from requests.exceptions import HTTPError
 from pulp_smash import api, config, utils
-from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import gen_repo
 
 from pulp_python.tests.functional.constants import (
     PYTHON_REMOTE_PATH,
@@ -25,21 +23,9 @@ class CRUDRemotesTestCase(unittest.TestCase):
     def setUpClass(cls):
         """
         Create class-wide variables.
-
-        In order to create a remote a repository has to be created first.
-
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.remote = {}
-        cls.repo = cls.client.post(REPO_PATH, gen_repo())
-
-    @classmethod
-    def tearDownClass(cls):
-        """
-        Clean class-wide variable.
-        """
-        cls.client.delete(cls.repo['_href'])
 
     def test_01_create_remote(self):
         """
