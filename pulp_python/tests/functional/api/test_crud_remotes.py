@@ -26,6 +26,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
+        cls.remote = {}
 
     def test_01_create_remote(self):
         """
