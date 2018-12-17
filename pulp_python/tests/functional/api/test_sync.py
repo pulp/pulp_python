@@ -3,25 +3,30 @@ from pulp_smash import api, cli, config, exceptions
 from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
-    get_added_content,
-    get_content,
-    get_removed_content,
+    get_content_summary,
+    get_added_content_summary,
+    get_removed_content_summary,
     sync
 )
 
 from pulp_python.tests.functional.constants import (
+    PYTHON_CONTENT_NAME,
     PYTHON_REMOTE_PATH,
     PYTHON_XS_PROJECT_SPECIFIER,
+    PYTHON_XS_FIXTURE_SUMMARY,
     PYTHON_XS_PACKAGE_COUNT,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
     PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_MD_PACKAGE_COUNT,
-    PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
+    PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_PRERELEASE_TEST_SPECIFIER,
     PYTHON_WITH_PRERELEASE_COUNT,
-    PYTHON_WITHOUT_PRERELEASE_COUNT
+    PYTHON_WITHOUT_PRERELEASE_COUNT,
+    PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY,
+    PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY
 )
 from pulp_python.tests.functional.utils import gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -73,8 +78,8 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         repo = self.client.get(repo['_href'])
 
         self.assertIsNotNone(repo['_latest_version_href'])
-        self.assertEqual(len(get_content(repo)), PYTHON_XS_PACKAGE_COUNT)
-        self.assertEqual(len(get_added_content(repo)), PYTHON_XS_PACKAGE_COUNT)
+        self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_added_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
 
         # Sync the repository again.
         latest_version_href = repo['_latest_version_href']
@@ -82,8 +87,8 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         repo = self.client.get(repo['_href'])
 
         self.assertNotEqual(latest_version_href, repo['_latest_version_href'])
-        self.assertEqual(len(get_content(repo)), PYTHON_XS_PACKAGE_COUNT)
-        self.assertEqual(len(get_added_content(repo)), 0)
+        self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_added_content_summary(repo), {})
 
     def test_file_decriptors(self):
         """Test whether file descriptors are closed properly.
@@ -183,7 +188,10 @@ class PrereleasesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)), PYTHON_WITHOUT_PRERELEASE_COUNT)
+        self.assertDictEqual(
+            get_content_summary(self.repo),
+            PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY
+        )
 
     def test_02_including_prereleases(self):
         """
@@ -204,9 +212,11 @@ class PrereleasesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)), PYTHON_WITH_PRERELEASE_COUNT)
-        self.assertEqual(len(get_added_content(self.repo)),
-                         PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT)
+        self.assertEqual(get_content_summary(self.repo), PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY)
+        self.assertEqual(
+            get_added_content_summary(self.repo)[PYTHON_CONTENT_NAME],
+            PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT
+        )
 
     def test_03_removing_units(self):
         """
@@ -228,9 +238,14 @@ class PrereleasesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)), PYTHON_WITHOUT_PRERELEASE_COUNT)
-        self.assertEqual(len(get_removed_content(self.repo)),
-                         PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT)
+        self.assertDictEqual(
+            get_content_summary(self.repo),
+            PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY
+        )
+        self.assertEqual(
+            get_removed_content_summary(self.repo)[PYTHON_CONTENT_NAME],
+            PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT
+        )
 
 
 class IncludesExcludesTestCase(unittest.TestCase):
@@ -276,7 +291,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)), PYTHON_XS_PACKAGE_COUNT)
+        self.assertDictEqual(get_content_summary(self.repo), PYTHON_XS_FIXTURE_SUMMARY)
 
     def test_02_add_superset_include(self):
         """
@@ -296,7 +311,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)), PYTHON_MD_PACKAGE_COUNT)
+        self.assertDictEqual(get_content_summary(self.repo), PYTHON_MD_FIXTURE_SUMMARY)
 
     def test_03_add_subset_exclude(self):
         """
@@ -317,8 +332,14 @@ class IncludesExcludesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)),
-                         PYTHON_MD_PACKAGE_COUNT - PYTHON_SM_PACKAGE_COUNT)
+        self.assertEqual(
+            get_content_summary(self.repo)[PYTHON_CONTENT_NAME],
+            PYTHON_MD_PACKAGE_COUNT - PYTHON_SM_PACKAGE_COUNT
+        )
+        self.assertEqual(
+            get_removed_content_summary(self.repo)[PYTHON_CONTENT_NAME],
+            PYTHON_SM_PACKAGE_COUNT
+        )
 
     def test_04_remove_excludes(self):
         """
@@ -339,8 +360,10 @@ class IncludesExcludesTestCase(unittest.TestCase):
         sync(self.cfg, self.remote, self.repo)
         type(self).repo = self.client.get(self.repo['_href'])
 
-        self.assertEqual(len(get_content(self.repo)),
-                         PYTHON_MD_PACKAGE_COUNT - PYTHON_XS_PACKAGE_COUNT)
+        self.assertEqual(
+            get_content_summary(self.repo)[PYTHON_CONTENT_NAME],
+            PYTHON_MD_PACKAGE_COUNT - PYTHON_XS_PACKAGE_COUNT
+        )
 
 
 class UnavailableProjectsTestCase(unittest.TestCase):
@@ -380,7 +403,10 @@ class UnavailableProjectsTestCase(unittest.TestCase):
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo['_href'])
 
-        self.assertEqual(len(get_content(repo)), PYTHON_UNAVAILABLE_PACKAGE_COUNT)
+        self.assertEqual(
+            get_content_summary(repo)[PYTHON_CONTENT_NAME],
+            PYTHON_UNAVAILABLE_PACKAGE_COUNT
+        )
 
     def test_exclude_unavailable_projects(self):
         """
@@ -407,5 +433,7 @@ class UnavailableProjectsTestCase(unittest.TestCase):
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo['_href'])
 
-        self.assertEqual(len(get_content(repo)),
-                         PYTHON_MD_PACKAGE_COUNT - PYTHON_UNAVAILABLE_PACKAGE_COUNT)
+        self.assertEqual(
+            get_content_summary(repo)[PYTHON_CONTENT_NAME],
+            PYTHON_MD_PACKAGE_COUNT - PYTHON_UNAVAILABLE_PACKAGE_COUNT
+        )

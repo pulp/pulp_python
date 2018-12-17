@@ -8,13 +8,14 @@ from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
+    get_content,
     get_versions,
     sync,
     publish
 )
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_CONTENT_PATH,
+    PYTHON_CONTENT_NAME,
     PYTHON_PUBLISHER_PATH,
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH
@@ -68,9 +69,8 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         self.addCleanup(self.client.delete, publisher['_href'])
 
         # Step 1
-        repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
-        for python_content in self.client.get(PYTHON_CONTENT_PATH)['results']:
+        repo = self.client.get(repo['_href'])
+        for python_content in get_content(repo)[PYTHON_CONTENT_NAME]:
             self.client.post(
                 repo['_versions_href'],
                 {'add_content_units': [python_content['_href']]}
