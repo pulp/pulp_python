@@ -8,6 +8,8 @@ from pulp_smash.pulp3.constants import (
 )
 
 
+PYTHON_CONTENT_NAME = 'python'
+
 PYTHON_CONTENT_PATH = urljoin(CONTENT_PATH, 'python/packages/')
 
 PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/')
@@ -30,6 +32,9 @@ PYTHON_UNAVAILABLE_PROJECT_SPECIFIER = [
     {"name": "pylint", "version_specifier": "", "digests": []},                 # matches 0
 ]
 PYTHON_UNAVAILABLE_PACKAGE_COUNT = 5
+PYTHON_UNAVAILABLE_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_UNAVAILABLE_PACKAGE_COUNT
+}
 
 # no "name" field
 PYTHON_INVALID_SPECIFIER_NO_NAME = [
@@ -55,13 +60,22 @@ PYTHON_PRERELEASE_TEST_SPECIFIER = [
     {"name": "Django", "version_specifier": "", "digests": []},
 ]
 PYTHON_WITH_PRERELEASE_COUNT = 46
+PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_WITH_PRERELEASE_COUNT
+}
 PYTHON_WITHOUT_PRERELEASE_COUNT = 30
+PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_WITHOUT_PRERELEASE_COUNT
+}
 
 # Specifier for basic sync / publish tests.
 PYTHON_XS_PROJECT_SPECIFIER = [
     {"name": "shelf-reader", "version_specifier": "", "digests": []}  # matches 2
 ]
 PYTHON_XS_PACKAGE_COUNT = 2
+PYTHON_XS_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_XS_PACKAGE_COUNT
+}
 
 PYTHON_SM_PROJECT_SPECIFIER = [
     {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1", "digests": []},  # matches 3
@@ -69,6 +83,9 @@ PYTHON_SM_PROJECT_SPECIFIER = [
     {"name": "Django", "version_specifier": ">1.10.0,<1.10.5", "digests": []},  # matches 8
 ]
 PYTHON_SM_PACKAGE_COUNT = 13
+PYTHON_SM_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_SM_PACKAGE_COUNT
+}
 
 PYTHON_MD_PROJECT_SPECIFIER = [
     {"name": "shelf-reader", "version_specifier": "", "digests": []},           # matches 2
@@ -77,6 +94,9 @@ PYTHON_MD_PROJECT_SPECIFIER = [
     {"name": "Django", "version_specifier": ">1.10.0,<=2.0.6", "digests": []},  # matches 16
 ]
 PYTHON_MD_PACKAGE_COUNT = 26
+PYTHON_MD_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_MD_PACKAGE_COUNT
+}
 
 PYTHON_LG_PROJECT_SPECIFIER = [
     {"name": "aiohttp", "version_specifier": "", "digests": []},  # matches 7
@@ -86,6 +106,9 @@ PYTHON_LG_PROJECT_SPECIFIER = [
     {"name": "shelf-reader", "version_specifier": "", "digests": []},  # matches 2
 ]
 PYTHON_LG_PACKAGE_COUNT = 76
+PYTHON_LG_FIXTURE_SUMMARY = {
+    PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT
+}
 
 # Intended to be used with the XS specifier
 PYTHON_EGG_FILENAME = "shelf-reader-0.1.tar.gz"

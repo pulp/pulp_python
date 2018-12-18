@@ -13,6 +13,7 @@ from pulp_smash.pulp3.utils import (
 )
 
 from pulp_python.tests.functional.constants import (
+    PYTHON_CONTENT_NAME,
     PYTHON_CONTENT_PATH,
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
@@ -79,7 +80,10 @@ def get_python_content_paths(repo):
         list: The paths of units present in a given repository.
 
     """
-    return [content_unit['filename'] for content_unit in get_content(repo)]
+    return [
+        content_unit['filename']
+        for content_unit in get_content(repo)[PYTHON_CONTENT_NAME]
+    ]
 
 
 def gen_python_package_attrs(artifact):
