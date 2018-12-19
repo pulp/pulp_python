@@ -140,7 +140,7 @@ class PythonPackageContent(Content):
         """
         Return the artifact id (there is only one for this content type).
         """
-        return self.artifacts.get().pk
+        return self._artifacts.get().pk
 
     def __str__(self):
         """

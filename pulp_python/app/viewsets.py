@@ -48,7 +48,6 @@ class PythonPackageContentFilter(platform.ContentFilter):
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
-            'type': ['exact', 'in'],
             'name': ['exact', 'in'],
             'author': ['exact', 'in'],
             'packagetype': ['exact', 'in'],
