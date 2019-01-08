@@ -8,7 +8,7 @@ from pulp_smash.pulp3.constants import (
 )
 
 
-PYTHON_CONTENT_NAME = 'python'
+PYTHON_CONTENT_NAME = 'pulp_python.python'
 
 PYTHON_CONTENT_PATH = urljoin(CONTENT_PATH, 'python/packages/')
 
