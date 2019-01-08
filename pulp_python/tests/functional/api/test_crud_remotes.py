@@ -223,7 +223,7 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote['_href'])
 
-        self.assertEquals(remote['includes'][0]['version_specifier'], "")
+        self.assertEqual(remote['includes'][0]['version_specifier'], "")
 
     def test_excludes_with_no_version(self):
         """
@@ -233,7 +233,7 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote['_href'])
 
-        self.assertEquals(remote['includes'][0]['version_specifier'], "")
+        self.assertEqual(remote['includes'][0]['version_specifier'], "")
 
 
 @unittest.skip("Broken due to potential DRF issue?")
@@ -267,7 +267,7 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         body = {"includes": PYTHON_INVALID_SPECIFIER_NO_NAME}
         task_href = self.client.patch(self.remote['_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
-        self.assertEquals(update_task['state'], 'failed')
+        self.assertEqual(update_task['state'], 'failed')
         self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
 
     def test_includes_with_bad_version(self):
@@ -277,7 +277,7 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         body = {"includes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
         task_href = self.client.patch(self.remote['_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
-        self.assertEquals(update_task['state'], 'failed')
+        self.assertEqual(update_task['state'], 'failed')
         self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
 
     def test_excludes_with_no_name(self):
@@ -287,7 +287,7 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         body = {"excludes": PYTHON_INVALID_SPECIFIER_NO_NAME}
         task_href = self.client.patch(self.remote['_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
-        self.assertEquals(update_task['state'], 'failed')
+        self.assertEqual(update_task['state'], 'failed')
         self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
 
     def test_excludes_with_bad_version(self):
@@ -297,5 +297,5 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         body = {"excludes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
         task_href = self.client.patch(self.remote['_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
-        self.assertEquals(update_task['state'], 'failed')
+        self.assertEqual(update_task['state'], 'failed')
         self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
