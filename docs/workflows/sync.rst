@@ -32,7 +32,7 @@ itself, a fixture, or even an instance of Pulp 2.
 
 You can use any Python remote to sync content into any repository::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
         name='bar' \
         url='https://pypi.org/' \
         includes:='[{"name": "django", "version_specifier":"~=2.0"}]'
@@ -43,13 +43,13 @@ You can use any Python remote to sync content into any repository::
 Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/foo/remotes/python/1/",
+        "_href": "/pulp/api/v3/repositories/foo/remotes/python/python/1/",
         ...
     }
 
 Again, you can create an environment variable for convenience::
 
-    $ export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
+    $ export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
 
 
 A More Complex Remote
@@ -59,7 +59,7 @@ If only the name of a project is specified, every distribution of every version 
 will be synced. You can use the version_specifier and digest fields on a project to ensure
 only distributions you care about will be synced::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
         name='complex-remote' \
         url='https://pypi.org/' \
         includes:='[
@@ -84,7 +84,7 @@ only distributions you care about will be synced::
 
 You can also use version specifiers to "exclude" certain versions of a project, like so::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/ \
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
         name='complex-remote' \
         url='https://pypi.org/' \
         includes:='[

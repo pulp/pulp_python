@@ -8,13 +8,13 @@ from pulp_smash.pulp3.constants import (
 )
 
 
-PYTHON_CONTENT_NAME = 'pulp_python.python'
+PYTHON_CONTENT_NAME = 'python.python'
 
 PYTHON_CONTENT_PATH = urljoin(CONTENT_PATH, 'python/packages/')
 
-PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/')
+PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/python/')
 
-PYTHON_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, 'python/')
+PYTHON_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, 'python/python/')
 
 PYTHON_FIXTURES_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 
