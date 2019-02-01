@@ -35,8 +35,8 @@ Make and Run Migrations
 
 .. code-block:: bash
 
-   pulp-manager makemigrations pulp_python
-   pulp-manager migrate pulp_python
+   pulp-manager makemigrations python
+   pulp-manager migrate python
 
 Run Services
 ------------

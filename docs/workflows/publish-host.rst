@@ -10,18 +10,18 @@ Create a Publisher
 Publishers contain extra settings for how to publish. You can use a Python publisher on any
 repository that contains Python content::
 
-$ http POST $BASE_ADDR/pulp/api/v3/publishers/python/ name=bar
+$ http POST $BASE_ADDR/pulp/api/v3/publishers/python/python/ name=bar
 
 Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/foo/publishers/python/1/",
+        "_href": "/pulp/api/v3/repositories/foo/publishers/python/python/1/",
         ...
     }
 
 Create a variable for convenience.::
 
-$ export PUBLISHER_HREF=$(http $BASE_ADDR/pulp/api/v3/publishers/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
+$ export PUBLISHER_HREF=$(http $BASE_ADDR/pulp/api/v3/publishers/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
 
 
 Publish a repository with a publisher

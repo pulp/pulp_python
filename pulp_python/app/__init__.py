@@ -7,4 +7,4 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
     """
 
     name = 'pulp_python.app'
-    label = 'pulp_python'
+    label = 'python'
