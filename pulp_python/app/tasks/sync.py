@@ -70,9 +70,10 @@ class PythonFirstStage(Stage):
             remote (PythonRemote): The remote data to be used when syncing
 
         """
+        super().__init__()
         self.remote = remote
 
-    async def __call__(self, in_q, out_q):
+    async def run(self):
         """
         Build and emit `DeclarativeContent` from the remote metadata.
 
@@ -126,8 +127,7 @@ class PythonFirstStage(Stage):
                     da = DeclarativeArtifact(artifact, url, entry['filename'], self.remote)
                     dc = DeclarativeContent(content=package, d_artifacts=[da])
 
-                    await out_q.put(dc)
-        await out_q.put(None)
+                    await self.put(dc)
 
     async def get_project_metadata(self, project_name):
         """
