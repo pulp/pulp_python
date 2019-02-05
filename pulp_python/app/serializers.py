@@ -4,7 +4,6 @@ from django.db import transaction
 from packaging import specifiers
 from rest_framework import serializers
 
-from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
 
 from pulp_python.app import models as python_models
@@ -79,7 +78,7 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
         fields = ('name', 'version_specifier', 'digests')
 
 
-class PythonPackageContentSerializer(core_serializers.ContentSerializer):
+class PythonPackageContentSerializer(core_serializers.SingleArtifactContentSerializer):
     """
     A Serializer for PythonPackageContent.
     """
@@ -189,12 +188,6 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
         many=True
     )
 
-    artifact = core_serializers.RelatedField(
-        view_name='artifacts-detail',
-        help_text="Artifact file representing the physical content",
-        queryset=core_models.Artifact.objects.all()
-    )
-
     def create(self, validated_data):
         """
         Create a PythonPackageContent.
@@ -209,26 +202,23 @@ class PythonPackageContentSerializer(core_serializers.ContentSerializer):
 
         """
         classifiers = validated_data.pop('classifiers')
-        artifact = validated_data.pop('artifact')
 
         PythonPackageContent = python_models.PythonPackageContent.objects.create(**validated_data)
         for classifier in classifiers:
-            python_models.Classifier.objects.create(python_package_content=PythonPackageContent,
-                                                    **classifier)
-        ca = core_models.ContentArtifact(artifact=artifact,
-                                         content=PythonPackageContent,
-                                         relative_path=validated_data['filename'])
-        ca.save()
+            python_models.Classifier.objects.create(
+                python_package_content=PythonPackageContent,
+                **classifier
+            )
 
         return PythonPackageContent
 
     class Meta:
-        fields = tuple(set(core_serializers.ContentSerializer.Meta.fields) - {'_artifacts'}) + (
+        fields = core_serializers.SingleArtifactContentSerializer.Meta.fields + (
             'filename', 'packagetype', 'name', 'version', 'metadata_version', 'summary',
             'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
             'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
             'platform', 'supported_platform', 'requires_dist', 'provides_dist',
-            'obsoletes_dist', 'requires_external', 'classifiers', 'artifact'
+            'obsoletes_dist', 'requires_external', 'classifiers'
         )
         model = python_models.PythonPackageContent
 
@@ -239,8 +229,8 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
     """
 
     class Meta:
-        fields = tuple(set(core_serializers.ContentSerializer.Meta.fields) - {'_artifacts'}) + (
-            'filename', 'packagetype', 'name', 'version', 'artifact'
+        fields = core_serializers.SingleArtifactContentSerializer.Meta.fields + (
+            'filename', 'packagetype', 'name', 'version',
         )
         model = python_models.PythonPackageContent
 

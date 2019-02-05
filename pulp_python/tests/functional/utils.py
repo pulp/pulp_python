@@ -98,7 +98,7 @@ def gen_python_package_attrs(artifact):
 
     """
     return {
-        'artifact': artifact['_href'],
+        '_artifact': artifact['_href'],
         'filename': PYTHON_WHEEL_FILENAME,
     }
 
