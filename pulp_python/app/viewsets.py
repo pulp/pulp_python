@@ -10,7 +10,7 @@ from rest_framework import decorators, status, serializers
 from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Artifact, RepositoryVersion
+from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -73,9 +73,9 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         Create a new PythonPackageContent from a request.
         """
         try:
-            artifact = self.get_resource(request.data['artifact'], Artifact)
+            artifact = self.get_resource(request.data['_artifact'], Artifact)
         except KeyError:
-            raise serializers.ValidationError(detail={'artifact': _('This field is required')})
+            raise serializers.ValidationError(detail={'_artifact': _('This field is required')})
 
         try:
             filename = request.data['filename']
@@ -106,11 +106,19 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         data['packagetype'] = metadata.packagetype
         data['version'] = metadata.version
         data['filename'] = filename
-        data['artifact'] = request.data['artifact']
+        data['_artifact'] = request.data['_artifact']
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        serializer.validated_data.pop('_artifact')
+        content = serializer.save()
+
+        if content.pk:
+            ContentArtifact.objects.create(
+                artifact=artifact,
+                content=content,
+                relative_path=filename
+            )
 
         headers = self.get_success_headers(request.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

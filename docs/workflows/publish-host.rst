@@ -84,7 +84,7 @@ $ cat pip.conf
 .. code::
 
   [global]
-  index-url = http://localhost:8000/pulp/content/foo/simple/
+  index-url = http://localhost:8080/pulp/content/foo/simple/
 
 The above configuration informs ``pip`` to install from ``pulp``::
 

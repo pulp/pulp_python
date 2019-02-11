@@ -41,13 +41,13 @@ Create content from an artifact
 Now that Pulp has the wheel, its time to make it into a unit of content. The python plugin will
 inspect the file and populate its metadata::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/content/python/packages/ artifact=$ARTIFACT_HREF filename=shelf_reader-0.1-py2-none-any.whl
+    $ http POST $BASE_ADDR/pulp/api/v3/content/python/packages/ _artifact=$ARTIFACT_HREF filename=shelf_reader-0.1-py2-none-any.whl
 
 Response::
 
     {
         "_href": "/pulp/api/v3/content/python/packages/1/",
-        "artifact": "/pulp/api/v3/artifacts/1/",
+        "_artifact": "/pulp/api/v3/artifacts/1/",
         "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
         "filename": "shelf_reader-0.1-py2-none-any.whl",
         "type": "python"

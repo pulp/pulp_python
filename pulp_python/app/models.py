@@ -135,13 +135,6 @@ class PythonPackageContent(Content):
     obsoletes_dist = models.TextField(default="[]")
     requires_external = models.TextField(default="[]")
 
-    @property
-    def artifact(self):
-        """
-        Return the artifact id (there is only one for this content type).
-        """
-        return self._artifacts.get().pk
-
     def __str__(self):
         """
         Provide more useful repr information.
