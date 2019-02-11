@@ -10,5 +10,5 @@ pulp_python
 A Pulp plugin to support hosting your own pip compatible Python packages.
 
 For more information, please see the `documentation
-<http://pulp-python.readthedocs.io/en/3.0-dev/>`_ or the `Pulp project page
+<https://pulp-python.readthedocs.io/en/latest/>`_ or the `Pulp project page
 <https://pulpproject.org>`_.
