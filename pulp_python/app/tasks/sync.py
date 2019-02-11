@@ -231,7 +231,6 @@ class PythonFirstStage(Stage):
                                         parse_metadata(metadata['info'], version, package)
                                     )
                                     break
-                        remote_packages.append(parse_metadata(metadata['info'], version, package))
                     else:
                         for package in packages:
                             remote_packages.append(
