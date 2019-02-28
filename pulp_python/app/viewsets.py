@@ -6,7 +6,8 @@ import tempfile
 
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import decorators, status, serializers
+from rest_framework import status, serializers
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as platform
@@ -148,7 +149,7 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         operation_description="Trigger an asynchronous task to sync python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
-    @decorators.detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
+    @action(detail=True, methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
@@ -187,7 +188,7 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
         operation_description="Trigger an asynchronous task to publish python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
-    @decorators.detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
+    @action(detail=True, methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         """
         Dispatches a publish task.
