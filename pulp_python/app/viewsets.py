@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -108,18 +108,11 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
         data['version'] = metadata.version
         data['filename'] = filename
         data['_artifact'] = request.data['_artifact']
+        data['_relative_path'] = filename
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.validated_data.pop('_artifact')
-        content = serializer.save()
-
-        if content.pk:
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=content,
-                relative_path=filename
-            )
+        serializer.save()
 
         headers = self.get_success_headers(request.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
