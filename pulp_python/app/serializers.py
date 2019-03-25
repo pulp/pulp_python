@@ -203,14 +203,15 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentSeria
         """
         classifiers = validated_data.pop('classifiers')
 
-        PythonPackageContent = python_models.PythonPackageContent.objects.create(**validated_data)
+        package_content = super().create(validated_data)
+
         for classifier in classifiers:
             python_models.Classifier.objects.create(
-                python_package_content=PythonPackageContent,
+                python_package_content=package_content,
                 **classifier
             )
 
-        return PythonPackageContent
+        return package_content
 
     class Meta:
         fields = core_serializers.SingleArtifactContentSerializer.Meta.fields + (
