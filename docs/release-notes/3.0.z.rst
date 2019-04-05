@@ -5,33 +5,19 @@ pulp-python 3.0 Release Notes
 pulp-python 3.0 is currently in Beta. Backwards incompatible changes
 might be made until Beta is over.
 
-3.0.0b3
+3.0.0b4
 =======
 
-* Add support for project specifier whitelisting.
+* Adds support for `pulpcore 3.0.0.rc1 <https://docs.pulpproject.org/en/3.0/nightly/release-notes/pulpcore/3.0.x.html#rc1>`_.
 
-  Sync now takes in a project specifier of project name, version, and digest.
-  In the previous implementation a project list would be given on PythonRemote creation,
-  sync downloaded every package of all the projects in the list::
+* Adds excludes support (aka 'blacklist')
 
-        projects=['django', 'scipy']
+  Renames the "projects" field on the remote to "includes".
 
+  Adds a new "excludes" field to the remote which behaves like "includes", except that any specified
+  releasees or digests are not synced, even if an include specifier matches them.
 
-  This is still possible in the new implementation like so::
+  Also adds a 'prereleases' field to the remote, which toggles whether prerelease versions should be
+  synced. This mirrors the 'prereleases' flag that packaging.specifiers.SpecifierSet provides.
 
-        projects=[{"name": "django"}, {"name": "scipy"}]
-
-
-  But it is now also possible to sync only certain versions of projects, and to sync only
-  packages matching a given hash::
-
-        projects=[{"name": "django", "version_specifier":"~=2.0"},
-                  {"name": "scipy",
-                   "digests":[
-                        {"type": "md5",
-                         "digest": "044af71389ac2ad3d3ece24d0baf4c07"},
-                        {"type": "sha256",
-                         "digest": "18b572502ce0b17e3b4bfe50dcaea414a98290358a2fa080c36066ba0651ec14"}]
-                  }
-                 ]
-
+* Removes Python 3.5 support
