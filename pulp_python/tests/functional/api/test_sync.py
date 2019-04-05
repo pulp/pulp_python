@@ -235,7 +235,7 @@ class PrereleasesTestCase(unittest.TestCase):
         self.client.patch(self.remote['_href'], body)
         type(self).remote = self.client.get(self.remote['_href'])
 
-        sync(self.cfg, self.remote, self.repo)
+        sync(self.cfg, self.remote, self.repo, mirror=True)
         type(self).repo = self.client.get(self.repo['_href'])
 
         self.assertDictEqual(
@@ -329,7 +329,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         self.client.patch(self.remote['_href'], body)
         type(self).remote = self.client.get(self.remote['_href'])
 
-        sync(self.cfg, self.remote, self.repo)
+        sync(self.cfg, self.remote, self.repo, mirror=True)
         type(self).repo = self.client.get(self.repo['_href'])
 
         self.assertEqual(
@@ -357,7 +357,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         self.client.patch(self.remote['_href'], body)
         type(self).remote = self.client.get(self.remote['_href'])
 
-        sync(self.cfg, self.remote, self.repo)
+        sync(self.cfg, self.remote, self.repo, mirror=True)
         type(self).repo = self.client.get(self.repo['_href'])
 
         self.assertEqual(
