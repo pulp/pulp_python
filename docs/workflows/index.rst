@@ -22,7 +22,7 @@ accordingly. If you prefer to specify the username and password with each reques
 To make these workflows copy/pastable, we make use of environment variables. The first variable to
 set is the hostname and port::
 
-   $ export BASE_ADDR=http://<hostname>:8000
+   $ export BASE_ADDR=http://<hostname>:24817
 
 This documentation makes use of the `jq library <https://stedolan.github.io/jq/>`_
 to parse the json received from requests, in order to get the unique urls generated
