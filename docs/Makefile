@@ -42,6 +42,7 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
+	curl -o _static/api.json "http://localhost:8000/pulp/api/v3/docs/api.json?plugin=pulp_python"
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
