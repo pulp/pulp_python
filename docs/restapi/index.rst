@@ -7,3 +7,9 @@ Pulp Python Endpoints
 ---------------------
 
 Pulp Python Reference `pulp-python REST documentation <../restapi.html>`_
+
+.. toctree::
+   :maxdepth: 1
+
+   project-specifiers
+

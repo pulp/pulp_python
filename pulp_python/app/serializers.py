@@ -244,10 +244,15 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     includes = ProjectSpecifierSerializer(
         required=False,
         many=True,
+        # help_text=_('<a href="../index.html">link text</a>'),
+        help_text=_('<a href="restapi/project-specifiers.html">List of dictionaries of Python '
+                    'Project Specifiers</a>')
     )
     excludes = ProjectSpecifierSerializer(
         required=False,
         many=True,
+        help_text=_('<a href="restapi/project-specifiers.html">List of dictionaries of Python '
+                    'Project Specifiers</a>')
     )
     prereleases = serializers.BooleanField(
         required=False,
