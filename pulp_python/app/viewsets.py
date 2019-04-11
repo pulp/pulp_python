@@ -5,6 +5,7 @@ import shutil
 import tempfile
 
 from django.db import transaction
+from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, serializers
 from rest_framework.decorators import action
@@ -128,6 +129,16 @@ class PythonRemoteFilter(platform.RemoteFilter):
         fields = []
 
 
+@method_decorator(name='list', decorator=swagger_auto_schema(
+    operation_description="List all Python Remotes"
+))
+@method_decorator(name='retrieve', decorator=swagger_auto_schema(
+    operation_description="Retrieve the details of a single Python Remote"
+))
+@method_decorator(name='create', decorator=swagger_auto_schema(
+    operation_description="Create a Python Remote, representing an external source of Python"
+                          " content"
+))
 class PythonRemoteViewSet(platform.RemoteViewSet):
     """
     A ViewSet for PythonRemote.
