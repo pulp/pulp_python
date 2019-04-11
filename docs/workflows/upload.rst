@@ -19,6 +19,8 @@ Create a variable for convenience::
 
     $ export REPO_HREF=$(http $BASE_ADDR/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
 
+Reference (pulpcore): `Repository API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
 
 Upload a file to Pulp
 ---------------------
@@ -34,6 +36,9 @@ Response::
         ...
     }
 
+
+Reference (pulpcore): `Artifact API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/artifacts>`_
 
 Create content from an artifact
 -------------------------------
@@ -57,9 +62,14 @@ Create a variable for convenience::
 
     $ export CONTENT_HREF=$(http $BASE_ADDR/pulp/api/v3/content/python/packages/ | jq -r '.results[] | select(.filename == "shelf_reader-0.1-py2-none-any.whl") | ._href')
 
+Reference: `Python Content API Usage <../restapi.html#tag/content>`_
+
 Add content to a repository
 ---------------------------
 
 Once there is a content unit, it can be added and removed and from to repositories::
 
 $ http POST $BASE_ADDR$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"
+
+Reference (pulpcore): `Repository Version Creation API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#operation/repositories_versions_create>`_
