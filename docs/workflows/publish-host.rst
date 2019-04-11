@@ -23,6 +23,8 @@ Create a variable for convenience.::
 
 $ export PUBLISHER_HREF=$(http $BASE_ADDR/pulp/api/v3/publishers/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
 
+Reference: `Python Publisher API Usage <../restapi.html#tag/publishers>`_
+
 
 Publish a repository with a publisher
 -------------------------------------
@@ -45,6 +47,8 @@ Create a variable for convenience.::
 
 $ export PUBLICATION_HREF=$(http $BASE_ADDR/pulp/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')
 
+Reference: `Python Publish Task Usage <../restapi.html#operation/publishers_python_python_publish>`_
+
 Host a Publication (Create a Distribution)
 --------------------------------------------
 
@@ -60,6 +64,9 @@ Response::
         "_href": "/pulp/api/v3/distributions/1/",
        ...
     }
+
+Reference (pulpcore): `Distribution API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/distributions>`_
 
 .. _using-distributions:
 

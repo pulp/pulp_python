@@ -1,8 +1,14 @@
 User Setup
 ==========
 
-Install pulp-python
--------------------
+Ansible Installer (Recommended)
+-------------------------------
+
+We recommend that you install `pulpcore` and `pulp-python` together using the `Ansible installer
+<https://github.com/pulp/ansible-pulp/blob/master/README.md>`_.
+
+Pip Install
+-----------
 
 This document assumes that you have
 `installed pulpcore <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`_

@@ -15,10 +15,6 @@ Community contributions are encouraged.
 * View and file issues in the `Redmine Tracker
   <https://pulp.plan.io/projects/pulp_python/issues>`_.
 
-REST API
---------
-
-REST API documentation for this plugin can be found `here <restapi.html>`_
 
 Table of Contents
 -----------------
@@ -28,6 +24,7 @@ Table of Contents
 
    installation
    workflows/index
+   restapi/index
    release-notes/3.0.z.rst
 
 

@@ -22,6 +22,9 @@ If you want to copy/paste your way through the guide, create an environment vari
 
     $ export REPO_HREF=$(http $BASE_ADDR/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
 
+Reference (pulpcore): `Repository API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
+
 
 Create a Remote
 ---------------
@@ -101,6 +104,9 @@ You can also use version specifiers to "exclude" certain versions of a project, 
             },
         ]'
 
+Reference: `Python Remote Usage
+<https://pulp-python.readthedocs.io/en/latest/restapi.html#tag/remotes>`_
+
 Sync repository foo with remote
 -------------------------------
 
@@ -161,3 +167,6 @@ Response::
         "state": "completed",
         "worker": "/pulp/api/v3/workers/eaffe1be-111a-421d-a127-0b8fa7077cf7/"
     }
+
+Reference: `Python sync
+<https://pulp-python.readthedocs.io/en/latest/restapi.html#operation/remotes_python_python_sync>`_
