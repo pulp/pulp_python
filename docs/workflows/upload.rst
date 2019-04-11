@@ -1,26 +1,5 @@
-Upload and Manage Content
-=========================
-
-Create a repository
--------------------
-
-If you don't already have a repository, create one::
-
-    $ http POST $BASE_ADDR/pulp/api/v3/repositories/ name=foo
-
-Response::
-
-    {
-        "_href": "/pulp/api/v3/repositories/1/",
-        ...
-    }
-
-Create a variable for convenience::
-
-    $ export REPO_HREF=$(http $BASE_ADDR/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
-
-Reference (pulpcore): `Repository API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
+Upload Content
+==============
 
 Upload a file to Pulp
 ---------------------
@@ -67,9 +46,4 @@ Reference: `Python Content API Usage <../restapi.html#tag/content>`_
 Add content to a repository
 ---------------------------
 
-Once there is a content unit, it can be added and removed and from to repositories::
-
-$ http POST $BASE_ADDR$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"
-
-Reference (pulpcore): `Repository Version Creation API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#operation/repositories_versions_create>`_
+See :ref:`add-remove`

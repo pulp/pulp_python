@@ -59,7 +59,13 @@ class PythonPackageContentFilter(platform.ContentFilter):
 
 class PythonPackageContentViewSet(platform.ContentViewSet):
     """
-    The ViewSet for PythonPackageContent.
+    <!-- User-facing documentation, rendered as html-->
+    PythonPackageContent represents each individually installable Python package. In the Python
+    ecosystem, this is called a <i>Python Distribution</i>, sometimes (ambiguously) refered to as a
+    package. In Pulp Python, we refer to it as <i>PythonPackageContent</i>. Each
+    PythonPackageContent corresponds to a single filename, for example
+    `pulpcore-3.0.0rc1-py3-none-any.whl` or `pulpcore-3.0.0rc1.tar.gz`.
+
     """
 
     endpoint_name = 'packages'
@@ -71,7 +77,11 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     @transaction.atomic
     def create(self, request):
         """
-        Create a new PythonPackageContent from a request.
+        <!-- User-facing documentation, rendered as html-->
+        This endpoint is part of the <a href="workflows/upload.html">Upload workflow.</a> Create
+        a PythonPackageContent here by specifying an uploaded Artifact. `pulp-python` will inspect
+        parse the metadata directly from the file.
+
         """
         try:
             artifact = self.get_resource(request.data['_artifact'], Artifact)
@@ -130,7 +140,11 @@ class PythonRemoteFilter(platform.RemoteFilter):
 
 class PythonRemoteViewSet(platform.RemoteViewSet):
     """
-    A ViewSet for PythonRemote.
+    <!-- User-facing documentation, rendered as html-->
+    Python Remotes are representations of an <b>external repository</b> of Python content, eg.
+    PyPI.  Fields include upstream repository config. Python Remotes are also used to `sync` from
+    upstream repositories, and contains sync settings.
+
     """
 
     endpoint_name = 'python'
@@ -139,13 +153,15 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     filterset_class = PythonRemoteFilter
 
     @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to sync python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
     @action(detail=True, methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
-        Dispatches a sync task.
+        <!-- User-facing documentation, rendered as html-->
+        Trigger an asynchronous task to sync python content. The sync task will retrieve Python
+        content from the specified `Remote` and " update the specified `Respository`, creating a
+        new  `RepositoryVersion`.
         """
         remote = self.get_object()
         serializer = RepositorySyncURLSerializer(
@@ -170,7 +186,9 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
 
 class PythonPublisherViewSet(platform.PublisherViewSet):
     """
-    A ViewSet for PythonPublisher.
+    <b>Deprecated</b>. Publishers will be removed in an upcoming release. They will be replaced
+    with Python Publications. This can be tracked on Redmine: https://pulp.plan.io/issues/4699
+
     """
 
     endpoint_name = 'python'

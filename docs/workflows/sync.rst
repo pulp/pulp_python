@@ -54,6 +54,8 @@ Again, you can create an environment variable for convenience::
 
     $ export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
 
+Reference: `Python Remote Usage
+<https://pulp-python.readthedocs.io/en/latest/restapi.html#tag/remotes>`_
 
 A More Complex Remote
 ---------------------
