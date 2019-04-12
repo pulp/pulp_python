@@ -75,12 +75,12 @@ Use the newly created distribution
 
 The metadata and packages can now be retrieved from the distribution::
 
-$ http $BASE_ADDR/pulp/content/foo/simple/
-$ http $BASE_ADDR/pulp/content/foo/simple/shelf-reader/
+$ http $CONTENT_ADDR/pulp/content/foo/simple/
+$ http $CONTENT_ADDR/pulp/content/foo/simple/shelf-reader/
 
 The content is also pip installable::
 
-$ pip install --trusted-host localhost -i $BASE_ADDR/pulp/content/foo/simple/ shelf-reader
+$ pip install --trusted-host localhost -i $CONTENT_ADDR/pulp/content/foo/simple/ shelf-reader
 
 If you don't want to specify the distribution path every time, you can modify your ``pip.conf``
 file. See the `pip docs <https://pip.pypa.io/en/stable/user_guide/#configuration>`_ for more
