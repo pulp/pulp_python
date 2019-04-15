@@ -21,3 +21,8 @@ might be made until Beta is over.
   synced. This mirrors the 'prereleases' flag that packaging.specifiers.SpecifierSet provides.
 
 * Removes Python 3.5 support
+
+3.0.0b5
+=======
+
+* Fix relative_path to allow pip install
