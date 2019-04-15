@@ -9,7 +9,7 @@ from aiohttp.client_exceptions import ClientResponseError
 from packaging import specifiers
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, ProgressBar, Repository
+from pulpcore.plugin.models import Artifact, ProgressBar, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -87,6 +87,8 @@ class PythonFirstStage(Stage):
         """
         ps = ProjectSpecifier.objects.filter(remote=self.remote)
 
+        deferred_download = (self.remote.policy != Remote.IMMEDIATE)
+
         with ProgressBar(message='Fetching Project Metadata') as pb:
             # Group multiple specifiers to the same project together, so that we only have to fetch
             # the metadata once, and can re-use it if there are multiple specifiers.
@@ -124,7 +126,13 @@ class PythonFirstStage(Stage):
                     artifact = Artifact(sha256=entry.pop('sha256_digest'))
                     package = PythonPackageContent(**entry)
 
-                    da = DeclarativeArtifact(artifact, url, entry['filename'], self.remote)
+                    da = DeclarativeArtifact(
+                        artifact,
+                        url,
+                        entry['filename'],
+                        self.remote,
+                        deferred_download=deferred_download
+                    )
                     dc = DeclarativeContent(content=package, d_artifacts=[da])
 
                     await self.put(dc)
