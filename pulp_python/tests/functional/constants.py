@@ -25,11 +25,11 @@ PYPI_URL = "https://pypi.org/"
 PYTHON_EMPTY_PROJECT_SPECIFIER = []
 # Specifier that includes projects that aren't in the test fixtures
 PYTHON_UNAVAILABLE_PROJECT_SPECIFIER = [
-    {"name": "shelf-reader", "version_specifier": "", "digests": []},           # matches 2
-    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1", "digests": []},  # matches 3
-    {"name": "flake8", "version_specifier": "", "digests": []},                 # matches 0
-    {"name": "pyramid", "version_specifier": "", "digests": []},                # matches 0
-    {"name": "pylint", "version_specifier": "", "digests": []},                 # matches 0
+    {"name": "shelf-reader", "version_specifier": ""},           # matches 2
+    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1"},  # matches 3
+    {"name": "flake8", "version_specifier": ""},                 # matches 0
+    {"name": "pyramid", "version_specifier": ""},                # matches 0
+    {"name": "pylint", "version_specifier": ""},                 # matches 0
 ]
 PYTHON_UNAVAILABLE_PACKAGE_COUNT = 5
 PYTHON_UNAVAILABLE_FIXTURE_SUMMARY = {
@@ -53,11 +53,11 @@ PYTHON_VALID_SPECIFIER_NO_VERSION = [
 # is set True or False on the remote.
 PYTHON_PRERELEASE_TEST_SPECIFIER = [
     # matches 2 w/ prereleases, 1 w/o
-    {"name": "aiohttp", "version_specifier": ">3.3.1,<=3.3.2", "digests": []},
+    {"name": "aiohttp", "version_specifier": ">3.3.1,<=3.3.2"},
     # matches 13 w/ prereleases, 9 w/o
-    {"name": "celery", "version_specifier": "", "digests": []},
+    {"name": "celery", "version_specifier": ""},
     # matches 31 w/ prereleases, 20 w/o
-    {"name": "Django", "version_specifier": "", "digests": []},
+    {"name": "Django", "version_specifier": ""},
 ]
 PYTHON_WITH_PRERELEASE_COUNT = 46
 PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY = {
@@ -70,7 +70,7 @@ PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY = {
 
 # Specifier for basic sync / publish tests.
 PYTHON_XS_PROJECT_SPECIFIER = [
-    {"name": "shelf-reader", "version_specifier": "", "digests": []}  # matches 2
+    {"name": "shelf-reader", "version_specifier": ""}  # matches 2
 ]
 PYTHON_XS_PACKAGE_COUNT = 2
 PYTHON_XS_FIXTURE_SUMMARY = {
@@ -78,9 +78,9 @@ PYTHON_XS_FIXTURE_SUMMARY = {
 }
 
 PYTHON_SM_PROJECT_SPECIFIER = [
-    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1", "digests": []},  # matches 3
-    {"name": "celery", "version_specifier": ">4.1.0,<=4.2.0", "digests": []},   # matches 2
-    {"name": "Django", "version_specifier": ">1.10.0,<1.10.5", "digests": []},  # matches 8
+    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1"},  # matches 3
+    {"name": "celery", "version_specifier": ">4.1.0,<=4.2.0"},   # matches 2
+    {"name": "Django", "version_specifier": ">1.10.0,<1.10.5"},  # matches 8
 ]
 PYTHON_SM_PACKAGE_COUNT = 13
 PYTHON_SM_FIXTURE_SUMMARY = {
@@ -88,10 +88,10 @@ PYTHON_SM_FIXTURE_SUMMARY = {
 }
 
 PYTHON_MD_PROJECT_SPECIFIER = [
-    {"name": "shelf-reader", "version_specifier": "", "digests": []},           # matches 2
-    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1", "digests": []},  # matches 3
-    {"name": "celery", "version_specifier": "~=4.0", "digests": []},            # matches 5
-    {"name": "Django", "version_specifier": ">1.10.0,<=2.0.6", "digests": []},  # matches 16
+    {"name": "shelf-reader", "version_specifier": ""},           # matches 2
+    {"name": "aiohttp", "version_specifier": ">=3.2.0,<3.3.1"},  # matches 3
+    {"name": "celery", "version_specifier": "~=4.0"},            # matches 5
+    {"name": "Django", "version_specifier": ">1.10.0,<=2.0.6"},  # matches 16
 ]
 PYTHON_MD_PACKAGE_COUNT = 26
 PYTHON_MD_FIXTURE_SUMMARY = {
@@ -99,11 +99,11 @@ PYTHON_MD_FIXTURE_SUMMARY = {
 }
 
 PYTHON_LG_PROJECT_SPECIFIER = [
-    {"name": "aiohttp", "version_specifier": "", "digests": []},  # matches 7
-    {"name": "celery", "version_specifier": "", "digests": []},  # matches 13
-    {"name": "Django", "version_specifier": "", "digests": []},  # matches 31
-    {"name": "scipy", "version_specifier": "", "digests": []},  # matches 23
-    {"name": "shelf-reader", "version_specifier": "", "digests": []},  # matches 2
+    {"name": "aiohttp", "version_specifier": ""},       # matches 7
+    {"name": "celery", "version_specifier": ""},        # matches 13
+    {"name": "Django", "version_specifier": ""},        # matches 31
+    {"name": "scipy", "version_specifier": ""},         # matches 23
+    {"name": "shelf-reader", "version_specifier": ""},  # matches 2
 ]
 PYTHON_LG_PACKAGE_COUNT = 76
 PYTHON_LG_FIXTURE_SUMMARY = {

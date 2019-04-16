@@ -23,23 +23,6 @@ class ClassifierSerializer(serializers.ModelSerializer):
         fields = ('name',)
 
 
-class DistributionDigestSerializer(serializers.ModelSerializer):
-    """
-    A serializer for the Distribution Digest in a Project Specifier.
-    """
-
-    type = serializers.CharField(
-        help_text=_("A type of digest: i.e. sha256, md5")
-    )
-    digest = serializers.CharField(
-        help_text=_("The digest of the distribution")
-    )
-
-    class Meta:
-        model = python_models.DistributionDigest
-        fields = ('type', 'digest')
-
-
 class ProjectSpecifierSerializer(serializers.ModelSerializer):
     """
     A serializer for Python project specifiers.
@@ -58,10 +41,6 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
         required=False,
         allow_blank=True
     )
-    digests = DistributionDigestSerializer(
-        required=False,
-        many=True
-    )
 
     def validate_version_specifier(self, value):
         """
@@ -75,7 +54,7 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = python_models.ProjectSpecifier
-        fields = ('name', 'version_specifier', 'digests')
+        fields = ('name', 'version_specifier')
 
 
 class PythonPackageContentSerializer(core_serializers.SingleArtifactContentSerializer):
@@ -272,31 +251,17 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             excludes (list): A list of validated ProjectSpecifier dicts
         """
         for project in includes:
-            digests = project.pop('digests', None)
-            specifier = python_models.ProjectSpecifier.objects.create(
+            python_models.ProjectSpecifier.objects.create(
                 remote=remote,
                 exclude=False,
                 **project
             )
-            if digests:
-                for digest in digests:
-                    python_models.DistributionDigest.objects.create(
-                        project_specifier=specifier,
-                        **digest
-                    )
         for project in excludes:
-            digests = project.pop('digests', None)
-            specifier = python_models.ProjectSpecifier.objects.create(
+            python_models.ProjectSpecifier.objects.create(
                 remote=remote,
                 exclude=True,
                 **project
             )
-            if digests:
-                for digest in digests:
-                    python_models.DistributionDigest.objects.create(
-                        project_specifier=specifier,
-                        **digest
-                    )
 
     @transaction.atomic
     def update(self, instance, validated_data):

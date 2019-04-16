@@ -18,7 +18,6 @@ from pulpcore.plugin.stages import (
 )
 
 from pulp_python.app.models import (
-    DistributionDigest,
     ProjectSpecifier,
     PythonPackageContent,
     PythonRemote,
@@ -172,11 +171,9 @@ class PythonFirstStage(Stage):
 
         # Delete versions/packages matching the exclude specifiers.
         for exclude_specifier in excludes:
-            exclude_digests = DistributionDigest.objects.filter(project_specifier=exclude_specifier)
-
             # Fast path: If one of the specifiers matches all versions and we don't have any
             # digests to reference, clear the whole dict, we're done.
-            if not (exclude_specifier.version_specifier or exclude_digests.exists()):
+            if not exclude_specifier.version_specifier:
                 releases.clear()
                 break
 
@@ -189,26 +186,13 @@ class PythonFirstStage(Stage):
                 # First check the version specifer, if it matches, check the digests and delete
                 # matching packages. If there are no digests, delete them all.
                 if specifier.contains(version):
-                    if exclude_digests.exists():
-                        new_packages = []
-                        for package in packages:
-                            for digest_type, digest in package['digests'].items():
-                                if not exclude_digests.filter(digest_type=digest_type,
-                                                              digest=digest).exists():
-                                    new_packages.append(package)
-                        releases[version] = new_packages
-                    else:
-                        del releases[version]
+                    del releases[version]
 
         for version, packages in releases.items():
             for include_specifier in includes:
-                include_digests = DistributionDigest.objects.filter(
-                    project_specifier=include_specifier
-                )
                 # Fast path: If one of the specifiers matches all versions and we don't have any
                 # digests to reference, return all of the packages for the version.
-                if prereleases and not \
-                        (include_specifier.version_specifier or include_digests.exists()):
+                if prereleases and not include_specifier.version_specifier:
                     for package in packages:
                         remote_packages.append(parse_metadata(metadata['info'], version, package))
                     # This breaks the inner loop, e.g. don't check any other include_specifiers.
@@ -223,19 +207,10 @@ class PythonFirstStage(Stage):
                 # First check the version specifer, if it matches, check the digests and include
                 # matching packages. If there are no digests, include them all.
                 if specifier.contains(version):
-                    if include_digests.exists():
-                        for package in packages:
-                            for digest_type, digest in package['digests'].items():
-                                if include_digests.filter(type=digest_type, digest=digest).exists():
-                                    remote_packages.append(
-                                        parse_metadata(metadata['info'], version, package)
-                                    )
-                                    break
-                    else:
-                        for package in packages:
-                            remote_packages.append(
-                                parse_metadata(metadata['info'], version, package)
-                            )
+                    for package in packages:
+                        remote_packages.append(
+                            parse_metadata(metadata['info'], version, package)
+                        )
         return remote_packages
 
 
