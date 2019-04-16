@@ -42,21 +42,6 @@ class Classifier(Model):
     )
 
 
-class DistributionDigest(Model):
-    """
-    A model of digests on an individual distribution.
-    """
-
-    type = models.TextField()
-    digest = models.TextField()
-    project_specifier = models.ForeignKey(
-        "ProjectSpecifier",
-        related_name="digests",
-        related_query_name="distributiondigest",
-        on_delete=models.CASCADE
-    )
-
-
 class ProjectSpecifier(Model):
     """
     A specifier of a python project.
