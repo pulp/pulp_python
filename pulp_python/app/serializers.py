@@ -32,12 +32,11 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
         help_text=_("A python project name.")
     )
     version_specifier = serializers.CharField(
-        help_text=_(
-            "A version specifier, accepts standard python versions syntax:"
-            " >=, <=, ==, ~=, >, <, ! can be used in conjunction with other specifiers i.e."
-            " >1,<=3,!=3.0.2. Note that the specifiers treat pre-released versions as < released"
-            " versions, so 3.0.0a1 < 3.0.0. Not setting the version_specifier will sync all the "
-            "pre-released and released versions."),
+        help_text=_("A version specifier accepts standard python versions syntax: `>=`, `<=`, "
+                    "`==`, `~=`, `>`, `<`, `!` and can be used in conjunction with other specifiers"
+                    " i.e. `>1`,`<=3`,`!=3.0.2`. Note that the specifiers treat pre-released "
+                    "versions as `<` released versions, so 3.0.0a1 < 3.0.0. Not setting the "
+                    "version_specifier will sync all the pre-released and released versions."),
         required=False,
         allow_blank=True
     )
@@ -223,10 +222,20 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     includes = ProjectSpecifierSerializer(
         required=False,
         many=True,
+        help_text="""AKA "Whitelist". A list of dictionaries, expand for more information.
+        Example:
+
+        [{"name": "django", "version_specifier":"~=2.0"}]
+        """
     )
     excludes = ProjectSpecifierSerializer(
         required=False,
         many=True,
+        help_text=""""AKA "Blacklist". A list of dictionaries, expand for more information.
+        Example:
+
+        [{"name": "django", "version_specifier":"~=2.0"}]
+        """
     )
     prereleases = serializers.BooleanField(
         required=False,
