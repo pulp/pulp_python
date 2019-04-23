@@ -16,7 +16,7 @@ into two main categories:
 
   1. :ref:`workflows-index` show the **major features** of the Python plugin, with links to reference
      docs.
-  2. `REST API Docs <../restapi.html>`_ are automatically generated and provide more detailed
+  2. `REST API Docs <restapi.html>`_ are automatically generated and provide more detailed
      information for each **minor feature**, including all fields and options.
 
 Community
