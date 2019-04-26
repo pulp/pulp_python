@@ -14,7 +14,6 @@ from pulpcore.plugin import viewsets as platform
 from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
-    RepositoryPublishURLSerializer,
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import enqueue_with_reservation
@@ -184,31 +183,28 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
         return platform.OperationPostponedResponse(result, request)
 
 
-class PythonPublisherViewSet(platform.PublisherViewSet):
+class PythonPublicationViewSet(platform.PublicationViewSet):
     """
-    <b>Deprecated</b>. Publishers will be removed in an upcoming release. They will be replaced
-    with Python Publications. This can be tracked on Redmine: https://pulp.plan.io/issues/4699
+    <!-- User-facing documentation, rendered as html-->
+    Python Publications refer to the Python Package content in a repository version, and include
+    metadata about that content.
 
     """
 
-    endpoint_name = 'python'
-    queryset = python_models.PythonPublisher.objects.all()
-    serializer_class = python_serializers.PythonPublisherSerializer
+    endpoint_name = 'pypi'
+    queryset = python_models.PythonPublication.objects.all()
+    serializer_class = python_serializers.PythonPublicationSerializer
 
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to publish python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
-    @action(detail=True, methods=('post',), serializer_class=RepositoryPublishURLSerializer)
-    def publish(self, request, pk):
+    def create(self, request):
         """
-        Dispatches a publish task.
+        <!-- User-facing documentation, rendered as html-->
+        Dispatches a publish task, which generates metadata that will be used by pip.
         """
-        publisher = self.get_object()
-        serializer = RepositoryPublishURLSerializer(
-            data=request.data,
-            context={'request': request}
-        )
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         repository_version = serializer.validated_data.get('repository_version')
 
@@ -219,9 +215,8 @@ class PythonPublisherViewSet(platform.PublisherViewSet):
 
         result = enqueue_with_reservation(
             tasks.publish,
-            [repository_version.repository, publisher],
+            [repository_version.repository],
             kwargs={
-                'publisher_pk': publisher.pk,
                 'repository_version_pk': repository_version.pk
             }
         )

@@ -45,26 +45,23 @@ simple_detail_template = """<!DOCTYPE html>
 """
 
 
-def publish(publisher_pk, repository_version_pk):
+def publish(repository_version_pk):
     """
     Create a Publication based on a RepositoryVersion.
 
     Args:
-        publisher_pk (str): Use the publish settings provided by this publisher.
         repository_version_pk (str): Create a Publication from this RepositoryVersion.
 
     """
-    publisher = python_models.PythonPublisher.objects.get(pk=publisher_pk)
     repository_version = models.RepositoryVersion.objects.get(pk=repository_version_pk)
 
-    log.info(_('Publishing: repository={repo}, version={version}, publisher={pub}').format(
+    log.info(_('Publishing: repository={repo}, version={version}').format(
         repo=repository_version.repository.name,
         version=repository_version.number,
-        pub=publisher.name
     ))
 
     with WorkingDirectory():
-        with models.Publication.create(repository_version, publisher) as publication:
+        with python_models.PythonPublication.create(repository_version) as publication:
             write_simple_api(publication)
 
     log.info(_('Publication: {pk} created').format(pk=publication.pk))
