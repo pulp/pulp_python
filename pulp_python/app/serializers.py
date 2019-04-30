@@ -329,20 +329,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         return python_remote
 
 
-class PythonPublisherSerializer(core_serializers.PublisherSerializer):
+class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     """
-    A Serializer for PythonPublisher.
-
-    Add any new fields if defined on PythonPublisher.
-    Similar to the example above, in PythonContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.PublisherSerializer.Meta.validators + [myValidator1, myValidator2]
+    A Serializer for PythonPublication.
     """
 
     class Meta:
-        fields = core_serializers.PublisherSerializer.Meta.fields
-        model = python_models.PythonPublisher
+        fields = core_serializers.PublicationSerializer.Meta.fields
+        model = python_models.PythonPublication

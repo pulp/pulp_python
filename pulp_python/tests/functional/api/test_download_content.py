@@ -10,18 +10,16 @@ from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_repo,
     sync,
-    publish
 )
 
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
-    PYTHON_PUBLISHER_PATH,
 )
 from pulp_python.tests.functional.utils import (
-    gen_python_publisher,
+    get_python_content_paths,
+    gen_python_publication,
     gen_python_remote,
-    get_python_content_paths
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -70,12 +68,9 @@ class DownloadContentTestCase(unittest.TestCase):
 
         sync(cfg, remote, repo)
         repo = client.get(repo['_href'])
-        # Create a publisher.
-        publisher = client.post(PYTHON_PUBLISHER_PATH, gen_python_publisher())
-        self.addCleanup(client.delete, publisher['_href'])
 
-        # Create a publication.
-        publication = publish(cfg, publisher, repo)
+        # Create a publication
+        publication = gen_python_publication(cfg, repository=repo)
         self.addCleanup(client.delete, publication['_href'])
 
         # Create a distribution.

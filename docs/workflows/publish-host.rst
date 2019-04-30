@@ -4,66 +4,54 @@ Publish and Host
 This section assumes that you have a repository with content in it. To do this, see the
 :doc:`sync` or :doc:`upload` documentation.
 
-Create a Publisher
-------------------
+Create a new Publication
+------------------------
 
-Publishers contain extra settings for how to publish. You can use a Python publisher on any
-repository that contains Python content::
+Kick off a publish task by creating a new Publication. The publish task will generate all the
+metadata that ``pip`` needs to install packages (newly created Publications are not consumable
+yet).
 
-$ http POST $BASE_ADDR/pulp/api/v3/publishers/python/python/ name=bar
+.. literalinclude:: ../_scripts/publication.sh
+   :language: bash
 
-Response::
-
-    {
-        "_href": "/pulp/api/v3/repositories/foo/publishers/python/python/1/",
-        ...
-    }
-
-Create a variable for convenience.::
-
-$ export PUBLISHER_HREF=$(http $BASE_ADDR/pulp/api/v3/publishers/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
-
-Reference: `Python Publisher API Usage <../restapi.html#tag/publishers>`_
-
-
-Publish a repository with a publisher
--------------------------------------
-
-Use the remote object to kick off a publish task by specifying the repository version to publish.
-Alternatively, you can specify repository, which will publish the latest version.
-
-The result of a publish is a publication, which contains all the information needed for ``pip`` to
-use. Publications are not consumable until they are hosted by a distribution::
-
-$ http POST $BASE_ADDR$PUBLISHER_HREF'publish/' repository=$REPO_HREF
-
-Response::
+Publication GET Response::
 
     {
-        "task": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
+        "_created": "2019-04-29T15:58:04.939836Z",
+        "_distributions": [],
+        "_href": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
+        "_type": "python.python",
+        "publisher": null,
+        "repository": "http://localhost:24817/pulp/api/v3/repositories/%3CRepository:%20foo%3E/",
+        "repository_version": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/"
     }
 
-Create a variable for convenience.::
+Reference: `Python Publication Usage <../restapi.html#tag/publications>`_
 
-$ export PUBLICATION_HREF=$(http $BASE_ADDR/pulp/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')
-
-Reference: `Python Publish Task Usage <../restapi.html#operation/publishers_python_python_publish>`_
-
-Host a Publication (Create a Distribution)
---------------------------------------------
+Create a Distribution (Host a Publication)
+------------------------------------------
 
 To host a publication, (which makes it consumable by ``pip``), users create a distribution which
-will serve the associated publication at ``/pulp/content/<distribution.base_path>`` as demonstrated
-in :ref:`using distributions<using-distributions>`::
+will serve the associated publication at ``$CONTENT_HOST/pulp/content/<distribution.base_path>`` as
+demonstrated in :ref:`using distributions<using-distributions>`.
 
-$ http POST $BASE_ADDR/pulp/api/v3/distributions/ name='baz' base_path='foo' publication=$PUBLICATION_HREF
+.. literalinclude:: ../_scripts/distribution.sh
+   :language: bash
 
-Response::
+Distribution GET Response::
 
-    {
-        "_href": "/pulp/api/v3/distributions/1/",
-       ...
-    }
+  {
+      "_created": "2019-04-29T15:58:07.586250Z",
+      "_href": "/pulp/api/v3/distributions/63d532cc-94ea-402c-bb6d-2340242c6df8/",
+      "base_path": "foo",
+      "base_url": "localhost:24816/pulp/content/foo",
+      "content_guard": null,
+      "name": "baz",
+      "publication": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
+      "publisher": null,
+      "remote": null,
+      "repository": null
+  }
 
 Reference (pulpcore): `Distribution API Usage
 <https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/distributions>`_

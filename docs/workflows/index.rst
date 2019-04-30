@@ -10,8 +10,8 @@ If you have not yet installed the Python plugins on your Pulp installation, plea
 :doc:`../installation`. These documents will assume you have the environment installed and
 ready to go.
 
-httpie
-------
+
+**httpie**
 
 The REST API examples here use `httpie <https://httpie.org/doc>`_ to perform the requests.
 The ``httpie`` commands below assume that the user executing the commands has a ``.netrc`` file
@@ -32,8 +32,7 @@ set is the hostname and port::
 
    $ export BASE_ADDR=http://<hostname>:24817
 
-jq
---
+**jq**
 
 This documentation makes use of the `jq library <https://stedolan.github.io/jq/>`_
 to parse the json received from requests, in order to get the unique urls generated
@@ -41,9 +40,6 @@ when objects are created. To follow this documentation as-is please install the 
 library with:
 
 ``$ sudo dnf install jq``
-
-Python Workflows
-----------------
 
 .. toctree::
    :maxdepth: 2

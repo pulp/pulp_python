@@ -7,20 +7,19 @@ their repository.
 Create a Repository
 -------------------
 
-Start by creating a new repository named "foo"::
+.. literalinclude:: ../_scripts/repo.sh
+   :language: bash
 
-    $ http POST $BASE_ADDR/pulp/api/v3/repositories/ name=foo
-
-Response::
+Repository GET Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/1/",
-        ...
+        "_created": "2019-04-29T15:57:59.763712Z",
+        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "_latest_version_href": null,
+        "_versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
+        "description": "",
+        "name": "foo"
     }
-
-If you want to copy/paste your way through the guide, create an environment variable for the repository URI::
-
-    $ export REPO_HREF=$(http $BASE_ADDR/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
 
 Reference (pulpcore): `Repository API Usage
 <https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
@@ -33,29 +32,34 @@ Creating a remote object informs Pulp about an external content source. In this 
 using a fixture, but Python remotes can be anything that implements the PyPI API. This can be PyPI
 itself, a fixture, or even an instance of Pulp 2.
 
-You can use any Python remote to sync content into any repository::
+.. literalinclude:: ../_scripts/remote.sh
+   :language: bash
 
-    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
-        name='bar' \
-        url='https://pypi.org/' \
-        includes:='[{"name": "django", "version_specifier":"~=2.0"}]'
-
-
-
-
-Response::
+Remote GET Response::
 
     {
-        "_href": "/pulp/api/v3/repositories/foo/remotes/python/python/1/",
-        ...
+        "_created": "2019-04-29T15:58:01.196433Z",
+        "_href": "/pulp/api/v3/remotes/python/python/1962b474-1545-4de1-adf4-4bf211679752/",
+        "_last_updated": "2019-04-29T15:58:01.196446Z",
+        "_type": "python.python",
+        "download_concurrency": 20,
+        "excludes": [],
+        "includes": [
+            {
+                "name": "shelf-reader",
+                "version_specifier": ""
+            }
+        ],
+        "name": "bar",
+        "policy": "immediate",
+        "prereleases": false,
+        "proxy_url": "",
+        "ssl_validation": true,
+        "url": "https://pypi.org/",
+        "validate": true
     }
 
-Again, you can create an environment variable for convenience::
-
-    $ export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/python/ | jq -r '.results[] | select(.name == "bar") | ._href')
-
-Reference: `Python Remote Usage
-<https://pulp-python.readthedocs.io/en/latest/restapi.html#tag/remotes>`_
+Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
 
 A More Complex Remote
 ---------------------
@@ -91,8 +95,7 @@ You can also use version specifiers to "exclude" certain versions of a project, 
             {"name": "scipy"}
         ]'
 
-Reference: `Python Remote Usage
-<https://pulp-python.readthedocs.io/en/latest/restapi.html#tag/remotes>`_
+Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
 
 Sync repository foo with remote
 -------------------------------
@@ -100,60 +103,36 @@ Sync repository foo with remote
 Use the remote object to kick off a synchronize task by specifying the repository to
 sync with. You are telling pulp to fetch content from the remote and add to the repository.
 
-By default Pulp syncs using ``mirror`` sync. This *adds* new content from the
-remote repository and *removes* content from the local repository until
-the local repository "mirrors" the remote. You can also tell Pulp not to
-mirror, and Pulp will only *add* new content from the remote repository to the
-local repository::
+.. literalinclude:: ../_scripts/sync.sh
+   :language: bash
 
-    $ http POST $BASE_ADDR$REMOTE_HREF'sync/' repository=$REPO_HREF mirror=False
-
-Response::
+Repository Version GET Response (when complete)::
 
     {
-        "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/"
-    }
-
-You can follow the progress of the task with a GET request to the task href. Notice that when the
-synchroinze task completes, it creates a new version, which is specified in ``created_resources``::
-
-    $  http $BASE_ADDR/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/
-
-Response::
-
-    {
-        "_href": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-        "created": "2018-05-01T17:17:46.558997Z",
-        "created_resources": [
-            "/pulp/api/v3/repositories/1/versions/6/"
-        ],
-        "error": null,
-        "finished_at": "2018-05-01T17:17:47.149123Z",
-        "non_fatal_errors": [],
-        "parent": null,
-        "progress_reports": [
-            {
-                "done": 0,
-                "message": "Add Content",
-                "state": "completed",
-                "suffix": "",
-                "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-                "total": 0
+        "_created": "2019-04-29T15:58:02.579318Z",
+        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/",
+        "base_version": null,
+        "content_summary": {
+            "added": {
+                "python.python": {
+                    "count": 2,
+                    "href": "/pulp/api/v3/content/python/packages/?repository_version_added=/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/"
+                }
             },
-            {
-                "done": 0,
-                "message": "Remove Content",
-                "state": "completed",
-                "suffix": "",
-                "task": "/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-                "total": 0
-            }
-        ],
-        "spawned_tasks": [],
-        "started_at": "2018-05-01T17:17:46.644801Z",
-        "state": "completed",
-        "worker": "/pulp/api/v3/workers/eaffe1be-111a-421d-a127-0b8fa7077cf7/"
+            "present": {
+                "python.python": {
+                    "count": 2,
+                    "href": "/pulp/api/v3/content/python/packages/?repository_version=/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/"
+                }
+            },
+            "removed": {}
+        },
+        "number": 1
     }
 
-Reference: `Python sync
-<https://pulp-python.readthedocs.io/en/latest/restapi.html#operation/remotes_python_python_sync>`_
+
+
+Reference: `Python Sync Usage <../restapi.html#operation/remotes_python_python_sync>`_
+
+Reference (pulpcore): `Repository Version Creation API Usage
+<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#operation/repositories_versions_list>`_

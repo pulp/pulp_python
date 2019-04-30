@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Model, Publisher, Remote
+from pulpcore.plugin.models import Content, Model, Publication, Remote
 
 log = getLogger(__name__)
 
@@ -141,9 +141,9 @@ class PythonPackageContent(Content):
         unique_together = ('filename',)
 
 
-class PythonPublisher(Publisher):
+class PythonPublication(Publication):
     """
-    A Publisher for PythonContent.
+    A Publication for PythonContent.
     """
 
     TYPE = 'python'

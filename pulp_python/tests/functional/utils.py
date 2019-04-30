@@ -5,7 +5,6 @@ from pulp_smash import api, selectors
 from pulp_smash.pulp3 import utils
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
-    gen_publisher,
     gen_remote,
     gen_repo,
     get_content,
@@ -17,6 +16,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
+    PYTHON_PUBLICATION_PATH,
     PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME
 )
@@ -53,20 +53,29 @@ def gen_python_remote(url=PYTHON_FIXTURES_URL, includes=None, **kwargs):
     return remote
 
 
-def gen_python_publisher(**kwargs):
+def gen_python_publication(cfg, repository=None, repository_version=None, **kwargs):
     """
-    Return a semi-random dict for use in creating a publisher.
+    Create a Python Publication from a repository or a repository version.
+
+    Args:
+     cfg (pulp_smash.config.PulpSmashConfig): Information about the Pulp host.
 
     Kwargs:
-        **kwargs: Specified parameters for the Publisher
-
+        repository (str): _href of a repository
+        repository_version (str): _href of a repository version
     """
-    publisher = gen_publisher()
-    python_extra_fields = {
-        **kwargs,
-    }
-    publisher.update(python_extra_fields)
-    return publisher
+    body = {}
+    if repository_version:
+        body.update({"repository_version": repository_version['_href']})
+
+    # Both are ifs so we can do both at once (to test the error)
+    if repository:
+        body.update({"repository": repository['_href']})
+
+    client = api.Client(cfg, api.json_handler)
+    call_report = client.post(PYTHON_PUBLICATION_PATH, body)
+    tasks = tuple(api.poll_spawned_tasks(cfg, call_report))
+    return client.get(tasks[-1]["created_resources"][0])
 
 
 def get_python_content_paths(repo):
