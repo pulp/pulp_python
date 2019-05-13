@@ -40,6 +40,21 @@ DIST_TYPES = {
 }
 
 
+class PythonDistributionViewSet(platform.BaseDistributionViewSet):
+    """
+    <!-- User-facing documentation, rendered as html-->
+    Pulp Python Distributions are used to distribute
+    <a href="../restapi.html#tag/publications">Python Publications.</a> <b> Pulp Python
+    Distributions should not be confused with "Python Distribution" as defined by the Python
+    community.</b> In Pulp usage, Python content is refered to as <a
+    href="../restapi.html#tag/content">Python Package Content.</a>
+    """
+
+    endpoint_name = 'pypi'
+    queryset = python_models.PythonDistribution.objects.all()
+    serializer_class = python_serializers.PythonDistributionSerializer
+
+
 class PythonPackageContentFilter(platform.ContentFilter):
     """
     FilterSet for PythonPackageContent.

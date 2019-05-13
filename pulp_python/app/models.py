@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Model, Publication, Remote
+from pulpcore.plugin.models import Content, Model, Publication, PublicationDistribution, Remote
 
 log = getLogger(__name__)
 
@@ -81,6 +81,14 @@ class ProjectSpecifier(Model):
 
     class Meta:
         unique_together = ('name', 'version_specifier', 'exclude', 'remote')
+
+
+class PythonDistribution(PublicationDistribution):
+    """
+    Distribution for 'Python' Content.
+    """
+
+    TYPE = 'python'
 
 
 class PythonPackageContent(Content):

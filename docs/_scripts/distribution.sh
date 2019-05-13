@@ -1,6 +1,6 @@
 # Distributions are created asynchronously. Create one, and specify the publication that will
 # be served at the base path specified.
-export TASK_URL=$(http POST $BASE_ADDR/pulp/api/v3/distributions/ \
+export TASK_URL=$(http POST $BASE_ADDR/pulp/api/v3/distributions/python/pypi/ \
   name='baz' \
   base_path='foo' \
   publication=$PUBLICATION_HREF | jq -r '.task')
