@@ -56,6 +56,17 @@ class ProjectSpecifierSerializer(serializers.ModelSerializer):
         fields = ('name', 'version_specifier')
 
 
+class PythonDistributionSerializer(core_serializers.PublicationDistributionSerializer):
+    """
+    Serializer for Pulp distributions for the Python type.
+
+    """
+
+    class Meta:
+        fields = core_serializers.PublicationDistributionSerializer.Meta.fields
+        model = python_models.PythonDistribution
+
+
 class PythonPackageContentSerializer(core_serializers.SingleArtifactContentSerializer):
     """
     A Serializer for PythonPackageContent.
@@ -334,6 +345,14 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     A Serializer for PythonPublication.
     """
 
+    distributions = core_serializers.DetailRelatedField(
+        help_text=_('This publication is currently being hosted as configured by these '
+                    'distributions.'),
+        source="pythondistribution_set",
+        many=True,
+        read_only=True,
+    )
+
     class Meta:
-        fields = core_serializers.PublicationSerializer.Meta.fields
+        fields = core_serializers.PublicationSerializer.Meta.fields + ('distributions',)
         model = python_models.PythonPublication

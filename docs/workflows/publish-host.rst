@@ -41,20 +41,17 @@ demonstrated in :ref:`using distributions<using-distributions>`.
 Distribution GET Response::
 
   {
-      "_created": "2019-04-29T15:58:07.586250Z",
-      "_href": "/pulp/api/v3/distributions/63d532cc-94ea-402c-bb6d-2340242c6df8/",
+      "_created": "2019-05-13T12:39:48.698103Z",
+      "_href": "/pulp/api/v3/distributions/python/pypi/682d64c3-fee1-411c-a3af-3f74cab56c5e/",
       "base_path": "foo",
       "base_url": "localhost:24816/pulp/content/foo",
       "content_guard": null,
       "name": "baz",
-      "publication": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
-      "publisher": null,
-      "remote": null,
-      "repository": null
+      "publication": "/pulp/api/v3/publications/python/pypi/23f4c6fb-204b-45b6-8826-f61d4d38748d/",
+      "remote": null
   }
 
-Reference (pulpcore): `Distribution API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/distributions>`_
+Reference: `Python Distribution Usage <../restapi.html#tag/distributions>`_
 
 .. _using-distributions:
 
