@@ -5,6 +5,24 @@ pulp-python 3.0 Release Notes
 pulp-python 3.0 is currently in Beta. Backwards incompatible changes
 might be made until Beta is over.
 
+3.0.0b6
+=======
+
+* See all changes `here <https://github.com/pulp/pulp_python/compare/3.0.0b5...3.0.0b6>`_.
+
+* Adds support for `pulpcore 3.0.0.rc2 <https://docs.pulpproject.org/en/3.0/rc/release-notes/pulpcore/3.0.x.html#rc2>`_.
+
+  Changes urls for distributions and publications
+
+* Adds lazy sync
+
+* Docs replace snippets with testable scripts
+
+3.0.0b5
+=======
+
+* Fix relative_path to allow pip install
+
 3.0.0b4
 =======
 
@@ -21,8 +39,3 @@ might be made until Beta is over.
   synced. This mirrors the 'prereleases' flag that packaging.specifiers.SpecifierSet provides.
 
 * Removes Python 3.5 support
-
-3.0.0b5
-=======
-
-* Fix relative_path to allow pip install
