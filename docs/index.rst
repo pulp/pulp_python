@@ -42,7 +42,8 @@ Table of Contents
    installation
    workflows/index
    restapi/index
-   release-notes/3.0.z.rst
+   changes
+   contributing
 
 
 Indices and tables

@@ -1,10 +1,3 @@
-=============================
-pulp-python 3.0 Release Notes
-=============================
-
-pulp-python 3.0 is currently in Beta. Backwards incompatible changes
-might be made until Beta is over.
-
 3.0.0b6
 =======
 
