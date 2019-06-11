@@ -5,6 +5,7 @@ from packaging import specifiers
 from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
+from pulpcore.plugin.models import Repository
 from pulpcore.plugin import serializers as core_serializers
 
 from pulp_python.app import models as python_models
@@ -212,6 +213,23 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentSeria
             'obsoletes_dist', 'requires_external', 'classifiers'
         )
         model = python_models.PythonPackageContent
+
+
+class PythonOneShotUploadSerializer(serializers.Serializer):
+    """
+    A Serializer for PythonOneShotUpload.
+    """
+
+    repository = serializers.HyperlinkedRelatedField(
+        help_text=_('A URI of the repository.'),
+        required=False,
+        queryset=Repository.objects.all(),
+        view_name='repositories-detail',
+    )
+    file = serializers.FileField(
+        help_text=_("The python file (i.e. .whl or .tar.gz)."),
+        required=True,
+    )
 
 
 class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):

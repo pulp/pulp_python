@@ -1,49 +1,84 @@
 Upload Content
 ==============
 
-Upload a file to Pulp
----------------------
+One-shot upload a file to Pulp
+------------------------------
 
-Each artifact in Pulp represents a file. They can be created during sync or created manually by uploading a file::
+Each artifact in Pulp represents a file. They can be created during sync or created manually by uploading a file via
+one-shot upload. One-shot upload takes a file you specify, creates an artifact, and creates content from that artifact.
+The python plugin will inspect the file and populate its metadata.
 
-    $ export ARTIFACT_HREF=$(http --form POST $BASE_ADDR/pulp/api/v3/artifacts/ file@./shelf_reader-0.1-py2-none-any.whl | jq -r '._href')
+.. literalinclude:: ../_scripts/upload.sh
+   :language: bash
 
-Response::
-
-    {
-        "_href": "/pulp/api/v3/artifacts/1/",
-        ...
-    }
-
-
-Reference (pulpcore): `Artifact API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/artifacts>`_
-
-Create content from an artifact
--------------------------------
-
-Now that Pulp has the wheel, its time to make it into a unit of content. The python plugin will
-inspect the file and populate its metadata::
-
-    $ http POST $BASE_ADDR/pulp/api/v3/content/python/packages/ _artifact=$ARTIFACT_HREF filename=shelf_reader-0.1-py2-none-any.whl
-
-Response::
+Content GET Response::
 
     {
-        "_href": "/pulp/api/v3/content/python/packages/1/",
-        "_artifact": "/pulp/api/v3/artifacts/1/",
-        "digest": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c",
+        "_artifact": null,
+        "_created": "2019-07-25T13:57:55.178993Z",
+        "_href": "/pulp/api/v3/content/python/packages/6172ff0f-3e11-4b5f-8460-bd6a72616747/",
+        "_type": "python.python",
+        "author": "",
+        "author_email": "",
+        "classifiers": [],
+        "description": "",
+        "download_url": "",
         "filename": "shelf_reader-0.1-py2-none-any.whl",
-        "type": "python"
+        "home_page": "",
+        "keywords": "",
+        "license": "",
+        "maintainer": "",
+        "maintainer_email": "",
+        "metadata_version": "",
+        "name": "[]",
+        "obsoletes_dist": "[]",
+        "packagetype": "bdist_wheel",
+        "platform": "",
+        "project_url": "",
+        "provides_dist": "[]",
+        "requires_dist": "[]",
+        "requires_external": "[]",
+        "requires_python": "",
+        "summary": "",
+        "supported_platform": "",
+        "version": "0.1"
     }
 
-Create a variable for convenience::
+Reference: `Python Content Usage <../restapi.html#tag/content>`_
 
-    $ export CONTENT_HREF=$(http $BASE_ADDR/pulp/api/v3/content/python/packages/ | jq -r '.results[] | select(.filename == "shelf_reader-0.1-py2-none-any.whl") | ._href')
+Add content to a repository during one-shot upload
+--------------------------------------------------
 
-Reference: `Python Content API Usage <../restapi.html#tag/content>`_
+One-shot upload can also optionally add the content being created to a repository you specify.
 
-Add content to a repository
----------------------------
+.. literalinclude:: ../_scripts/upload_with_repo.sh
+   :language: bash
 
-See :ref:`add-remove`
+Repository GET Response::
+
+    {
+        "_created": "2019-07-25T14:03:48.378437Z",
+        "_href": "/pulp/api/v3/repositories/135f468f-0c61-4337-9f37-0cd911244bec/versions/1/",
+        "base_version": null,
+        "content_summary": {
+            "added": {
+                "python.python": {
+                    "count": 1,
+                    "href": "/pulp/api/v3/content/python/packages/?repository_version_added=/pulp/api/v3/repositories/135f468f-0c61-4337-9f37-0cd911244bec/versions/1/"
+                }
+            },
+            "present": {
+                "python.python": {
+                    "count": 1,
+                    "href": "/pulp/api/v3/content/python/packages/?repository_version=/pulp/api/v3/repositories/135f468f-0c61-4337-9f37-0cd911244bec/versions/1/"
+                }
+            },
+            "removed": {}
+        },
+        "number": 1
+    }
+
+
+Reference: `Python Repository Usage <../restapi.html#tag/repositories>`_
+
+For other ways to add content to a repository, see :ref:`add-remove`
