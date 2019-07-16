@@ -4,6 +4,7 @@ from django.db import transaction
 from packaging import specifiers
 from rest_framework import serializers
 
+from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
 
 from pulp_python.app import models as python_models
@@ -251,6 +252,12 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     prereleases = serializers.BooleanField(
         required=False,
         help_text=_('Whether or not to include pre-release packages in the sync.')
+    )
+    policy = serializers.ChoiceField(
+        help_text=_("The policy to use when downloading content. The possible values include: "
+                    "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
+        choices=core_models.Remote.POLICY_CHOICES,
+        default=core_models.Remote.IMMEDIATE
     )
 
     class Meta:
