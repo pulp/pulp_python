@@ -3,6 +3,7 @@ import unittest
 
 from requests.exceptions import HTTPError
 from pulp_smash import api, config, utils
+from pulp_smash.pulp3.constants import ON_DEMAND_DOWNLOAD_POLICIES
 
 from pulp_python.tests.functional.constants import (
     PYTHON_REMOTE_PATH,
@@ -150,8 +151,8 @@ def _gen_verbose_remote():
     attrs = gen_python_remote()
     attrs.update({
         'password': utils.uuid4(),
+        'policy': random.choice(ON_DEMAND_DOWNLOAD_POLICIES),
         'username': utils.uuid4(),
-        'validate': random.choice((False, True)),
     })
     return attrs
 
