@@ -21,7 +21,6 @@ env:
 
 matrix:
   exclude:
-
     - python: '3.6'
       env: DB=postgres TEST=docs
   fast_finish: true
@@ -75,5 +74,4 @@ jobs:
     if: tag IS present
 
 notifications: None
-
 
