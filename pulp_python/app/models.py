@@ -90,6 +90,9 @@ class PythonDistribution(PublicationDistribution):
 
     TYPE = 'python'
 
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
 
 class PythonPackageContent(Content):
     """
@@ -146,6 +149,7 @@ class PythonPackageContent(Content):
         )
 
     class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ('filename',)
 
 
@@ -155,6 +159,9 @@ class PythonPublication(Publication):
     """
 
     TYPE = 'python'
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
 
 
 class PythonRemote(Remote):
@@ -182,3 +189,6 @@ class PythonRemote(Remote):
         Specify exclude list.
         """
         return ProjectSpecifier.objects.filter(remote=self, exclude=True)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
