@@ -373,7 +373,7 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     distributions = core_serializers.DetailRelatedField(
         help_text=_('This publication is currently being hosted as configured by these '
                     'distributions.'),
-        source="pythondistribution_set",
+        source="python_pythondistribution",
         many=True,
         read_only=True,
     )
