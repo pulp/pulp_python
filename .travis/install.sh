@@ -7,7 +7,7 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
-set -v
+set -euv
 
 if [ "$TEST" = 'docs' ]; then
   pip3 install -r doc_requirements.txt
@@ -20,5 +20,4 @@ cd ../ansible-pulp
 ansible-galaxy install -r requirements.yml
 
 ansible-playbook --connection=local --inventory 127.0.0.1, playbook.yml --extra-vars \
-  "pulp_python_interpreter=$VIRTUAL_ENV/bin/python, pulp_install_dir=$VIRTUAL_ENV \
-  pulp_db_type=$DB"
+  "pulp_python_interpreter=$VIRTUAL_ENV/bin/python, pulp_install_dir=$VIRTUAL_ENV"
