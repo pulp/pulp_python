@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+3.0.0b8 (2019-09-16)
+====================
+
+
+Misc
+----
+
+- `#4681 <https://pulp.plan.io/issues/4681>`_
+
+
+----
+
+
 3.0.0b7 (2019-08-01)
 ====================
 
