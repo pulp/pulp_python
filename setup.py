@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    'pulpcore-plugin~=0.1rc3',
+    'pulpcore-plugin~=0.1rc5',
     'pkginfo',
     'packaging',
 ]
@@ -13,7 +13,7 @@ with open('README.rst') as f:
 
 setup(
     name='pulp-python',
-    version='3.0.0b7',
+    version='3.0.0b8',
     description='pulp-python plugin for the Pulp Project',
     long_description=long_description,
     license='GPLv2+',
