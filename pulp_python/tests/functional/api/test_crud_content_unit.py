@@ -6,7 +6,7 @@ from pulp_smash import api, config, utils
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import delete_orphans
 
-from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH, PYTHON_UPLOAD_PATH,
+from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH,
                                                     PYTHON_WHEEL_URL, PYTHON_WHEEL_FILENAME)
 from pulp_python.tests.functional.utils import skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -41,9 +41,11 @@ class OneShotUploadTestCase(unittest.TestCase):
         3) check created resource of completed task
         4) ensure only one and it's a content unit
         """
-        task_url = self.client.post(PYTHON_UPLOAD_PATH,
-                                    files=self.test_file,
-                                    data={'filename': PYTHON_WHEEL_FILENAME})
+        task_url = self.client.post(
+            PYTHON_CONTENT_PATH,
+            files=self.test_file,
+            data={'filename': PYTHON_WHEEL_FILENAME,
+                  'relative_path': PYTHON_WHEEL_FILENAME})
         task = self.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         content_unit = self.client.get(created_resource)
@@ -61,9 +63,10 @@ class OneShotUploadTestCase(unittest.TestCase):
         """
         repo = self.client.post(REPO_PATH, data={'name': 'foo'})
         self.addCleanup(self.client.delete, repo['_href'])
-        task_url = self.client.post(PYTHON_UPLOAD_PATH,
+        task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
                                     data={'filename': PYTHON_WHEEL_FILENAME,
+                                          'relative_path': PYTHON_WHEEL_FILENAME,
                                           'repository': repo['_href']})
         task = self.client.get(task_url['task'])
         new_repo_version = task['created_resources'][0]
@@ -86,9 +89,10 @@ class OneShotUploadTestCase(unittest.TestCase):
         2) upload the same file again
         3) this should fail/send an error
         """
-        task_url = self.client.post(PYTHON_UPLOAD_PATH,
+        task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
-                                    data={'filename': PYTHON_WHEEL_FILENAME})
+                                    data={'filename': PYTHON_WHEEL_FILENAME,
+                                          'relative_path': PYTHON_WHEEL_FILENAME})
         task = self.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         content_unit = self.client.get(created_resource)
@@ -96,9 +100,10 @@ class OneShotUploadTestCase(unittest.TestCase):
         self.assertEqual(new_filename, PYTHON_WHEEL_FILENAME)
         self.assertEqual(len(task['created_resources']), 1)
         try:
-            self.client.post(PYTHON_UPLOAD_PATH,
+            self.client.post(PYTHON_CONTENT_PATH,
                              files=self.test_file,
-                             data={'filename': PYTHON_WHEEL_FILENAME})
+                             data={'filename': PYTHON_WHEEL_FILENAME,
+                                   'relative_path': PYTHON_WHEEL_FILENAME})
         except Exception as e:
             self.assertEqual(e.response.status_code, 400)
 
@@ -123,9 +128,10 @@ class ContentUnitTestCase(unittest.TestCase):
         delete_orphans(cls.cfg)
         cls.client = api.Client(cls.cfg, api.json_handler)
         cls.test_file = {'file': utils.http_get(PYTHON_WHEEL_URL)}
-        task_url = cls.client.post(PYTHON_UPLOAD_PATH,
+        task_url = cls.client.post(PYTHON_CONTENT_PATH,
                                    files=cls.test_file,
-                                   data={'filename': PYTHON_WHEEL_FILENAME})
+                                   data={'filename': PYTHON_WHEEL_FILENAME,
+                                         'relative_path': PYTHON_WHEEL_FILENAME})
         task = cls.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         cls.content_unit = cls.client.get(created_resource)

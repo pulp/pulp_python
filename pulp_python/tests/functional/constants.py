@@ -3,7 +3,6 @@ from urllib.parse import urljoin
 from pulp_smash.constants import PULP_FIXTURES_BASE_URL
 from pulp_smash.pulp3.constants import (
     BASE_DISTRIBUTION_PATH,
-    BASE_PATH,
     BASE_PUBLICATION_PATH,
     BASE_REMOTE_PATH,
     CONTENT_PATH
@@ -23,8 +22,6 @@ PYTHON_FIXTURES_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 PYTHON_PUBLICATION_PATH = urljoin(BASE_PUBLICATION_PATH, 'python/pypi/')
 
 PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/python/')
-
-PYTHON_UPLOAD_PATH = urljoin(BASE_PATH, 'python/upload/')
 
 
 # Specifier for testing empty syncs, or no excludes
