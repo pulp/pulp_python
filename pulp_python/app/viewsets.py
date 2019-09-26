@@ -1,12 +1,8 @@
-from gettext import gettext as _
-
-from django.db.utils import IntegrityError
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 
 from pulpcore.plugin import viewsets as platform
-from pulpcore.plugin.models import Artifact, RepositoryVersion
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -16,7 +12,6 @@ from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
-from pulp_python.app.tasks.upload import one_shot_upload
 
 
 class PythonDistributionViewSet(platform.BaseDistributionViewSet):
@@ -50,7 +45,7 @@ class PythonPackageContentFilter(platform.ContentFilter):
         }
 
 
-class PythonPackageContentViewSet(platform.ContentViewSet):
+class PythonPackageSingleArtifactContentUploadViewSet(platform.SingleArtifactContentUploadViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     PythonPackageContent represents each individually installable Python package. In the Python
@@ -66,61 +61,6 @@ class PythonPackageContentViewSet(platform.ContentViewSet):
     serializer_class = python_serializers.PythonPackageContentSerializer
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
     filterset_class = PythonPackageContentFilter
-
-
-class PythonOneShotUploadViewSet(viewsets.ViewSet):
-    """
-    ViewSet for OneShotUpload
-    """
-
-    endpoint_name = 'upload'
-    serializer_class = python_serializers.PythonOneShotUploadSerializer
-
-    def create(self, request):
-        """
-        <!-- User-facing documentation, rendered as html-->
-        This endpoint is part of the <a href="workflows/upload.html">Upload workflow.</a> Create
-        a PythonPackageContent here by specifying an uploaded Artifact. `pulp-python` will inspect
-        parse the metadata directly from the file.
-
-        """
-        try:
-            artifact = Artifact.init_and_validate(request.data['file'])
-        except KeyError:
-            raise serializers.ValidationError(detail={'_artifact': _('This field is required')})
-
-        try:
-            filename = request.data['filename']
-        except KeyError:
-            raise serializers.ValidationError(detail={'filename': _('This field is required')})
-
-        if python_models.PythonPackageContent.objects.filter(filename=filename):
-            raise serializers.ValidationError(detail={'filename': _('This field must be unique')})
-
-        if 'repository' in request.data:
-            serializer = python_serializers.PythonOneShotUploadSerializer(
-                data=request.data, context={'request': request})
-            serializer.is_valid(raise_exception=True)
-            repository = serializer.validated_data['repository']
-            repository_pk = repository.pk
-        else:
-            repository_pk = None
-
-        try:
-            artifact.save()
-        except IntegrityError:
-            artifact = Artifact.objects.get(sha256=artifact.sha256)
-
-        result = enqueue_with_reservation(
-            one_shot_upload,
-            [artifact],
-            kwargs={
-                'artifact_pk': artifact.pk,
-                'filename': filename,
-                'repository_pk': repository_pk,
-            }
-        )
-        return platform.OperationPostponedResponse(result, request)
 
 
 class PythonRemoteFilter(platform.RemoteFilter):
