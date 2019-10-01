@@ -100,7 +100,7 @@ def write_simple_api(publication):
         template = Template(simple_index_template)
         index.write(template.render(context))
 
-    index_metadata = models.PublishedMetadata(
+    index_metadata = models.PublishedMetadata.create_from_file(
         relative_path=simple_dir,
         publication=publication,
         file=File(open(index_path, 'rb'))
@@ -139,7 +139,7 @@ def write_simple_api(publication):
             template = Template(simple_detail_template)
             simple_metadata.write(template.render(context))
 
-        project_metadata = models.PublishedMetadata(
+        project_metadata = models.PublishedMetadata.create_from_file(
             relative_path=project_dir,
             publication=publication,
             file=File(open(metadata_relative_path, 'rb'))
