@@ -61,27 +61,27 @@ class DownloadContentTestCase(unittest.TestCase):
         client = api.Client(cfg, api.json_handler)
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo['pulp_href'])
 
         body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote['pulp_href'])
 
         sync(cfg, remote, repo)
-        repo = client.get(repo['_href'])
+        repo = client.get(repo['pulp_href'])
 
         # Create a publication
         publication = gen_python_publication(cfg, repository=repo)
-        self.addCleanup(client.delete, publication['_href'])
+        self.addCleanup(client.delete, publication['pulp_href'])
 
         # Create a distribution.
         body = gen_distribution()
-        body['publication'] = publication['_href']
+        body['publication'] = publication['pulp_href']
         distribution = client.using_handler(api.task_handler).post(
             PYTHON_DISTRIBUTION_PATH,
             body
         )
-        self.addCleanup(client.delete, distribution['_href'])
+        self.addCleanup(client.delete, distribution['pulp_href'])
 
         # Pick a file, and download it from both Pulp Fixtures…
         unit_path = choice(get_python_content_paths(repo))

@@ -66,11 +66,11 @@ def gen_python_publication(cfg, repository=None, repository_version=None, **kwar
     """
     body = {}
     if repository_version:
-        body.update({"repository_version": repository_version['_href']})
+        body.update({"repository_version": repository_version['pulp_href']})
 
     # Both are ifs so we can do both at once (to test the error)
     if repository:
-        body.update({"repository": repository['_href']})
+        body.update({"repository": repository['pulp_href']})
 
     client = api.Client(cfg, api.json_handler)
     call_report = client.post(PYTHON_PUBLICATION_PATH, body)
@@ -107,7 +107,7 @@ def gen_python_package_attrs(artifact):
 
     """
     return {
-        '_artifact': artifact['_href'],
+        '_artifact': artifact['pulp_href'],
         'filename': PYTHON_WHEEL_FILENAME,
     }
 
@@ -134,9 +134,9 @@ def populate_pulp(cfg, remote=None):
         sync(cfg, remote, repo)
     finally:
         if remote:
-            client.delete(remote['_href'])
+            client.delete(remote['pulp_href'])
         if repo:
-            client.delete(repo['_href'])
+            client.delete(repo['pulp_href'])
     return client.get(PYTHON_CONTENT_PATH)['results']
 
 

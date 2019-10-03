@@ -59,7 +59,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         Read a remote by its href.
         """
-        remote = self.client.get(self.remote['_href'])
+        remote = self.client.get(self.remote['pulp_href'])
         for key, val in self.remote.items():
             with self.subTest(key=key):
                 self.assertEqual(remote[key], val)
@@ -83,10 +83,10 @@ class CRUDRemotesTestCase(unittest.TestCase):
         Update a remote using HTTP PATCH.
         """
         body = _gen_verbose_remote()
-        self.client.patch(self.remote['_href'], body)
+        self.client.patch(self.remote['pulp_href'], body)
         for key in ('username', 'password'):
             del body[key]
-        type(self).remote = self.client.get(self.remote['_href'])
+        type(self).remote = self.client.get(self.remote['pulp_href'])
         for key, val in body.items():
             with self.subTest(key=key):
                 self.assertEqual(self.remote[key], val)
@@ -97,10 +97,10 @@ class CRUDRemotesTestCase(unittest.TestCase):
         Update a remote using HTTP PUT.
         """
         body = _gen_verbose_remote()
-        self.client.put(self.remote['_href'], body)
+        self.client.put(self.remote['pulp_href'], body)
         for key in ('username', 'password'):
             del body[key]
-        type(self).remote = self.client.get(self.remote['_href'])
+        type(self).remote = self.client.get(self.remote['pulp_href'])
         for key, val in body.items():
             with self.subTest(key=key):
                 self.assertEqual(self.remote[key], val)
@@ -110,9 +110,9 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         Delete a remote.
         """
-        self.client.delete(self.remote['_href'])
+        self.client.delete(self.remote['pulp_href'])
         with self.assertRaises(HTTPError):
-            self.client.get(self.remote['_href'])
+            self.client.get(self.remote['pulp_href'])
 
 
 class CreateRemoteNoURLTestCase(unittest.TestCase):
@@ -222,7 +222,7 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         """
         body = gen_python_remote(includes=PYTHON_VALID_SPECIFIER_NO_VERSION)
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         self.assertEqual(remote['includes'][0]['version_specifier'], "")
 
@@ -232,7 +232,7 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         """
         body = gen_python_remote(excludes=PYTHON_VALID_SPECIFIER_NO_VERSION)
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         self.assertEqual(remote['includes'][0]['version_specifier'], "")
 
@@ -259,44 +259,44 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         """
         Clean class-wide variable.
         """
-        cls.client.delete(cls.remote['_href'])
+        cls.client.delete(cls.remote['pulp_href'])
 
     def test_includes_with_no_name(self):
         """
         Test an include specifier without a "name" field.
         """
         body = {"includes": PYTHON_INVALID_SPECIFIER_NO_NAME}
-        task_href = self.client.patch(self.remote['_href'], body)
+        task_href = self.client.patch(self.remote['pulp_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
         self.assertEqual(update_task['state'], 'failed')
-        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+        self.assertDictEqual(self.client.get(self.remote['pulp_href']), self._original_remote)
 
     def test_includes_with_bad_version(self):
         """
         Test an include specifier with an invalid "version_specifier" field value.
         """
         body = {"includes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
-        task_href = self.client.patch(self.remote['_href'], body)
+        task_href = self.client.patch(self.remote['pulp_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
         self.assertEqual(update_task['state'], 'failed')
-        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+        self.assertDictEqual(self.client.get(self.remote['pulp_href']), self._original_remote)
 
     def test_excludes_with_no_name(self):
         """
         Test an exclude specifier without a "name" field.
         """
         body = {"excludes": PYTHON_INVALID_SPECIFIER_NO_NAME}
-        task_href = self.client.patch(self.remote['_href'], body)
+        task_href = self.client.patch(self.remote['pulp_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
         self.assertEqual(update_task['state'], 'failed')
-        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+        self.assertDictEqual(self.client.get(self.remote['pulp_href']), self._original_remote)
 
     def test_excludes_with_bad_version(self):
         """
         Test an exclude specifier with an invalid "version_specifier" field value.
         """
         body = {"excludes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
-        task_href = self.client.patch(self.remote['_href'], body)
+        task_href = self.client.patch(self.remote['pulp_href'], body)
         update_task = (task for task in api.poll_task(self.cfg, task_href))[0]
         self.assertEqual(update_task['state'], 'failed')
-        self.assertDictEqual(self.client.get(self.remote['_href']), self._original_remote)
+        self.assertDictEqual(self.client.get(self.remote['pulp_href']), self._original_remote)
