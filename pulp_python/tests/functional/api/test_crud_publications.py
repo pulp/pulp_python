@@ -72,7 +72,7 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         repo = self.client.get(repo['pulp_href'])
         for python_content in get_content(repo)[PYTHON_CONTENT_NAME]:
             self.client.post(
-                repo['_versions_href'],
+                repo['versions_href'],
                 {'add_content_units': [python_content['pulp_href']]}
             )
         versions = get_versions(repo)
