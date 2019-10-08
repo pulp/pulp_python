@@ -17,7 +17,6 @@ Content GET Response::
         "_artifact": null,
         "pulp_created": "2019-07-25T13:57:55.178993Z",
         "pulp_href": "/pulp/api/v3/content/python/packages/6172ff0f-3e11-4b5f-8460-bd6a72616747/",
-        "_type": "python.python",
         "author": "",
         "author_email": "",
         "classifiers": [],

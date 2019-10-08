@@ -20,7 +20,6 @@ Publication GET Response::
         "pulp_created": "2019-04-29T15:58:04.939836Z",
         "_distributions": [],
         "pulp_href": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
-        "_type": "python.python",
         "publisher": null,
         "repository": "http://localhost:24817/pulp/api/v3/repositories/%3CRepository:%20foo%3E/",
         "repository_version": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/"

@@ -41,7 +41,6 @@ Remote GET Response::
         "pulp_created": "2019-04-29T15:58:01.196433Z",
         "pulp_href": "/pulp/api/v3/remotes/python/python/1962b474-1545-4de1-adf4-4bf211679752/",
         "pulp_last_updated": "2019-04-29T15:58:01.196446Z",
-        "_type": "python.python",
         "download_concurrency": 20,
         "excludes": [],
         "includes": [
