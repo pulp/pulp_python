@@ -61,19 +61,19 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         """
         body = gen_python_remote(PYTHON_FIXTURES_URL)
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
 
         sync(self.cfg, remote, repo)
 
         # Step 1
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo['pulp_href'])
         for python_content in get_content(repo)[PYTHON_CONTENT_NAME]:
             self.client.post(
                 repo['_versions_href'],
-                {'add_content_units': [python_content['_href']]}
+                {'add_content_units': [python_content['pulp_href']]}
             )
         versions = get_versions(repo)
         non_latest = choice(versions[:-1])
@@ -82,13 +82,13 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         publication1 = gen_python_publication(self.cfg, repository=repo)
 
         # Step 3
-        self.assertEqual(publication1['repository_version'], versions[-1]['_href'])
+        self.assertEqual(publication1['repository_version'], versions[-1]['pulp_href'])
 
         # Step 4
         publication2 = gen_python_publication(self.cfg, repository_version=non_latest)
 
         # Step 5
-        self.assertEqual(publication2['repository_version'], non_latest['_href'])
+        self.assertEqual(publication2['repository_version'], non_latest['pulp_href'])
 
         # Step 6
         with self.assertRaises(HTTPError):
@@ -102,7 +102,7 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         """
         Read a publisher by its href.
         """
-        publication_retrieved = self.client.get(publication1['_href'])
+        publication_retrieved = self.client.get(publication1['pulp_href'])
         for key, val in publication1.items():
             with self.subTest(key=key):
                 self.assertEqual(publication_retrieved[key], val)
@@ -114,6 +114,6 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         """
         Delete a publisher.
         """
-        self.client.delete(publication1['_href'])
+        self.client.delete(publication1['pulp_href'])
         with self.assertRaises(HTTPError):
-            self.client.get(publication1['_href'])
+            self.client.get(publication1['pulp_href'])

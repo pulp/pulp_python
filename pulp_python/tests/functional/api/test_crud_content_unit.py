@@ -62,18 +62,18 @@ class OneShotUploadTestCase(unittest.TestCase):
         5) ?
         """
         repo = self.client.post(REPO_PATH, data={'name': 'foo'})
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
         task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
                                     data={'filename': PYTHON_WHEEL_FILENAME,
                                           'relative_path': PYTHON_WHEEL_FILENAME,
-                                          'repository': repo['_href']})
+                                          'repository': repo['pulp_href']})
         task = self.client.get(task_url['task'])
         new_repo_version = task['created_resources'][0]
         version_content_query = self.client.get(
             new_repo_version
         )['content_summary']['added']['python.python']['href']
-        version_content_url = self.client.get(version_content_query)['results'][0]['_href']
+        version_content_url = self.client.get(version_content_query)['results'][0]['pulp_href']
         version_content_unit = self.client.get(version_content_url)
         version_content_filename = version_content_unit['filename']
         new_content_url = task['created_resources'][1]
@@ -162,7 +162,7 @@ class ContentUnitTestCase(unittest.TestCase):
 
         """
         with self.assertRaises(HTTPError) as exc:
-            self.client.patch(self.content_unit['_href'], {})
+            self.client.patch(self.content_unit['pulp_href'], {})
         self.assertEqual(exc.exception.response.status_code, 405)
 
     @skip_if(bool, 'content_unit', False)
@@ -174,7 +174,7 @@ class ContentUnitTestCase(unittest.TestCase):
 
         """
         with self.assertRaises(HTTPError) as exc:
-            self.client.put(self.content_unit['_href'], {})
+            self.client.put(self.content_unit['pulp_href'], {})
         self.assertEqual(exc.exception.response.status_code, 405)
 
     @skip_if(bool, 'content_unit', False)
@@ -184,5 +184,5 @@ class ContentUnitTestCase(unittest.TestCase):
         This HTTP method is not supported and a HTTP exception is expected.
         """
         with self.assertRaises(HTTPError) as exc:
-            self.client.delete(self.content_unit['_href'])
+            self.client.delete(self.content_unit['pulp_href'])
         self.assertEqual(exc.exception.response.status_code, 405)

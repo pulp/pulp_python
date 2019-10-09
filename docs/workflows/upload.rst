@@ -15,9 +15,8 @@ Content GET Response::
 
     {
         "_artifact": null,
-        "_created": "2019-07-25T13:57:55.178993Z",
-        "_href": "/pulp/api/v3/content/python/packages/6172ff0f-3e11-4b5f-8460-bd6a72616747/",
-        "_type": "python.python",
+        "pulp_created": "2019-07-25T13:57:55.178993Z",
+        "pulp_href": "/pulp/api/v3/content/python/packages/6172ff0f-3e11-4b5f-8460-bd6a72616747/",
         "author": "",
         "author_email": "",
         "classifiers": [],
@@ -57,8 +56,8 @@ One-shot upload can also optionally add the content being created to a repositor
 Repository GET Response::
 
     {
-        "_created": "2019-07-25T14:03:48.378437Z",
-        "_href": "/pulp/api/v3/repositories/135f468f-0c61-4337-9f37-0cd911244bec/versions/1/",
+        "pulp_created": "2019-07-25T14:03:48.378437Z",
+        "pulp_href": "/pulp/api/v3/repositories/135f468f-0c61-4337-9f37-0cd911244bec/versions/1/",
         "base_version": null,
         "content_summary": {
             "added": {

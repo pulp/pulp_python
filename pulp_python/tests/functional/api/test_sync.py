@@ -66,16 +66,16 @@ class BasicPythonSyncTestCase(unittest.TestCase):
 
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote()
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         # Sync the repository.
         self.assertIsNone(repo['_latest_version_href'])
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo['pulp_href'])
 
         self.assertIsNotNone(repo['_latest_version_href'])
         self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
@@ -84,7 +84,7 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         # Sync the repository again.
         latest_version_href = repo['_latest_version_href']
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo['pulp_href'])
 
         self.assertNotEqual(latest_version_href, repo['_latest_version_href'])
         self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
@@ -110,10 +110,10 @@ class BasicPythonSyncTestCase(unittest.TestCase):
             raise unittest.SkipTest('lsof package is not present')
 
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
 
         remote = self.client.post(PYTHON_REMOTE_PATH, gen_python_remote())
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         sync(self.cfg, remote, repo)
 
@@ -136,11 +136,11 @@ class SyncInvalidURLTestCase(unittest.TestCase):
         client = api.Client(cfg, api.json_handler)
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo['pulp_href'])
 
         body = gen_python_remote(url="http://i-am-an-invalid-url.com/invalid/")
         remote = client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote['pulp_href'])
 
         with self.assertRaises(exceptions.TaskReportError):
             sync(cfg, remote, repo)
@@ -167,8 +167,8 @@ class PrereleasesTestCase(unittest.TestCase):
         """
         Clean class-wide variable.
         """
-        cls.client.delete(cls.repo['_href'])
-        cls.client.delete(cls.remote['_href'])
+        cls.client.delete(cls.repo['pulp_href'])
+        cls.client.delete(cls.remote['pulp_href'])
 
     def test_01_excluding_prereleases(self):
         """
@@ -186,7 +186,7 @@ class PrereleasesTestCase(unittest.TestCase):
         type(self).remote = self.client.post(PYTHON_REMOTE_PATH, body)
 
         sync(self.cfg, self.remote, self.repo)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertDictEqual(
             get_content_summary(self.repo),
@@ -206,11 +206,11 @@ class PrereleasesTestCase(unittest.TestCase):
 
         """
         body = {'prereleases': True}
-        self.client.patch(self.remote['_href'], body)
-        type(self).remote = self.client.get(self.remote['_href'])
+        self.client.patch(self.remote['pulp_href'], body)
+        type(self).remote = self.client.get(self.remote['pulp_href'])
 
         sync(self.cfg, self.remote, self.repo)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertEqual(get_content_summary(self.repo), PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY)
         self.assertEqual(
@@ -232,11 +232,11 @@ class PrereleasesTestCase(unittest.TestCase):
 
         """
         body = {'prereleases': False}
-        self.client.patch(self.remote['_href'], body)
-        type(self).remote = self.client.get(self.remote['_href'])
+        self.client.patch(self.remote['pulp_href'], body)
+        type(self).remote = self.client.get(self.remote['pulp_href'])
 
         sync(self.cfg, self.remote, self.repo, mirror=True)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertDictEqual(
             get_content_summary(self.repo),
@@ -269,8 +269,8 @@ class IncludesExcludesTestCase(unittest.TestCase):
         """
         Clean class-wide variable.
         """
-        cls.client.delete(cls.repo['_href'])
-        cls.client.delete(cls.remote['_href'])
+        cls.client.delete(cls.repo['pulp_href'])
+        cls.client.delete(cls.remote['pulp_href'])
 
     def test_01_basic_include(self):
         """
@@ -289,7 +289,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         type(self).remote = self.client.post(PYTHON_REMOTE_PATH, body)
 
         sync(self.cfg, self.remote, self.repo)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertDictEqual(get_content_summary(self.repo), PYTHON_XS_FIXTURE_SUMMARY)
 
@@ -305,11 +305,11 @@ class IncludesExcludesTestCase(unittest.TestCase):
 
         """
         body = {'includes': PYTHON_MD_PROJECT_SPECIFIER}
-        self.client.patch(self.remote['_href'], body)
-        type(self).remote = self.client.get(self.remote['_href'])
+        self.client.patch(self.remote['pulp_href'], body)
+        type(self).remote = self.client.get(self.remote['pulp_href'])
 
         sync(self.cfg, self.remote, self.repo)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertDictEqual(get_content_summary(self.repo), PYTHON_MD_FIXTURE_SUMMARY)
 
@@ -326,11 +326,11 @@ class IncludesExcludesTestCase(unittest.TestCase):
 
         """
         body = {'excludes': PYTHON_SM_PROJECT_SPECIFIER}
-        self.client.patch(self.remote['_href'], body)
-        type(self).remote = self.client.get(self.remote['_href'])
+        self.client.patch(self.remote['pulp_href'], body)
+        type(self).remote = self.client.get(self.remote['pulp_href'])
 
         sync(self.cfg, self.remote, self.repo, mirror=True)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertEqual(
             get_content_summary(self.repo)[PYTHON_CONTENT_NAME],
@@ -354,11 +354,11 @@ class IncludesExcludesTestCase(unittest.TestCase):
 
         """
         body = {'excludes': PYTHON_XS_PROJECT_SPECIFIER}
-        self.client.patch(self.remote['_href'], body)
-        type(self).remote = self.client.get(self.remote['_href'])
+        self.client.patch(self.remote['pulp_href'], body)
+        type(self).remote = self.client.get(self.remote['pulp_href'])
 
         sync(self.cfg, self.remote, self.repo, mirror=True)
-        type(self).repo = self.client.get(self.repo['_href'])
+        type(self).repo = self.client.get(self.repo['pulp_href'])
 
         self.assertEqual(
             get_content_summary(self.repo)[PYTHON_CONTENT_NAME],
@@ -394,14 +394,14 @@ class UnavailableProjectsTestCase(unittest.TestCase):
 
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote(includes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER)
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo['pulp_href'])
 
         self.assertEqual(
             get_content_summary(repo)[PYTHON_CONTENT_NAME],
@@ -421,17 +421,17 @@ class UnavailableProjectsTestCase(unittest.TestCase):
 
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote(
             includes=PYTHON_MD_PROJECT_SPECIFIER,
             excludes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER
         )
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote['pulp_href'])
 
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo['pulp_href'])
 
         self.assertEqual(
             get_content_summary(repo)[PYTHON_CONTENT_NAME],

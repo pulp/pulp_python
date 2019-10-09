@@ -13,8 +13,8 @@ Create a Repository
 Repository GET Response::
 
     {
-        "_created": "2019-04-29T15:57:59.763712Z",
-        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "pulp_created": "2019-04-29T15:57:59.763712Z",
+        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "_latest_version_href": null,
         "_versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
         "description": "",
@@ -38,10 +38,9 @@ itself, a fixture, or even an instance of Pulp 2.
 Remote GET Response::
 
     {
-        "_created": "2019-04-29T15:58:01.196433Z",
-        "_href": "/pulp/api/v3/remotes/python/python/1962b474-1545-4de1-adf4-4bf211679752/",
-        "_last_updated": "2019-04-29T15:58:01.196446Z",
-        "_type": "python.python",
+        "pulp_created": "2019-04-29T15:58:01.196433Z",
+        "pulp_href": "/pulp/api/v3/remotes/python/python/1962b474-1545-4de1-adf4-4bf211679752/",
+        "pulp_last_updated": "2019-04-29T15:58:01.196446Z",
         "download_concurrency": 20,
         "excludes": [],
         "includes": [
@@ -109,8 +108,8 @@ sync with. You are telling pulp to fetch content from the remote and add to the 
 Repository Version GET Response (when complete)::
 
     {
-        "_created": "2019-04-29T15:58:02.579318Z",
-        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/",
+        "pulp_created": "2019-04-29T15:58:02.579318Z",
+        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/",
         "base_version": null,
         "content_summary": {
             "added": {

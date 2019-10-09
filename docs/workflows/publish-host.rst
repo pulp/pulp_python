@@ -17,10 +17,9 @@ yet).
 Publication GET Response::
 
     {
-        "_created": "2019-04-29T15:58:04.939836Z",
+        "pulp_created": "2019-04-29T15:58:04.939836Z",
         "_distributions": [],
-        "_href": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
-        "_type": "python.python",
+        "pulp_href": "/pulp/api/v3/publications/python/pypi/4cc1ddbb-64ff-4795-894a-09d5ca372774/",
         "publisher": null,
         "repository": "http://localhost:24817/pulp/api/v3/repositories/%3CRepository:%20foo%3E/",
         "repository_version": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/1/"
@@ -41,8 +40,8 @@ demonstrated in :ref:`using distributions<using-distributions>`.
 Distribution GET Response::
 
   {
-      "_created": "2019-05-13T12:39:48.698103Z",
-      "_href": "/pulp/api/v3/distributions/python/pypi/682d64c3-fee1-411c-a3af-3f74cab56c5e/",
+      "pulp_created": "2019-05-13T12:39:48.698103Z",
+      "pulp_href": "/pulp/api/v3/distributions/python/pypi/682d64c3-fee1-411c-a3af-3f74cab56c5e/",
       "base_path": "foo",
       "base_url": "localhost:24816/pulp/content/foo",
       "content_guard": null,
