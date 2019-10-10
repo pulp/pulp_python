@@ -1,5 +1,6 @@
 from logging import getLogger
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 
 from pulpcore.plugin.models import Content, Model, Publication, PublicationDistribution, Remote
@@ -126,10 +127,10 @@ class PythonPackageContent(Content):
     project_url = models.TextField()
     platform = models.TextField()
     supported_platform = models.TextField()
-    requires_dist = models.TextField(default="[]")
-    provides_dist = models.TextField(default="[]")
-    obsoletes_dist = models.TextField(default="[]")
-    requires_external = models.TextField(default="[]")
+    requires_dist = JSONField(default=list)
+    provides_dist = JSONField(default=list)
+    obsoletes_dist = JSONField(default=list)
+    requires_external = JSONField(default=list)
 
     def __str__(self):
         """
