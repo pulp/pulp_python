@@ -88,6 +88,7 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     filterset_class = PythonRemoteFilter
 
     @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to sync python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
     @action(detail=True, methods=('post',), serializer_class=RepositorySyncURLSerializer)

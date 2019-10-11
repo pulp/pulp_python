@@ -161,24 +161,24 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, allow_blank=True,
         help_text=_('Field to specify the OS and CPU for which the binary package was compiled. ')
     )
-    requires_dist = serializers.CharField(
-        required=False, default="[]",
+    requires_dist = serializers.JSONField(
+        required=False, default=list,
         help_text=_('A JSON list containing names of some other distutils project '
                     'required by this distribution.')
     )
-    provides_dist = serializers.CharField(
-        required=False, default="[]",
+    provides_dist = serializers.JSONField(
+        required=False, default=list,
         help_text=_('A JSON list containing names of a Distutils project which is contained'
                     ' within this distribution.')
     )
-    obsoletes_dist = serializers.CharField(
-        required=False, default="[]",
+    obsoletes_dist = serializers.JSONField(
+        required=False, default=list,
         help_text=_('A JSON list containing names of a distutils project\'s distribution which '
                     'this distribution renders obsolete, meaning that the two projects should not '
                     'be installed at the same time.')
     )
-    requires_external = serializers.CharField(
-        required=False, default="[]",
+    requires_external = serializers.JSONField(
+        required=False, default=list,
         help_text=_('A JSON list containing some dependency in the system that the distribution '
                     'is to be used.')
     )
