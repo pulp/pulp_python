@@ -1,7 +1,7 @@
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 
-from pulpcore.plugin import viewsets as platform
+from pulpcore.plugin import viewsets as core_viewsets
 from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
@@ -14,7 +14,58 @@ from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
 
 
-class PythonDistributionViewSet(platform.BaseDistributionViewSet):
+class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet):
+    """
+    A ViewSet for PythonRepository.
+    """
+
+    endpoint_name = 'python'
+    queryset = python_models.PythonRepository.objects.all()
+    serializer_class = python_serializers.PythonRepositorySerializer
+
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to sync Python content.",
+        operation_summary="Sync from remote",
+        responses={202: AsyncOperationResponseSerializer}
+    )
+    @action(detail=True, methods=['post'], serializer_class=RepositorySyncURLSerializer)
+    def sync(self, request, pk):
+        """
+        <!-- User-facing documentation, rendered as html-->
+        Trigger an asynchronous task to sync python content. The sync task will retrieve Python
+        content from the specified `Remote` and " update the specified `Respository`, creating a
+        new  `RepositoryVersion`.
+        """
+        repository = self.get_object()
+        serializer = RepositorySyncURLSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        remote = serializer.validated_data.get('remote')
+        mirror = serializer.validated_data.get('mirror')
+
+        result = enqueue_with_reservation(
+            tasks.sync,
+            [repository, remote],
+            kwargs={
+                'remote_pk': remote.pk,
+                'repository_pk': repository.pk,
+                'mirror': mirror
+            }
+        )
+        return core_viewsets.OperationPostponedResponse(result, request)
+
+
+class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
+    """
+    PythonRepositoryVersion represents a single Python repository version.
+    """
+
+    parent_viewset = PythonRepositoryViewSet
+
+
+class PythonDistributionViewSet(core_viewsets.BaseDistributionViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     Pulp Python Distributions are used to distribute
@@ -29,7 +80,7 @@ class PythonDistributionViewSet(platform.BaseDistributionViewSet):
     serializer_class = python_serializers.PythonDistributionSerializer
 
 
-class PythonPackageContentFilter(platform.ContentFilter):
+class PythonPackageContentFilter(core_viewsets.ContentFilter):
     """
     FilterSet for PythonPackageContent.
     """
@@ -45,7 +96,8 @@ class PythonPackageContentFilter(platform.ContentFilter):
         }
 
 
-class PythonPackageSingleArtifactContentUploadViewSet(platform.SingleArtifactContentUploadViewSet):
+class PythonPackageSingleArtifactContentUploadViewSet(
+        core_viewsets.SingleArtifactContentUploadViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     PythonPackageContent represents each individually installable Python package. In the Python
@@ -63,7 +115,7 @@ class PythonPackageSingleArtifactContentUploadViewSet(platform.SingleArtifactCon
     filterset_class = PythonPackageContentFilter
 
 
-class PythonRemoteFilter(platform.RemoteFilter):
+class PythonRemoteFilter(core_viewsets.RemoteFilter):
     """
     FilterSet for PythonRemote.
     """
@@ -73,7 +125,7 @@ class PythonRemoteFilter(platform.RemoteFilter):
         fields = []
 
 
-class PythonRemoteViewSet(platform.RemoteViewSet):
+class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     Python Remotes are representations of an <b>external repository</b> of Python content, eg.
@@ -87,40 +139,8 @@ class PythonRemoteViewSet(platform.RemoteViewSet):
     serializer_class = python_serializers.PythonRemoteSerializer
     filterset_class = PythonRemoteFilter
 
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to sync python content.",
-        responses={202: AsyncOperationResponseSerializer}
-    )
-    @action(detail=True, methods=('post',), serializer_class=RepositorySyncURLSerializer)
-    def sync(self, request, pk):
-        """
-        <!-- User-facing documentation, rendered as html-->
-        Trigger an asynchronous task to sync python content. The sync task will retrieve Python
-        content from the specified `Remote` and " update the specified `Respository`, creating a
-        new  `RepositoryVersion`.
-        """
-        remote = self.get_object()
-        serializer = RepositorySyncURLSerializer(
-            data=request.data,
-            context={'request': request}
-        )
-        serializer.is_valid(raise_exception=True)
-        repository = serializer.validated_data.get('repository')
-        mirror = serializer.validated_data.get('mirror')
 
-        result = enqueue_with_reservation(
-            tasks.sync,
-            [repository, remote],
-            kwargs={
-                'remote_pk': remote.pk,
-                'repository_pk': repository.pk,
-                'mirror': mirror
-            }
-        )
-        return platform.OperationPostponedResponse(result, request)
-
-
-class PythonPublicationViewSet(platform.PublicationViewSet):
+class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     Python Publications refer to the Python Package content in a repository version, and include
@@ -157,4 +177,4 @@ class PythonPublicationViewSet(platform.PublicationViewSet):
                 'repository_version_pk': repository_version.pk
             }
         )
-        return platform.OperationPostponedResponse(result, request)
+        return core_viewsets.OperationPostponedResponse(result, request)

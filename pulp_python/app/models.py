@@ -3,7 +3,9 @@ from logging import getLogger
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 
-from pulpcore.plugin.models import Content, Model, Publication, PublicationDistribution, Remote
+from pulpcore.plugin.models import (
+    Content, Model, Publication, PublicationDistribution, Remote, Repository
+)
 
 log = getLogger(__name__)
 
@@ -18,6 +20,17 @@ PACKAGE_TYPES = (
     ("bdist_wininst", "bdist_wininst"),
     ("sdist", "sdist"),
 )
+
+
+class PythonRepository(Repository):
+    """
+    Repository for "python" content.
+    """
+
+    TYPE = "python"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
 
 
 class Classifier(Model):

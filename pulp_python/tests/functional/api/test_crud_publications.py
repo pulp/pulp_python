@@ -5,7 +5,6 @@ from random import choice
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_content,
@@ -16,7 +15,8 @@ from pulp_smash.pulp3.utils import (
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_NAME,
     PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH
+    PYTHON_REMOTE_PATH,
+    PYTHON_REPO_PATH,
 )
 from pulp_python.tests.functional.utils import gen_python_remote, gen_python_publication
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -63,7 +63,7 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         remote = self.client.post(PYTHON_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote['pulp_href'])
 
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo['pulp_href'])
 
         sync(self.cfg, remote, repo)
@@ -72,7 +72,7 @@ class CRUDPythonPublicationsTestCase(unittest.TestCase):
         repo = self.client.get(repo['pulp_href'])
         for python_content in get_content(repo)[PYTHON_CONTENT_NAME]:
             self.client.post(
-                repo['versions_href'],
+                repo['pulp_href'] + "modify/",
                 {'add_content_units': [python_content['pulp_href']]}
             )
         versions = get_versions(repo)

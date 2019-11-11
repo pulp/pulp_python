@@ -1,1 +1,1 @@
-{"swagger": "2.0", "info": {"title": "Pulp 3 API", "logo": {"url": "https://pulp.plan.io/attachments/download/517478/pulp_logo_word_rectangle.svg"}, "version": "v3"}, "host": "localhost:24817", "schemes": ["http"], "basePath": "/", "consumes": ["application/json"], "produces": ["application/json"], "securityDefinitions": {"Basic": {"type": "basic"}}, "security": [{"Basic": []}], "paths": {}, "definitions": {}, "tags": []}
+<h1>Server Error (500)</h1>

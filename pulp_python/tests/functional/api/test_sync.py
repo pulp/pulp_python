@@ -1,6 +1,6 @@
 import unittest
 from pulp_smash import api, cli, config, exceptions
-from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
+from pulp_smash.pulp3.constants import MEDIA_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_content_summary,
@@ -12,6 +12,7 @@ from pulp_smash.pulp3.utils import (
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_NAME,
     PYTHON_REMOTE_PATH,
+    PYTHON_REPO_PATH,
     PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_XS_FIXTURE_SUMMARY,
     PYTHON_XS_PACKAGE_COUNT,
@@ -65,7 +66,7 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         8. Assert that the same number of are present and that no units were added.
 
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote()
@@ -109,7 +110,7 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         if cli_client.run(('which', 'lsof')).returncode != 0:
             raise unittest.SkipTest('lsof package is not present')
 
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo['pulp_href'])
 
         remote = self.client.post(PYTHON_REMOTE_PATH, gen_python_remote())
@@ -135,7 +136,7 @@ class SyncInvalidURLTestCase(unittest.TestCase):
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
 
-        repo = client.post(REPO_PATH, gen_repo())
+        repo = client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['pulp_href'])
 
         body = gen_python_remote(url="http://i-am-an-invalid-url.com/invalid/")
@@ -160,7 +161,7 @@ class PrereleasesTestCase(unittest.TestCase):
         cls.client = api.Client(cls.cfg, api.json_handler)
 
         cls.remote = {}
-        cls.repo = cls.client.post(REPO_PATH, gen_repo())
+        cls.repo = cls.client.post(PYTHON_REPO_PATH, gen_repo())
 
     @classmethod
     def tearDownClass(cls):
@@ -262,7 +263,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         cls.client = api.Client(cls.cfg, api.json_handler)
 
         cls.remote = {}
-        cls.repo = cls.client.post(REPO_PATH, gen_repo())
+        cls.repo = cls.client.post(PYTHON_REPO_PATH, gen_repo())
 
     @classmethod
     def tearDownClass(cls):
@@ -393,7 +394,7 @@ class UnavailableProjectsTestCase(unittest.TestCase):
         3. Assert that the content counts in the repo match the correct count for the specifier.
 
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote(includes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER)
@@ -420,7 +421,7 @@ class UnavailableProjectsTestCase(unittest.TestCase):
            of the smaller excludes specifier.
 
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo['pulp_href'])
 
         body = gen_python_remote(
