@@ -4,10 +4,10 @@ import pkginfo
 import shutil
 import tempfile
 
-from pulpcore.plugin.models import Artifact, CreatedResource, Repository, RepositoryVersion
+from pulpcore.plugin.models import Artifact, CreatedResource
 from rest_framework import serializers
 
-from pulp_python.app.models import PythonPackageContent
+from pulp_python.app.models import PythonPackageContent, PythonRepository
 from pulp_python.app.utils import parse_project_metadata
 
 
@@ -72,8 +72,8 @@ def one_shot_upload(artifact_pk, filename, repository_pk=None):
     queryset = PythonPackageContent.objects.filter(pk=new_content.pk)
 
     if repository_pk:
-        repository = Repository.objects.get(pk=repository_pk)
-        with RepositoryVersion.create(repository) as new_version:
+        repository = PythonRepository.objects.get(pk=repository_pk)
+        with repository.new_version() as new_version:
             new_version.add_content(queryset)
 
     resource = CreatedResource(content_object=new_content)

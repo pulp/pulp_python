@@ -15,6 +15,16 @@ from pulp_python.app.tasks.upload import DIST_EXTENSIONS, DIST_TYPES
 from pulp_python.app.utils import parse_project_metadata
 
 
+class PythonRepositorySerializer(core_serializers.RepositorySerializer):
+    """
+    Serializer for Python Repositories.
+    """
+
+    class Meta:
+        fields = core_serializers.RepositorySerializer.Meta.fields
+        model = python_models.PythonRepository
+
+
 class ClassifierSerializer(serializers.ModelSerializer):
     """
     A serializer for Python Classifiers.
@@ -189,7 +199,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
 
     def deferred_validate(self, data):
         """
-        Validate the rpm package data.
+        Validate the python package data.
 
         Args:
             data (dict): Data to be validated

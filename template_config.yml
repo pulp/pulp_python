@@ -20,6 +20,7 @@ plugin_dash: pulp-python
 plugin_dash_short: python
 plugin_name: pulp_python
 plugin_snake: pulp_python
+pulp_settings: null
 pydocstyle: true
 pypi_username: pulp
 test_bindings: false

@@ -20,6 +20,8 @@ export FUNC_TEST_SCRIPT=$TRAVIS_BUILD_DIR/.travis/func_test_script.sh
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings
 
 if [ "$TEST" = 'docs' ]; then
+  
+
   cd docs
   make html
   cd ..
@@ -84,6 +86,9 @@ export CMD_PREFIX="sudo kubectl exec $PULP_API_POD --"
 export CMD_STDIN_PREFIX="sudo kubectl exec -i $PULP_API_POD --"
 # The alias does not seem to work in Travis / the scripting framework
 #alias pytest="$CMD_PREFIX pytest"
+
+cat unittest_requirements.txt | $CMD_STDIN_PREFIX bash -c "cat > /tmp/test_requirements.txt"
+$CMD_PREFIX pip3 install -r /tmp/test_requirements.txt
 
 # Run unit tests.
 $CMD_PREFIX bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python${TRAVIS_PYTHON_VERSION}/site-packages/pulp_python/tests/unit/"

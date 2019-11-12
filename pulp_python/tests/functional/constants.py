@@ -5,7 +5,8 @@ from pulp_smash.pulp3.constants import (
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLICATION_PATH,
     BASE_REMOTE_PATH,
-    CONTENT_PATH
+    BASE_REPO_PATH,
+    BASE_CONTENT_PATH,
 )
 
 
@@ -13,7 +14,7 @@ PYPI_URL = "https://pypi.org/"
 
 PYTHON_CONTENT_NAME = 'python.python'
 
-PYTHON_CONTENT_PATH = urljoin(CONTENT_PATH, 'python/packages/')
+PYTHON_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, 'python/packages/')
 
 PYTHON_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, 'python/pypi/')
 
@@ -22,6 +23,8 @@ PYTHON_FIXTURES_URL = urljoin(PULP_FIXTURES_BASE_URL, 'python-pypi/')
 PYTHON_PUBLICATION_PATH = urljoin(BASE_PUBLICATION_PATH, 'python/pypi/')
 
 PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'python/python/')
+
+PYTHON_REPO_PATH = urljoin(BASE_REPO_PATH, 'python/python/')
 
 
 # Specifier for testing empty syncs, or no excludes

@@ -3,7 +3,6 @@ from unittest import SkipTest
 
 from pulp_smash import api, selectors
 from pulp_smash.pulp3 import utils
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
@@ -16,6 +15,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_PATH,
     PYTHON_FIXTURES_URL,
     PYTHON_REMOTE_PATH,
+    PYTHON_REPO_PATH,
     PYTHON_PUBLICATION_PATH,
     PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME
@@ -130,7 +130,7 @@ def populate_pulp(cfg, remote=None):
     repo = {}
     try:
         remote.update(client.post(PYTHON_REMOTE_PATH, remote))
-        repo.update(client.post(REPO_PATH, gen_repo()))
+        repo.update(client.post(PYTHON_REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:
         if remote:

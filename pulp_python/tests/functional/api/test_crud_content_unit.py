@@ -3,11 +3,14 @@ import unittest
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import delete_orphans
 
-from pulp_python.tests.functional.constants import (PYTHON_CONTENT_PATH,
-                                                    PYTHON_WHEEL_URL, PYTHON_WHEEL_FILENAME)
+from pulp_python.tests.functional.constants import (
+    PYTHON_CONTENT_PATH,
+    PYTHON_REPO_PATH,
+    PYTHON_WHEEL_URL,
+    PYTHON_WHEEL_FILENAME
+)
 from pulp_python.tests.functional.utils import skip_if
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -61,7 +64,7 @@ class OneShotUploadTestCase(unittest.TestCase):
         4) ensure two and it's a content unit and a repository version
         5) ?
         """
-        repo = self.client.post(REPO_PATH, data={'name': 'foo'})
+        repo = self.client.post(PYTHON_REPO_PATH, data={'name': 'foo'})
         self.addCleanup(self.client.delete, repo['pulp_href'])
         task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
