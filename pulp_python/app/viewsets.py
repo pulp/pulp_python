@@ -115,16 +115,6 @@ class PythonPackageSingleArtifactContentUploadViewSet(
     filterset_class = PythonPackageContentFilter
 
 
-class PythonRemoteFilter(core_viewsets.RemoteFilter):
-    """
-    FilterSet for PythonRemote.
-    """
-
-    class Meta:
-        model = python_models.PythonRemote
-        fields = []
-
-
 class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
@@ -137,7 +127,6 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
-    filterset_class = PythonRemoteFilter
 
 
 class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
