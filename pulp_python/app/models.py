@@ -4,7 +4,11 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 
 from pulpcore.plugin.models import (
-    Content, Model, Publication, PublicationDistribution, Remote, Repository
+    Content,
+    Publication,
+    PublicationDistribution,
+    Remote,
+    Repository
 )
 
 log = getLogger(__name__)
@@ -22,18 +26,7 @@ PACKAGE_TYPES = (
 )
 
 
-class PythonRepository(Repository):
-    """
-    Repository for "python" content.
-    """
-
-    TYPE = "python"
-
-    class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
-
-
-class Classifier(Model):
+class Classifier(models.Model):
     """
     Custom tags for classifier.
 
@@ -56,7 +49,7 @@ class Classifier(Model):
     )
 
 
-class ProjectSpecifier(Model):
+class ProjectSpecifier(models.Model):
     """
     A specifier of a python project.
 
@@ -165,6 +158,18 @@ class PythonPackageContent(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ('filename',)
+
+
+class PythonRepository(Repository):
+    """
+    Repository for "python" content.
+    """
+
+    TYPE = "python"
+    CONTENT_TYPES = [PythonPackageContent]
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
 
 
 class PythonPublication(Publication):
