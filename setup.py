@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    'pulpcore~=3.0rc7',
+    'pulpcore~=3.0',
     'pkginfo',
     'packaging',
 ]
