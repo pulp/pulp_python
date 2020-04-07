@@ -5,7 +5,7 @@ Ansible Installer (Recommended)
 -------------------------------
 
 We recommend that you install `pulpcore` and `pulp-python` together using the `Ansible installer
-<https://github.com/pulp/ansible-pulp/blob/master/README.md>`_.
+<https://github.com/pulp/pulp_installer/blob/master/README.md>`_.
 
 Pip Install
 -----------
