@@ -115,7 +115,8 @@ class PublishMetadataStep(PluginStep):
         :type  packages: list of pulp_python.plugins.models.Package
         """
         project_path = os.path.join(simple_path, project_name)
-        os.makedirs(project_path)
+        if os.path.exists(project_path):
+            os.makedirs(project_path)
         package_index_path = os.path.join(project_path, 'index.html')
         with open(package_index_path, 'w') as package_index:
             html = ElementTree.Element('html')
@@ -153,7 +154,8 @@ class PublishMetadataStep(PluginStep):
         for project_name, packages in projects.items():
             project_name = sanitize_name(project_name)
             project_metadata_path = os.path.join(api_path, project_name, 'json')
-            os.makedirs(project_metadata_path)
+            if os.path.exists(project_metadata_path):
+                os.makedirs(project_metadata_path)
             project_index_metadata_path = os.path.join(project_metadata_path, 'index.json')
             with open(project_index_metadata_path, 'w') as project_json:
                 data = PublishMetadataStep._create_project_metadata(project_name, packages)
