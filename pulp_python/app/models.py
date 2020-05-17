@@ -26,29 +26,6 @@ PACKAGE_TYPES = (
 )
 
 
-class Classifier(models.Model):
-    """
-    Custom tags for classifier.
-
-    Fields:
-
-        name (models.TextField): The name of the classifier
-
-    Relations:
-
-        python_package_content (models.ForeignKey):
-            The PythonPackageContent this classifier is associated with.
-    """
-
-    name = models.TextField()
-    python_package_content = models.ForeignKey(
-        "PythonPackageContent",
-        related_name="classifiers",
-        related_query_name="classifier",
-        on_delete=models.CASCADE
-    )
-
-
 class ProjectSpecifier(models.Model):
     """
     A specifier of a python project.
@@ -137,6 +114,7 @@ class PythonPackageContent(Content):
     provides_dist = JSONField(default=list)
     obsoletes_dist = JSONField(default=list)
     requires_external = JSONField(default=list)
+    classifiers = JSONField(default=list)
 
     def __str__(self):
         """

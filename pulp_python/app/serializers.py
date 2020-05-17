@@ -25,20 +25,6 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
         model = python_models.PythonRepository
 
 
-class ClassifierSerializer(serializers.ModelSerializer):
-    """
-    A serializer for Python Classifiers.
-    """
-
-    name = serializers.CharField(
-        help_text=_("A string giving a single classification value for a Python package.")
-    )
-
-    class Meta:
-        model = python_models.Classifier
-        fields = ('name',)
-
-
 class ProjectSpecifierSerializer(serializers.ModelSerializer):
     """
     A serializer for Python project specifiers.
@@ -192,9 +178,9 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         help_text=_('A JSON list containing some dependency in the system that the distribution '
                     'is to be used.')
     )
-    classifiers = ClassifierSerializer(
-        required=False,
-        many=True
+    classifiers = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing classification values for a Python package.')
     )
 
     def deferred_validate(self, data):
@@ -237,7 +223,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                 "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(filename)
             )
         _data = parse_project_metadata(vars(metadata))
-        _data['classifiers'] = [{'name': classifier} for classifier in metadata.classifiers]
         _data['packagetype'] = metadata.packagetype
         _data['version'] = metadata.version
         _data['filename'] = filename
@@ -248,7 +233,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         new_content = python_models.PythonPackageContent.objects.filter(
             filename=data['filename'],
             packagetype=data['packagetype'],
-            name=data['classifiers'],
+            name=data['name'],
             version=data['version']
         )
 
@@ -260,31 +245,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             )
 
         return data
-
-    def create(self, validated_data):
-        """
-        Create a PythonPackageContent.
-
-        Overriding default create() to write the classifiers nested field
-
-        Args:
-            validated_data (dict): Data used to create the PythonPackageContent
-
-        Returns:
-            models.PythonPackageContent: The created PythonPackageContent
-
-        """
-        classifiers = validated_data.pop('classifiers')
-
-        package_content = super().create(validated_data)
-
-        for classifier in classifiers:
-            python_models.Classifier.objects.create(
-                python_package_content=package_content,
-                **classifier
-            )
-
-        return package_content
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
