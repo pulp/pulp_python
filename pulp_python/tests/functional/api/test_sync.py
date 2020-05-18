@@ -74,11 +74,11 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         self.addCleanup(self.client.delete, remote['pulp_href'])
 
         # Sync the repository.
-        self.assertIsNone(repo['latest_version_href'])
+        self.assertEqual("{}versions/0/".format(repo['pulp_href']), repo['latest_version_href'])
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo['pulp_href'])
 
-        self.assertIsNotNone(repo['latest_version_href'])
+        self.assertEqual("{}versions/1/".format(repo['pulp_href']), repo['latest_version_href'])
         self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
         self.assertDictEqual(get_added_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
 
@@ -87,9 +87,7 @@ class BasicPythonSyncTestCase(unittest.TestCase):
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo['pulp_href'])
 
-        self.assertNotEqual(latest_version_href, repo['latest_version_href'])
-        self.assertDictEqual(get_content_summary(repo), PYTHON_XS_FIXTURE_SUMMARY)
-        self.assertDictEqual(get_added_content_summary(repo), {})
+        self.assertEqual(latest_version_href, repo['latest_version_href'])
 
     def test_file_decriptors(self):
         """Test whether file descriptors are closed properly.
