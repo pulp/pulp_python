@@ -22,6 +22,7 @@ Table of Contents
    workflows/index
    changes
    contributing
+   restapi/index
 
 
 Indices and tables
