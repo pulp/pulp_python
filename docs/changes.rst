@@ -1,4 +1,4 @@
-.. _pulp-python-changes:
+.. _pulp_python-changes:
 
 .. include:: ../CHANGES.rst
 
