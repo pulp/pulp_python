@@ -1,0 +1,1 @@
+﻿Added "index.html" to the relative_path field for both project_metadata and index_metadata. Added a "/" to fix the link in the simple_index_template. 
