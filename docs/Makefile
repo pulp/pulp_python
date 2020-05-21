@@ -6,6 +6,7 @@ SPHINXOPTS    = -W -n
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
+PULP_URL      = "http://localhost:24817"
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -42,7 +43,7 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
-	curl -o _static/api.json "http://localhost:24817/pulp/api/v3/docs/api.json?plugin=pulp_python"
+	curl --fail -o _static/api.json "$(PULP_URL)/pulp/api/v3/docs/api.json?plugin=pulp_python&include_html=1"
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
@@ -72,24 +73,6 @@ htmlhelp:
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 	      ".hhp project file in $(BUILDDIR)/htmlhelp."
-
-qthelp:
-	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
-	@echo
-	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
-	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/PulpPythonSupport.qhcp"
-	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/PulpPythonSupport.qhc"
-
-devhelp:
-	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
-	@echo
-	@echo "Build finished."
-	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/PulpPythonSupport"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/PulpPythonSupport"
-	@echo "# devhelp"
 
 epub:
 	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub
