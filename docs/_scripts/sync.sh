@@ -1,5 +1,5 @@
 # Using the Remote we just created, we kick off a sync task
-export TASK_URL=$(http POST $BASE_ADDR$REMOTE_HREF'sync/' repository=$REPO_HREF mirror=False \
+export TASK_URL=$(http POST $BASE_ADDR$REPO_HREF'sync/' remote=$REMOTE_HREF mirror=False \
   | jq -r '.task')
 
 # Poll the task (here we use a function defined in docs/_scripts/base.sh)
