@@ -22,7 +22,7 @@ simple_index_template = """<!DOCTYPE html>
   </head>
   <body>
     {% for name, canonical_name in projects %}
-    <a href="{{ canonical_name }}">{{ name }}</a><br/>
+    <a href="{{ canonical_name }}/">{{ name }}</a><br/>
     {% endfor %}
   </body>
 </html>
@@ -101,7 +101,7 @@ def write_simple_api(publication):
         index.write(template.render(context))
 
     index_metadata = models.PublishedMetadata.create_from_file(
-        relative_path=simple_dir,
+        relative_path=index_path,
         publication=publication,
         file=File(open(index_path, 'rb'))
     )
@@ -140,7 +140,7 @@ def write_simple_api(publication):
             simple_metadata.write(template.render(context))
 
         project_metadata = models.PublishedMetadata.create_from_file(
-            relative_path=project_dir,
+            relative_path=metadata_relative_path,
             publication=publication,
             file=File(open(metadata_relative_path, 'rb'))
         )
