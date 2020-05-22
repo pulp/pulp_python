@@ -4,12 +4,14 @@
 additional_plugins: []
 black: false
 check_commit_message: true
+cherry_pick_automation: false
 coverage: false
 deploy_client_to_pypi: true
 deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
+docker_fixtures: false
 docs_test: true
 plugin_app_label: python
 plugin_camel: PulpPython
@@ -21,9 +23,15 @@ plugin_dash_short: python
 plugin_name: pulp_python
 plugin_snake: pulp_python
 pulp_settings: null
+pulpcore_branch: master
+pulpcore_pip_version_specifier: null
 pydocstyle: true
 pypi_username: pulp
+redmine_project: null
+stable_branch: null
 test_bindings: false
 test_performance: false
+test_s3: false
+travis_addtl_services: []
 travis_notifications: None
 
