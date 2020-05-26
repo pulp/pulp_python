@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 
 from pulpcore.plugin import viewsets as core_viewsets
 from pulpcore.plugin.models import RepositoryVersion
+from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -14,7 +15,7 @@ from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
 
 
-class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet):
+class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryActionMixin):
     """
     A ViewSet for PythonRepository.
     """
