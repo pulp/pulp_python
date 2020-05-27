@@ -1,0 +1,1 @@
+Added test to check that content served by Pulp can be consumed through pip install
