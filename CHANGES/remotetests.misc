@@ -1,0 +1,1 @@
+Remove the skip on the UpdateRemoteWithInvalidProjectSpecifiers test cases.  Modified them to check for an HTTPError instead of a task failure.
