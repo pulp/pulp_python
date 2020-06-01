@@ -2,11 +2,8 @@
 
 from setuptools import setup, find_packages
 
-requirements = [
-    'pulpcore>=3.4',
-    'pkginfo',
-    'packaging',
-]
+with open("requirements.txt") as requirements:
+    requirements = requirements.readlines()
 
 with open('README.rst') as f:
     long_description = f.read()
