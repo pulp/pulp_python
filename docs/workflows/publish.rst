@@ -9,32 +9,44 @@ Create a Publication
 
 Kick off a publish task by creating a new publication. The publish task will generate all the
 metadata that ``pip`` needs to install packages (although it will need to be hosted through a
-Distribution before it is consumable).::
+Distribution before it is consumable).
 
-$ http POST $BASE_ADDR/pulp/api/v3/publications/python/python/ name=bar
+.. literalinclude:: ../_scripts/publication.sh
+    :language: bash
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/publications/python/python/bar/",
-        ...
+    "distributions": [],
+    "pulp_created": "2020-06-02T18:59:50.279427Z",
+    "pulp_href": "/pulp/api/v3/publications/python/pypi/da07d7fa-9e13-43d4-925d-2f97bce1b687/",
+    "repository": "/pulp/api/v3/repositories/python/python/da7e0e59-214d-44f5-be21-d8c7404e37f1/",
+    "repository_version": "/pulp/api/v3/repositories/python/python/da7e0e59-214d-44f5-be21-d8c7404e37f1/versions/0/"
     }
+
 
 
 Host a Publication (Create a Distribution)
 --------------------------------------------
 
 To host a publication, (which makes it consumable by ``pip``), users create a distribution which
-will serve the associated publication at ``/pulp/content/<distribution.base_path>``::
+will serve the associated publication at ``/pulp/content/<distribution.base_path>``
 
-$ http POST $BASE_ADDR/pulp/api/v3/distributions/python/python/ name='baz' base_path='foo' publication=$BASE_ADDR/publications/5fcb3a98-1bd1-445f-af94-801a1d563b9f/
+.. literalinclude:: ../_scripts/distribution.sh
+    :language: bash
 
 Response::
 
-    {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/distributions/2ac41454-931c-41c7-89eb-a9d11e19b02a/",
-       ...
+   {
+    "base_path": "foo",
+    "base_url": "http://pulp3-source-fedora31.localhost.example.com/pulp/content/foo/",
+    "content_guard": null,
+    "name": "baz",
+    "publication": "/pulp/api/v3/publications/python/pypi/da07d7fa-9e13-43d4-925d-2f97bce1b687/",
+    "pulp_created": "2020-06-02T19:02:25.999696Z",
+    "pulp_href": "/pulp/api/v3/distributions/python/pypi/5be6b6f5-7d83-4143-af22-1c674f58542b/"
     }
+
 
 
 .. _using-distributions:
