@@ -129,3 +129,9 @@ PYTHON_WHEEL_URL = urljoin(
     urljoin(PYTHON_FIXTURES_URL, 'packages/'),
     PYTHON_WHEEL_FILENAME
 )
+
+PYTHON_FIXTURES_PACKAGES = ["shelf-reader", ]
+PYTHON_FIXTURES_FILENAMES = ["shelf-reader-0.1.tar.gz", ]
+PYTHON_LIST_PROJECT_SPECIFIER = [
+    {"name": "shelf-reader", "version_specifier": ""},
+]
