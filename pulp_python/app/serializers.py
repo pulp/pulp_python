@@ -77,7 +77,8 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     filename = serializers.CharField(
         help_text=_('The name of the distribution package, usually of the format:'
                     ' {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}'
-                    '-{platform tag}.{packagetype}')
+                    '-{platform tag}.{packagetype}'),
+        read_only=True,
     )
     packagetype = serializers.CharField(
         help_text=_('The type of the distribution package '
@@ -197,12 +198,14 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         data = super().deferred_validate(data)
 
         try:
-            filename = data['filename']
+            filename = data["relative_path"]
         except KeyError:
-            raise serializers.ValidationError(detail={'filename': _('This field is required')})
+            raise serializers.ValidationError(detail={"relative_path": _('This field is required')})
 
         if python_models.PythonPackageContent.objects.filter(filename=filename):
-            raise serializers.ValidationError(detail={'filename': _('This field must be unique')})
+            raise serializers.ValidationError(detail={
+                "relative_path": _('This field must be unique')
+            })
 
         # iterate through extensions since splitext does not support things like .tar.gz
         for ext, packagetype in DIST_EXTENSIONS.items():
@@ -226,7 +229,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         _data['packagetype'] = metadata.packagetype
         _data['version'] = metadata.version
         _data['filename'] = filename
-        _data['relative_path'] = filename
 
         data.update(_data)
 

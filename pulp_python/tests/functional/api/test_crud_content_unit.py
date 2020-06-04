@@ -2,7 +2,7 @@ import unittest
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, utils
+from pulp_smash import api, config, utils, exceptions
 from pulp_smash.pulp3.utils import delete_orphans
 
 from pulp_python.tests.functional.constants import (
@@ -47,8 +47,7 @@ class OneShotUploadTestCase(unittest.TestCase):
         task_url = self.client.post(
             PYTHON_CONTENT_PATH,
             files=self.test_file,
-            data={'filename': PYTHON_WHEEL_FILENAME,
-                  'relative_path': PYTHON_WHEEL_FILENAME})
+            data={'relative_path': PYTHON_WHEEL_FILENAME})
         task = self.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         content_unit = self.client.get(created_resource)
@@ -68,8 +67,7 @@ class OneShotUploadTestCase(unittest.TestCase):
         self.addCleanup(self.client.delete, repo['pulp_href'])
         task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
-                                    data={'filename': PYTHON_WHEEL_FILENAME,
-                                          'relative_path': PYTHON_WHEEL_FILENAME,
+                                    data={'relative_path': PYTHON_WHEEL_FILENAME,
                                           'repository': repo['pulp_href']})
         task = self.client.get(task_url['task'])
         new_repo_version = task['created_resources'][0]
@@ -94,21 +92,17 @@ class OneShotUploadTestCase(unittest.TestCase):
         """
         task_url = self.client.post(PYTHON_CONTENT_PATH,
                                     files=self.test_file,
-                                    data={'filename': PYTHON_WHEEL_FILENAME,
-                                          'relative_path': PYTHON_WHEEL_FILENAME})
+                                    data={'relative_path': PYTHON_WHEEL_FILENAME})
         task = self.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         content_unit = self.client.get(created_resource)
         new_filename = content_unit['filename']
         self.assertEqual(new_filename, PYTHON_WHEEL_FILENAME)
         self.assertEqual(len(task['created_resources']), 1)
-        try:
+        with self.assertRaises(exceptions.TaskReportError):
             self.client.post(PYTHON_CONTENT_PATH,
                              files=self.test_file,
-                             data={'filename': PYTHON_WHEEL_FILENAME,
-                                   'relative_path': PYTHON_WHEEL_FILENAME})
-        except Exception as e:
-            self.assertEqual(e.response.status_code, 400)
+                             data={'relative_path': PYTHON_WHEEL_FILENAME})
 
 
 class ContentUnitTestCase(unittest.TestCase):
@@ -133,8 +127,7 @@ class ContentUnitTestCase(unittest.TestCase):
         cls.test_file = {'file': utils.http_get(PYTHON_WHEEL_URL)}
         task_url = cls.client.post(PYTHON_CONTENT_PATH,
                                    files=cls.test_file,
-                                   data={'filename': PYTHON_WHEEL_FILENAME,
-                                         'relative_path': PYTHON_WHEEL_FILENAME})
+                                   data={'relative_path': PYTHON_WHEEL_FILENAME})
         task = cls.client.get(task_url['task'])
         created_resource = task['created_resources'][0]
         cls.content_unit = cls.client.get(created_resource)
