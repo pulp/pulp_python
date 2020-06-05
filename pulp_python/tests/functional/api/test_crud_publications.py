@@ -1,119 +1,102 @@
-# TODO TEST PUBLISH
+# coding=utf-8
+"""Tests that publish python plugin repositories."""
 import unittest
 from random import choice
 
-from requests.exceptions import HTTPError
+from pulp_smash import config
+from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, modify_repo
 
-from pulp_smash import api, config
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    get_content,
-    get_versions,
-    sync,
+from pulp_python.tests.functional.constants import PYTHON_CONTENT_NAME
+from pulp_python.tests.functional.utils import (
+    gen_python_client,
+    gen_python_remote,
+    monitor_task,
 )
-
-from pulp_python.tests.functional.constants import (
-    PYTHON_CONTENT_NAME,
-    PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH,
-    PYTHON_REPO_PATH,
-)
-from pulp_python.tests.functional.utils import gen_python_remote, gen_python_publication
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
+from pulpcore.client.pulp_python import (
+    PublicationsPypiApi,
+    RepositoriesPythonApi,
+    RepositorySyncURL,
+    RemotesPythonApi,
+    PythonPythonPublication,
+)
+from pulpcore.client.pulp_python.exceptions import ApiException
 
-class CRUDPythonPublicationsTestCase(unittest.TestCase):
+
+class PublishAnyRepoVersionTestCase(unittest.TestCase):
+    """Test whether a particular repository version can be published.
+
+    This test targets the following issues:
+
+    * `Pulp #3324 <https://pulp.plan.io/issues/3324>`_
+    * `Pulp Smash #897 <https://github.com/pulp/pulp-smash/issues/897>`_
     """
-    CRUD publications.
 
-        #     This test targets the following issues:
-        #
-        #     * `Pulp #3324 <https://pulp.plan.io/issues/3324>`_
-        #     * `Pulp Smash #897 <https://github.com/PulpQE/pulp-smash/issues/897>`_
+    def test_all(self):
+        """Test whether a particular repository version can be published.
 
-    """
-
-    @classmethod
-    def setUpClass(cls):
+        1. Create a repository with at least 2 repository versions.
+        2. Create a publication by supplying the latest ``repository_version``.
+        3. Assert that the publication ``repository_version`` attribute points
+           to the latest repository version.
+        4. Create a publication by supplying the non-latest ``repository_version``.
+        5. Assert that the publication ``repository_version`` attribute points
+           to the supplied repository version.
+        6. Assert that an exception is raised when providing two different
+           repository versions to be published at same time.
         """
-        Create class-wide variables.
+        cfg = config.get_config()
+        client = gen_python_client()
+        repo_api = RepositoriesPythonApi(client)
+        remote_api = RemotesPythonApi(client)
+        publications = PublicationsPypiApi(client)
 
-        """
-        cls.cfg = config.get_config()
-        cls.client = api.Client(cls.cfg, api.json_handler)
+        body = gen_python_remote()
+        remote = remote_api.create(body)
+        self.addCleanup(remote_api.delete, remote.pulp_href)
 
-    def test_01_all(self):
-        """
-        TODO: This needs to be broken up!
+        repo = repo_api.create(gen_repo())
+        self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        Publication creation causes a publish task, which must also tested here.
-
-            1. Create a repository with at least 2 repository versions.
-            2. Create a publication by supplying the latest ``repository_version``.
-            3. Assert that the publication ``repository_version`` attribute points
-               to the latest repository version.
-            4. Create a publication by supplying the non-latest
-               ``repository_version``.
-            5. Assert that the publication ``repository_version`` attribute points
-               to the supplied repository version.
-            6. Assert that an exception is raised when providing two different
-               repository versions to be published at same time.
-        """
-        body = gen_python_remote(PYTHON_FIXTURES_URL)
-        remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['pulp_href'])
-
-        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['pulp_href'])
-
-        sync(self.cfg, remote, repo)
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
 
         # Step 1
-        repo = self.client.get(repo['pulp_href'])
-        for python_content in get_content(repo)[PYTHON_CONTENT_NAME]:
-            self.client.post(
-                repo['pulp_href'] + "modify/",
-                {'add_content_units': [python_content['pulp_href']]}
-            )
-        versions = get_versions(repo)
-        non_latest = choice(versions[:-1])
+        repo = repo_api.read(repo.pulp_href)
+        for python_content in get_content(repo.to_dict())[PYTHON_CONTENT_NAME]:
+            modify_repo(cfg, repo.to_dict(), add_units=[python_content])
+        version_hrefs = tuple(ver["pulp_href"] for ver in get_versions(repo.to_dict()))
+        non_latest = choice(version_hrefs[:-1])
 
         # Step 2
-        publication1 = gen_python_publication(self.cfg, repository=repo)
+        publish_data = PythonPythonPublication(repository=repo.pulp_href)
+        publish_response = publications.create(publish_data)
+        created_resources = monitor_task(publish_response.task)
+        publication_href = created_resources[0]
+        self.addCleanup(publications.delete, publication_href)
+        publication = publications.read(publication_href)
 
         # Step 3
-        self.assertEqual(publication1['repository_version'], versions[-1]['pulp_href'])
+        self.assertEqual(publication.repository_version, version_hrefs[-1])
 
         # Step 4
-        publication2 = gen_python_publication(self.cfg, repository_version=non_latest)
+        publish_data.repository = None
+        publish_data.repository_version = non_latest
+        publish_response = publications.create(publish_data)
+        created_resources = monitor_task(publish_response.task)
+        publication_href = created_resources[0]
+        publication = publications.read(publication_href)
 
         # Step 5
-        self.assertEqual(publication2['repository_version'], non_latest['pulp_href'])
+        self.assertEqual(publication.repository_version, non_latest)
 
         # Step 6
-        with self.assertRaises(HTTPError):
-            gen_python_publication(
-                self.cfg,
-                repository_version=non_latest,
-                repository=repo,
-            )
+        with self.assertRaises(ApiException):
+            body = {"repository": repo.pulp_href, "repository_version": non_latest}
+            publications.create(body)
 
-        # TEST RETRIEVE
-        """
-        Read a publisher by its href.
-        """
-        publication_retrieved = self.client.get(publication1['pulp_href'])
-        for key, val in publication1.items():
-            with self.subTest(key=key):
-                self.assertEqual(publication_retrieved[key], val)
-
-        # TODO TEST LIST
-        # TODO TEST PARTIAL AND FULL UPDATE
-
-        # TEST DELETE
-        """
-        Delete a publisher.
-        """
-        self.client.delete(publication1['pulp_href'])
-        with self.assertRaises(HTTPError):
-            self.client.get(publication1['pulp_href'])
+    # TODO TEST LIST
+    # TODO TEST PARTIAL AND FULL UPDATE
+    # TODO Maybe test DELETE
