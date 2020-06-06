@@ -5,8 +5,9 @@ export TASK_URL=$(http POST $BASE_ADDR/pulp/api/v3/publications/python/pypi/ \
 
 # Poll the task (here we use a function defined in docs/_scripts/base.sh)
 # When the task is complete, it gives us a new Publication
-wait_for_pulp $TASK_URL
-export PUBLICATION_HREF=${CREATED_RESOURCE[0]}
+wait_until_task_finished $BASE_ADDR$TASK_URL
+echo "Set PUBLICATION_HREF from finished task."
+export PUBLICATION_HREF=$(http $BASE_ADDR$TASK_URL| jq -r '.created_resources | first')
 
 
 # Lets inspect our newly created Publication.
