@@ -255,6 +255,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         help_text=_(
             "A JSON list containing project specifiers for Python packages to exclude."
         ),
+
     )
     prereleases = serializers.BooleanField(
         required=False,
@@ -274,7 +275,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement.parse(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("includes specifier {} is invalid\n {}".format(pkg, ve))
+                    _("includes specifier {} is invalid. {}".format(pkg, ve))
                 )
         return value
 
@@ -285,7 +286,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement.parse(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("excludes specifier {} is invalid\n {}".format(pkg, ve))
+                    _("excludes specifier {} is invalid. {}".format(pkg, ve))
                 )
         return value
 
@@ -294,6 +295,22 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             "includes", "excludes", "prereleases"
         )
         model = python_models.PythonRemote
+
+
+class PythonBanderRemoteSerializer(serializers.Serializer):
+    """
+    A Serializer for the initial step of creating a Python Remote from a Bandersnatch config file
+    """
+
+    config = serializers.FileField(
+        help_text=_("A Bandersnatch config that may be used to construct a Python Remote."),
+        required=True,
+        write_only=True,
+    )
+    name = serializers.CharField(
+        help_text=_("A unique name for this remote"),
+        required=True,
+    )
 
 
 class PythonPublicationSerializer(core_serializers.PublicationSerializer):

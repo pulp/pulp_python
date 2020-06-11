@@ -1,9 +1,12 @@
+from bandersnatch.configuration import BandersnatchConfig
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from pulpcore.plugin import viewsets as core_viewsets
-from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -128,6 +131,41 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
+
+    @swagger_auto_schema(operation_description="Create a remote from a Bandersnatch config",
+                         operation_summary="Create from Bandersnatch",
+                         responses={201: python_serializers.PythonRemoteSerializer})
+    @action(detail=False, methods=["post"],
+            serializer_class=python_serializers.PythonBanderRemoteSerializer)
+    def from_bandersnatch(self, request):
+        """
+        <!-- User-facing documentation, rendered as html-->
+        Takes the fields specified in the Bandersnatch config and creates a Python Remote from
+        it.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        bander_config_file = serializer.validated_data.get("config")
+        name = serializer.validated_data.get("name")
+        bander_config = BandersnatchConfig(bander_config_file.file.name).config
+        data = {"name": name,
+                "url": bander_config.get("mirror", "master"),
+                "download_concurrency": bander_config.get("mirror", "workers"),
+                }
+        enabled = bander_config.get("plugins", "enabled")
+        enabled_all = "all" in enabled
+        data["prereleases"] = enabled_all or "prerelease_release" in enabled
+        if bander_config.has_option("whitelist", "packages") and \
+                (enabled_all or "whitelist_project" in enabled):
+            data["includes"] = bander_config.get("whitelist", "packages").split()
+        if bander_config.has_option("blacklist", "packages") and \
+                (enabled_all or "blacklist_project" in enabled):
+            data["excludes"] = bander_config.get("blacklist", "packages").split()
+        remote = python_serializers.PythonRemoteSerializer(data=data, context={"request": request})
+        remote.is_valid(raise_exception=True)
+        remote.save()
+        headers = self.get_success_headers(remote.data)
+        return Response(remote.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
