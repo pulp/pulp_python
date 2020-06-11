@@ -35,8 +35,9 @@ from pulpcore.client.pulp_python import (
     PublicationsPypiApi,
     PythonPythonPublication,
     RemotesPythonApi,
-    RepositorySyncURL
+    RepositorySyncURL,
 )
+
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
 

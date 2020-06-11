@@ -3,8 +3,7 @@ import os
 import shutil
 import tempfile
 
-from django.db import transaction
-from packaging import specifiers
+from requirements.requirement import Requirement
 from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
@@ -23,39 +22,6 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
     class Meta:
         fields = core_serializers.RepositorySerializer.Meta.fields
         model = python_models.PythonRepository
-
-
-class ProjectSpecifierSerializer(serializers.ModelSerializer):
-    """
-    A serializer for Python project specifiers.
-    """
-
-    name = serializers.CharField(
-        help_text=_("A python project name.")
-    )
-    version_specifier = serializers.CharField(
-        help_text=_("A version specifier accepts standard python versions syntax: `>=`, `<=`, "
-                    "`==`, `~=`, `>`, `<`, `!` and can be used in conjunction with other specifiers"
-                    " i.e. `>1`,`<=3`,`!=3.0.2`. Note that the specifiers treat pre-released "
-                    "versions as `<` released versions, so 3.0.0a1 < 3.0.0. Not setting the "
-                    "version_specifier will sync all the pre-released and released versions."),
-        required=False,
-        allow_blank=True
-    )
-
-    def validate_version_specifier(self, value):
-        """
-        Check that the Version Specifier is valid.
-        """
-        try:
-            specifiers.SpecifierSet(value)
-        except specifiers.InvalidSpecifier as err:
-            raise serializers.ValidationError(err)
-        return value
-
-    class Meta:
-        model = python_models.ProjectSpecifier
-        fields = ('name', 'version_specifier')
 
 
 class PythonDistributionSerializer(core_serializers.PublicationDistributionSerializer):
@@ -276,23 +242,19 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     A Serializer for PythonRemote.
     """
 
-    includes = ProjectSpecifierSerializer(
+    includes = serializers.JSONField(
         required=False,
-        many=True,
-        help_text="""AKA "Whitelist". A list of dictionaries, expand for more information.
-        Example:
-
-        [{"name": "django", "version_specifier":"~=2.0"}]
-        """
+        default=list,
+        help_text=_(
+            "A JSON list containing project specifiers for Python packages to include."
+        ),
     )
-    excludes = ProjectSpecifierSerializer(
+    excludes = serializers.JSONField(
         required=False,
-        many=True,
-        help_text=""""AKA "Blacklist". A list of dictionaries, expand for more information.
-        Example:
-
-        [{"name": "django", "version_specifier":"~=2.0"}]
-        """
+        default=list,
+        help_text=_(
+            "A JSON list containing project specifiers for Python packages to exclude."
+        ),
     )
     prereleases = serializers.BooleanField(
         required=False,
@@ -305,91 +267,33 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         default=core_models.Remote.IMMEDIATE
     )
 
+    def validate_includes(self, value):
+        """Validates the includes"""
+        for pkg in value:
+            try:
+                Requirement.parse(pkg)
+            except ValueError as ve:
+                raise serializers.ValidationError(
+                    _("includes specifier {} is invalid\n {}".format(pkg, ve))
+                )
+        return value
+
+    def validate_excludes(self, value):
+        """Validates the excludes"""
+        for pkg in value:
+            try:
+                Requirement.parse(pkg)
+            except ValueError as ve:
+                raise serializers.ValidationError(
+                    _("excludes specifier {} is invalid\n {}".format(pkg, ve))
+                )
+        return value
+
     class Meta:
         fields = core_serializers.RemoteSerializer.Meta.fields + (
-            'includes', 'excludes', 'prereleases'
+            "includes", "excludes", "prereleases"
         )
         model = python_models.PythonRemote
-
-    def gen_specifiers(self, remote, includes, excludes):
-        """
-        Generate include and exclude project specifiers.
-
-        Common code for update and create actions.
-
-        Args:
-            remote (PythonRemote): The remote to generate ProjectSpecifiers for
-            includes (list): A list of validated ProjectSpecifier dicts
-            excludes (list): A list of validated ProjectSpecifier dicts
-        """
-        for project in includes:
-            python_models.ProjectSpecifier.objects.create(
-                remote=remote,
-                exclude=False,
-                **project
-            )
-        for project in excludes:
-            python_models.ProjectSpecifier.objects.create(
-                remote=remote,
-                exclude=True,
-                **project
-            )
-
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        """
-        Update a PythonRemote.
-
-        Overriding default update() to write the projects nested field.
-
-        Args:
-            instance (models.PythonRemote): instance of the python remote to update
-            validated_data (dict): of validated data to update
-
-        Returns:
-            models.PythonRemote: the updated PythonRemote
-
-        """
-        includes = validated_data.pop('includes', [])
-        excludes = validated_data.pop('excludes', [])
-
-        python_remote = python_models.PythonRemote.objects.get(pk=instance.pk)
-
-        # Remove all project specifier related by foreign key to the remote if it is not a
-        # partial update or if new projects list has been passed
-        if not self.partial or includes:
-            python_models.ProjectSpecifier.objects.filter(remote=python_remote,
-                                                          exclude=False).delete()
-
-        if not self.partial or excludes:
-            python_models.ProjectSpecifier.objects.filter(remote=python_remote,
-                                                          exclude=True).delete()
-
-        self.gen_specifiers(python_remote, includes, excludes)
-
-        return super().update(instance, validated_data)
-
-    @transaction.atomic
-    def create(self, validated_data):
-        """
-        Create a PythonRemote.
-
-        Overriding default create() to write the projects nested field, and the nested digest field
-
-        Args:
-            validated_data (dict): data used to create the remote
-
-        Returns:
-            models.PythonRemote: the created PythonRemote
-
-        """
-        includes = validated_data.pop('includes', [])
-        excludes = validated_data.pop('excludes', [])
-
-        python_remote = python_models.PythonRemote.objects.create(**validated_data)
-        self.gen_specifiers(python_remote, includes, excludes)
-
-        return python_remote
 
 
 class PythonPublicationSerializer(core_serializers.PublicationSerializer):
