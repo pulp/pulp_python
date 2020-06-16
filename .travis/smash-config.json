@@ -29,5 +29,8 @@
         }
       }
     }
-  ]
+  ],
+  "custom": {
+    "fixtures_origin": "http://pulp-fixtures/"
+  }
 }

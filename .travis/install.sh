@@ -88,5 +88,12 @@ cat >> vars/main.yaml << VARSYAML
 pulp_settings: null
 VARSYAML
 
+if [[ "$TEST" == "pulp" || "$TEST" == "performance" || "$TEST" == "s3" ]]; then
+  sed -i -e '/^services:/a \
+  - name: pulp-fixtures\
+    image: docker.io/pulp/pulp-fixtures:latest\
+    env: {BASE_URL: "http://pulp-fixtures"}' vars/main.yaml
+fi
+
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
