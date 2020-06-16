@@ -139,7 +139,7 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
     """
 
     endpoint_name = 'pypi'
-    queryset = python_models.PythonPublication.objects.all()
+    queryset = python_models.PythonPublication.objects.exclude(complete=False)
     serializer_class = python_serializers.PythonPublicationSerializer
 
     @swagger_auto_schema(
