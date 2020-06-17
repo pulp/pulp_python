@@ -1,38 +1,37 @@
+# coding=utf-8
+"""Tests that verify download of content served by Pulp."""
 import hashlib
 import unittest
 from random import choice
 from urllib.parse import urljoin
 
-from pulp_smash import api, config, utils
-from pulp_smash.pulp3.utils import (
-    download_content_unit,
-    gen_distribution,
-    gen_repo,
-    sync,
-)
+from pulp_smash import config, utils
+from pulp_smash.pulp3.utils import download_content_unit, gen_distribution, gen_repo
 
-from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH,
-    PYTHON_DISTRIBUTION_PATH,
-    PYTHON_REPO_PATH,
-)
+from pulp_python.tests.functional.constants import PYTHON_FIXTURE_URL
 from pulp_python.tests.functional.utils import (
+    gen_python_client,
     get_python_content_paths,
-    gen_python_publication,
     gen_python_remote,
+    monitor_task,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
+from pulpcore.client.pulp_python import (
+    DistributionsPypiApi,
+    PublicationsPypiApi,
+    RepositoriesPythonApi,
+    RepositorySyncURL,
+    RemotesPythonApi,
+    PythonPythonPublication,
+)
+
 
 class DownloadContentTestCase(unittest.TestCase):
-    """
-    Verify whether content served by pulp can be downloaded.
-    """
+    """Verify whether content served by pulp can be downloaded."""
 
     def test_all(self):
-        """
-        Verify whether content served by pulp can be downloaded.
+        """Verify whether content served by pulp can be downloaded.
 
         The process of publishing content is more involved in Pulp 3 than it
         was under Pulp 2. Given a repository, the process is as follows:
@@ -42,8 +41,8 @@ class DownloadContentTestCase(unittest.TestCase):
            repository version plus metadata.
         2. Create a distribution from the publication. The distribution defines
            at which URLs a publication is available, e.g.
-           ``http://example.com/content/pub-name/`` and
-           ``https://example.com/content/pub-name/``.
+           ``http://example.com/content/foo/`` and
+           ``http://example.com/content/bar/``.
 
         Do the following:
 
@@ -55,42 +54,60 @@ class DownloadContentTestCase(unittest.TestCase):
         This test targets the following issues:
 
         * `Pulp #2895 <https://pulp.plan.io/issues/2895>`_
-        * `Pulp Smash #872 <https://github.com/PulpQE/pulp-smash/issues/872>`_
+        * `Pulp Smash #872 <https://github.com/pulp/pulp-smash/issues/872>`_
         """
-        cfg = config.get_config()
-        client = api.Client(cfg, api.json_handler)
+        client = gen_python_client()
+        repo_api = RepositoriesPythonApi(client)
+        remote_api = RemotesPythonApi(client)
+        publications = PublicationsPypiApi(client)
+        distributions = DistributionsPypiApi(client)
 
-        repo = client.post(PYTHON_REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['pulp_href'])
+        repo = repo_api.create(gen_repo())
+        self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        body = gen_python_remote(PYTHON_FIXTURES_URL)
-        remote = client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['pulp_href'])
+        body = gen_python_remote()
+        remote = remote_api.create(body)
+        self.addCleanup(remote_api.delete, remote.pulp_href)
 
-        sync(cfg, remote, repo)
-        repo = client.get(repo['pulp_href'])
+        # Sync a Repository
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        repo = repo_api.read(repo.pulp_href)
 
-        # Create a publication
-        publication = gen_python_publication(cfg, repository=repo)
-        self.addCleanup(client.delete, publication['pulp_href'])
+        # Create a publication.
+        publish_data = PythonPythonPublication(repository=repo.pulp_href)
+        publish_response = publications.create(publish_data)
+        created_resources = monitor_task(publish_response.task)
+        publication_href = created_resources[0]
+        self.addCleanup(publications.delete, publication_href)
 
         # Create a distribution.
         body = gen_distribution()
-        body['publication'] = publication['pulp_href']
-        distribution = client.using_handler(api.task_handler).post(
-            PYTHON_DISTRIBUTION_PATH,
-            body
-        )
-        self.addCleanup(client.delete, distribution['pulp_href'])
+        body["publication"] = publication_href
+        distribution_response = distributions.create(body)
+        created_resources = monitor_task(distribution_response.task)
+        distribution = distributions.read(created_resources[0])
+        self.addCleanup(distributions.delete, distribution.pulp_href)
 
-        # Pick a file, and download it from both Pulp Fixtures…
-        unit_path = choice(get_python_content_paths(repo))
-        fixtures_hash = hashlib.sha256(
-            utils.http_get(urljoin(urljoin(PYTHON_FIXTURES_URL, 'packages/'), unit_path))
-        ).hexdigest()
+        # Pick a content unit (of each type), and download it from both Pulp Fixtures…
+        unit_paths = [
+            choice(paths) for paths in get_python_content_paths(repo.to_dict()).values()
+        ]
+        fixtures_hashes = [
+            hashlib.sha256(
+                utils.http_get(
+                    urljoin(urljoin(PYTHON_FIXTURE_URL, "packages/"), unit_path[0])
+                )
+            ).hexdigest()
+            for unit_path in unit_paths
+        ]
 
         # …and Pulp.
-        content = download_content_unit(cfg, distribution, unit_path)
-        pulp_hash = hashlib.sha256(content).hexdigest()
+        pulp_hashes = []
+        cfg = config.get_config()
+        for unit_path in unit_paths:
+            content = download_content_unit(cfg, distribution.to_dict(), unit_path[1])
+            pulp_hashes.append(hashlib.sha256(content).hexdigest())
 
-        self.assertEqual(fixtures_hash, pulp_hash)
+        self.assertEqual(fixtures_hashes, pulp_hashes)

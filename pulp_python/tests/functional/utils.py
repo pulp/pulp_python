@@ -1,44 +1,63 @@
+# coding=utf-8
+"""Utilities for tests for the python plugin."""
 from functools import partial
+import requests
 from unittest import SkipTest
+from time import sleep
+from tempfile import NamedTemporaryFile
 
-from pulp_smash import api, selectors
-from pulp_smash.pulp3 import utils
+from pulp_smash import config, selectors
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
     get_content,
-    sync
+    require_pulp_3,
+    require_pulp_plugins,
 )
 
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_NAME,
-    PYTHON_CONTENT_PATH,
-    PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH,
-    PYTHON_REPO_PATH,
-    PYTHON_PUBLICATION_PATH,
+    PYTHON_FIXTURE_URL,
+    PYTHON_URL,
+    PYTHON_EGG_FILENAME,
     PYTHON_XS_PROJECT_SPECIFIER,
-    PYTHON_WHEEL_FILENAME
 )
+
+from pulpcore.client.pulpcore import (
+    ApiClient as CoreApiClient,
+    ArtifactsApi,
+    TasksApi,
+)
+from pulpcore.client.pulp_python import ApiClient as PythonApiClient
+from pulpcore.client.pulp_python import (
+    RepositoriesPythonApi,
+    ContentPackagesApi,
+    PublicationsPypiApi,
+    PythonPythonPublication,
+    RemotesPythonApi,
+    RepositorySyncURL
+)
+cfg = config.get_config()
+configuration = cfg.get_bindings_config()
 
 
 def set_up_module():
-    """
-    Skip tests Pulp 3 isn't under test or if pulp-python isn't installed.
-    """
-    utils.require_pulp_3(SkipTest)
-    utils.require_pulp_plugins({'pulp_python'}, SkipTest)
+    """Skip tests Pulp 3 isn't under test or if pulp_python isn't installed."""
+    require_pulp_3(SkipTest)
+    require_pulp_plugins({"pulp_python"}, SkipTest)
 
 
-def gen_python_remote(url=PYTHON_FIXTURES_URL, includes=None, **kwargs):
-    """
-    Return a semi-random dict for use in creating a remote.
+def gen_python_client():
+    """Return an OBJECT for python client."""
+    return PythonApiClient(configuration)
 
-    Kwargs:
-        url (str): The URL to a Python remote repository
-        includes (iterable): An iterable of dicts containing project specifier dicts.
-        **kwargs: Specified parameters for the Remote
 
+def gen_python_remote(url=PYTHON_FIXTURE_URL, includes=None, **kwargs):
+    """Return a semi-random dict for use in creating a python Remote.
+
+    :param url: The URL of an external content source.
+    :param includes: An iterable of dicts containing project specifier dicts.
+    :param **kwargs: Specified parameters for the Remote
     """
     remote = gen_remote(url)
     if includes is None:
@@ -46,98 +65,130 @@ def gen_python_remote(url=PYTHON_FIXTURES_URL, includes=None, **kwargs):
 
     # Remote also supports "excludes" and "prereleases".
     python_extra_fields = {
-        'includes': includes,
+        "includes": includes,
         **kwargs,
     }
     remote.update(python_extra_fields)
     return remote
 
 
-def gen_python_publication(cfg, repository=None, repository_version=None, **kwargs):
-    """
-    Create a Python Publication from a repository or a repository version.
+def get_python_content_paths(repo, version_href=None):
+    """Return the relative path of content units present in a python repository.
 
-    Args:
-     cfg (pulp_smash.config.PulpSmashConfig): Information about the Pulp host.
-
-    Kwargs:
-        repository (str): _href of a repository
-        repository_version (str): _href of a repository version
-    """
-    body = {}
-    if repository_version:
-        body.update({"repository_version": repository_version['pulp_href']})
-
-    # Both are ifs so we can do both at once (to test the error)
-    if repository:
-        body.update({"repository": repository['pulp_href']})
-
-    client = api.Client(cfg, api.json_handler)
-    call_report = client.post(PYTHON_PUBLICATION_PATH, body)
-    tasks = tuple(api.poll_spawned_tasks(cfg, call_report))
-    return client.get(tasks[-1]["created_resources"][0])
-
-
-def get_python_content_paths(repo):
-    """
-    Return the relative path of content units present in a file repository.
-
-    Args:
-        repo (dict): A dict of information about the repository.
-
-    Returns:
-        list: The paths of units present in a given repository.
-
-    """
-    return [
-        content_unit['filename']
-        for content_unit in get_content(repo)[PYTHON_CONTENT_NAME]
-    ]
-
-
-def gen_python_package_attrs(artifact):
-    """
-    Generate a dict with Python content unit attributes.
-
-    Args:
-        artifact (dict): Info about the artifact.
-
-    Returns:
-        dict: A semi-random dict for use in creating a content unit.
-
+    :param repo: A dict of information about the repository.
+    :param version_href: The repository version to read.
+    :returns: A dict of lists with the paths of units present in a given repository.
+        Paths are given as pairs with the remote and the local version for different content types.
     """
     return {
-        '_artifact': artifact['pulp_href'],
-        'filename': PYTHON_WHEEL_FILENAME,
+        PYTHON_CONTENT_NAME: [
+            (content_unit["filename"], content_unit["filename"])
+            for content_unit in get_content(repo, version_href)[PYTHON_CONTENT_NAME]
+        ],
     }
 
 
-def populate_pulp(cfg, remote=None):
+def gen_python_content_attrs(artifact, filename=PYTHON_EGG_FILENAME):
+    """Generate a dict with content unit attributes.
+
+    :param artifact: A dict of info about the artifact.
+    :param filename: the name of the artifact being uploaded
+    :returns: A semi-random dict for use in creating a content unit.
     """
-    Add python content to Pulp.
+    return {
+        "artifact": artifact["pulp_href"],
+        "relative_path": filename,
+    }
 
-    Args:
-        cfg (pulp_smash.config.PulpSmashConfig): Information about a Pulp application
-        remote (dict): A dict of information about the remote.
 
-    Returns:
-        list: A list of dicts, where each dict describes one python content in Pulp.
+core_client = CoreApiClient(configuration)
+tasks = TasksApi(core_client)
+py_client = gen_python_client()
+repo_api = RepositoriesPythonApi(py_client)
+remote_api = RemotesPythonApi(py_client)
+pub_api = PublicationsPypiApi(py_client)
+content_api = ContentPackagesApi(py_client)
 
+
+def populate_pulp(url=PYTHON_FIXTURE_URL):
+    """Add python contents to Pulp.
+
+    :param pulp_smash.config.PulpSmashConfig: Information about a Pulp application.
+    :param url: The python repository URL. Defaults to
+        :data:`pulp_smash.constants.PYTHON_FIXTURE_URL`
+    :returns: A list of dicts, where each dict describes one python content in Pulp.
     """
-    if remote is None:
-        remote = gen_python_remote()
-    client = api.Client(cfg, api.json_handler)
-    repo = {}
+    remote = None
+    repo = None
     try:
-        remote.update(client.post(PYTHON_REMOTE_PATH, remote))
-        repo.update(client.post(PYTHON_REPO_PATH, gen_repo()))
-        sync(cfg, remote, repo)
+        remote = remote_api.create(gen_python_remote(url))
+        repo = repo_api.create(gen_repo())
+
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
     finally:
         if remote:
-            client.delete(remote['pulp_href'])
+            remote_api.delete(remote.pulp_href)
         if repo:
-            client.delete(repo['pulp_href'])
-    return client.get(PYTHON_CONTENT_PATH)['results']
+            repo_api.delete(repo.pulp_href)
+    return content_api.list().to_dict()["results"]
 
 
-skip_if = partial(selectors.skip_if, exc=SkipTest)
+def publish(repo, version_href=None):
+    """Publish a repository.
+    :param repo: A dict of information about the repository.
+    :param version_href: A href for the repo version to be published.
+    :returns: A publication. A dict of information about the just created
+        publication.
+    """
+    if version_href:
+        publish_data = PythonPythonPublication(repository_href=version_href)
+    else:
+        publish_data = PythonPythonPublication(repository=repo["pulp_href"])
+
+    publish_response = pub_api.create(publish_data)
+    created_resources = monitor_task(publish_response.task)
+    return pub_api.read(created_resources[0]).to_dict()
+
+
+skip_if = partial(selectors.skip_if, exc=SkipTest)  # pylint:disable=invalid-name
+"""The ``@skip_if`` decorator, customized for unittest.
+
+:func:`pulp_smash.selectors.skip_if` is test runner agnostic. This function is
+identical, except that ``exc`` has been set to ``unittest.SkipTest``.
+"""
+
+
+def gen_artifact(url=PYTHON_URL):
+    """Creates an artifact."""
+    response = requests.get(url)
+    with NamedTemporaryFile() as temp_file:
+        temp_file.write(response.content)
+        temp_file.flush()
+        artifact = ArtifactsApi(core_client).create(file=temp_file.name)
+        return artifact.to_dict()
+
+
+def monitor_task(task_href):
+    """Polls the Task API until the task is in a completed state.
+
+    Prints the task details and a success or failure message. Exits on failure.
+
+    Args:
+        task_href(str): The href of the task to monitor
+
+    Returns:
+        list[str]: List of hrefs that identify resource created by the task
+
+    """
+    completed = ["completed", "failed", "canceled"]
+    task = tasks.read(task_href)
+    while task.state not in completed:
+        sleep(2)
+        task = tasks.read(task_href)
+
+    if task.state == "completed":
+        return task.created_resources
+
+    return task.to_dict()

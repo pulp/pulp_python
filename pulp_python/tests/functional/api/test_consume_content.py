@@ -1,27 +1,40 @@
+# coding=utf-8
+"""Tests that perform actions over content unit."""
 import unittest
 
-from pulp_smash import api, config, cli, utils
-from pulp_smash.pulp3.utils import gen_repo, gen_distribution, sync, delete_orphans
-
-from pulp_python.tests.functional.utils import (
-    gen_python_publication,
-    gen_python_remote,
-)
+from pulp_smash import cli
+from pulp_smash.pulp3.utils import gen_repo, gen_distribution, delete_orphans
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURES_URL,
-    PYTHON_REMOTE_PATH,
-    PYTHON_DISTRIBUTION_PATH,
-    PYTHON_REPO_PATH,
-    PYPI_URL,
-    PYTHON_CONTENT_PATH,
-    PYTHON_FIXTURES_FILENAMES,
+    PYTHON_FIXTURE_URL,
     PYTHON_FIXTURES_PACKAGES,
+    PYTHON_FIXTURES_FILENAMES,
     PYTHON_LIST_PROJECT_SPECIFIER,
+    PYPI_URL,
 )
 
-from pulp_smash.pulp3.constants import ARTIFACTS_PATH
+from pulp_python.tests.functional.utils import (
+    gen_artifact,
+    gen_python_client,
+    gen_python_content_attrs,
+    monitor_task,
+    cfg,
+    publish,
+    gen_python_remote,
+)
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 from urllib.parse import urljoin, urlsplit
+
+from pulpcore.client.pulp_python import (
+    RepositoriesPythonApi,
+    RemotesPythonApi,
+    PublicationsPypiApi,
+    ContentPackagesApi,
+    DistributionsPypiApi,
+    RepositorySyncURL,
+)
+
+from pulp_smash.utils import http_get
 
 
 class PipInstallContentTestCase(unittest.TestCase):
@@ -39,53 +52,51 @@ class PipInstallContentTestCase(unittest.TestCase):
         """
         Check if packages to install through tests are already installed
         """
-        cls.cfg = config.get_config()
-        cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.cli_client = cli.Client(cls.cfg)
-        cls.prior_packages = []
+        cls.client = gen_python_client()
+        cls.cli_client = cli.Client(cfg)
         cls.PACKAGES = PYTHON_FIXTURES_PACKAGES
         cls.PACKAGES_URLS = [
-            urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), filename)
+            urljoin(urljoin(PYTHON_FIXTURE_URL, "packages/"), filename)
             for filename in PYTHON_FIXTURES_FILENAMES
         ]
-        cls.PACKAGES_FILES = [
-            {"file": utils.http_get(file)} for file in cls.PACKAGES_URLS
-        ]
-        delete_orphans(cls.cfg)
+        cls.PACKAGES_FILES = [{"file": http_get(file)} for file in cls.PACKAGES_URLS]
+        delete_orphans()
         for pkg in cls.PACKAGES:
-            cls.assertFalse(cls, cls.check_install(cls.cli_client, pkg),
-                            "{} is already installed".format(pkg))
+            cls.assertFalse(
+                cls,
+                cls.check_install(cls.cli_client, pkg),
+                "{} is already installed".format(pkg),
+            )
+        cls.repo_api = RepositoriesPythonApi(cls.client)
+        cls.remote_api = RemotesPythonApi(cls.client)
+        cls.content_api = ContentPackagesApi(cls.client)
+        cls.publications_api = PublicationsPypiApi(cls.client)
+        cls.distro_api = DistributionsPypiApi(cls.client)
 
     def test_workflow_01(self):
         """
         Verify workflow 1
         """
-        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["pulp_href"])
+        repo = self.repo_api.create(gen_repo())
+        self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
         artifacts = []
-        for pkg in self.PACKAGES_FILES:
-            artifacts.append(self.client.post(ARTIFACTS_PATH, files=pkg))
+        for pkg in self.PACKAGES_URLS:
+            artifacts.append(gen_artifact(pkg))
 
         for filename, artifact in zip(PYTHON_FIXTURES_FILENAMES, artifacts):
-            task_url = self.client.post(
-                PYTHON_CONTENT_PATH,
-                data={
-                    "filename": filename,
-                    "relative_path": filename,
-                    "artifact": artifact["pulp_href"],
-                },
+            content_response = self.content_api.create(
+                **gen_python_content_attrs(artifact, filename)
             )
-            task = tuple(api.poll_spawned_tasks(self.cfg, task_url))
-            content_url = task[-1]["created_resources"][0]
-            self.client.post(
-                urljoin(repo["pulp_href"], "modify/"),
-                {"add_content_units": [content_url]},
+            created_resources = monitor_task(content_response.task)
+            self.repo_api.modify(
+                repo.pulp_href, {"add_content_units": created_resources}
             )
-        repo = self.client.get(repo["pulp_href"])
+        repo = self.repo_api.read(repo.pulp_href)
         distribution = self.gen_pub_dist(repo)
-        self.addCleanup(delete_orphans, self.cfg)
-        self.check_consume(distribution)
+
+        self.addCleanup(delete_orphans, cfg)
+        self.check_consume(distribution.to_dict())
 
     def test_workflow_02(self):
         """
@@ -101,23 +112,24 @@ class PipInstallContentTestCase(unittest.TestCase):
         * `Pulp #4682 <https://pulp.plan.io/issues/4682>`_
         * `Pulp #4677 <https://pulp.plan.io/issues/4677>`_
         """
-        repo = self.client.post(PYTHON_REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["pulp_href"])
+        repo = self.repo_api.create(gen_repo())
+        self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
-        body = gen_python_remote(
-            PYTHON_FIXTURES_URL, includes=PYTHON_LIST_PROJECT_SPECIFIER
-        )
-        remote = self.client.post(PYTHON_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote["pulp_href"])
+        body = gen_python_remote(includes=PYTHON_LIST_PROJECT_SPECIFIER)
+        remote = self.remote_api.create(body)
+        self.addCleanup(self.remote_api.delete, remote.pulp_href)
 
-        sync(self.cfg, remote, repo)
-        repo = self.client.get(repo["pulp_href"])
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        repo = self.repo_api.read(repo.pulp_href)
+
         distribution = self.gen_pub_dist(repo)
-        self.check_consume(distribution)
+        self.check_consume(distribution.to_dict())
 
     def check_consume(self, distribution):
         """Tests that pip packages hosted in a distribution can be consumed"""
-        host_base_url = self.cfg.get_content_host_base_url()
+        host_base_url = cfg.get_content_host_base_url()
         url = "".join(
             [host_base_url, "/pulp/content/", distribution["base_path"], "/simple/"]
         )
@@ -128,15 +140,15 @@ class PipInstallContentTestCase(unittest.TestCase):
 
     def gen_pub_dist(self, repo):
         """Takes a repo and generates a publication and then distributes it"""
-        publication = gen_python_publication(self.cfg, repository=repo)
-        self.addCleanup(self.client.delete, publication["pulp_href"])
+        publication = publish(repo.to_dict())
+        self.addCleanup(self.publications_api.delete, publication["pulp_href"])
 
         body = gen_distribution()
         body["publication"] = publication["pulp_href"]
-        distribution = self.client.using_handler(api.task_handler).post(
-            PYTHON_DISTRIBUTION_PATH, body
-        )
-        return distribution
+        distro_response = self.distro_api.create(body)
+        distro = self.distro_api.read(monitor_task(distro_response.task)[0])
+        self.addCleanup(self.distro_api.delete, distro.pulp_href)
+        return distro
 
     @staticmethod
     def check_install(cli_client, package):
