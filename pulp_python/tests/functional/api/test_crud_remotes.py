@@ -271,7 +271,7 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         remote = self.remote_api.create(body).to_dict()
         self.addCleanup(self.remote_api.delete, remote["pulp_href"])
 
-        self.assertEqual(remote["includes"][0]["version_specifier"], "")
+        self.assertEqual(remote["includes"][0], PYTHON_VALID_SPECIFIER_NO_VERSION[0])
 
     def test_excludes_with_no_version(self):
         """
@@ -281,8 +281,8 @@ class CreateRemoteWithNoVersionTestCase(unittest.TestCase):
         remote = self.remote_api.create(body).to_dict()
         self.addCleanup(self.remote_api.delete, remote["pulp_href"])
 
-        self.assertEqual(remote["includes"][0]["version_specifier"], "")
-        self.assertEqual(remote["excludes"][0]["version_specifier"], "")
+        self.assertEqual(remote["includes"][0], PYTHON_VALID_SPECIFIER_NO_VERSION[0])
+        self.assertEqual(remote["excludes"][0], PYTHON_VALID_SPECIFIER_NO_VERSION[0])
 
 
 class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
@@ -306,7 +306,6 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         """
         cls.remote_api.delete(cls.remote.pulp_href)
 
-    @unittest.skip("Broken due to potential DRF issue?")
     def test_includes_with_no_name(self):
         """
         Test an include specifier without a "name" field.
@@ -323,7 +322,6 @@ class UpdateRemoteWithInvalidProjectSpecifiersTestCase(unittest.TestCase):
         with self.assertRaises(ApiException):
             self.remote_api.partial_update(self.remote.pulp_href, body)
 
-    @unittest.skip("Broken due to potential DRF issue?")
     def test_excludes_with_no_name(self):
         """
         Test an exclude specifier without a "name" field.

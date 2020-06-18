@@ -18,11 +18,11 @@ from pulpcore.plugin.stages import (
 )
 
 from pulp_python.app.models import (
-    ProjectSpecifier,
     PythonPackageContent,
     PythonRemote,
 )
 from pulp_python.app.utils import parse_metadata
+import re
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +84,9 @@ class PythonFirstStage(Stage):
             out_q (asyncio.Queue): The out_q to send `DeclarativeContent` objects to.
 
         """
-        ps = ProjectSpecifier.objects.filter(remote=self.remote)
+        ps = ProjectSpecifier.create(
+            includes=self.remote.includes, excludes=self.remote.excludes
+        )
 
         deferred_download = (self.remote.policy != Remote.IMMEDIATE)
 
@@ -220,6 +222,45 @@ class PythonFirstStage(Stage):
                             parse_metadata(metadata['info'], version, package)
                         )
         return remote_packages
+
+
+class ProjectSpecifier:
+    """
+    This class is here to replace the ProjectSpecifier model that has been removed
+
+    Creating this class to avoid having to rewrite all of the first stage sync code.
+    This will take the new includes/excludes strings and create an object emulating
+    the old functionality of the ProjectSpecifiers
+    """
+
+    def __init__(self, name, ver_spec="", exclude=False):
+        """Mimics the fields that the original ProjecSpecifier model had"""
+        self.name = name
+        self.version_specifier = ver_spec
+        self.exclude = exclude
+
+    @staticmethod
+    def create(includes=[], excludes=[]):
+        """
+        Create a list of ProjectSpecifiers for each element in the includes/excludes
+        """
+        return ProjectSpecifier.convert(includes, False) + ProjectSpecifier.convert(
+            excludes, True
+        )
+
+    @staticmethod
+    def convert(project_list, exclude=False):
+        """
+        Converts a list of JSON strings into a list of ProjectSpecifier
+        objects based on exclude param
+        """
+        converted = []
+        for project in project_list:
+            splitted = re.split(r"([\w-]+)", project, 1)
+            name = splitted[1]
+            version_specifier = splitted[2]
+            converted.append(ProjectSpecifier(name, version_specifier, exclude))
+        return converted
 
 
 def groupby_unsorted(seq, key=lambda x: x):
