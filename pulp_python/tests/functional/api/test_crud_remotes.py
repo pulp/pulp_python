@@ -18,10 +18,13 @@ from pulpcore.client.pulp_python import RemotesPythonApi
 from pulpcore.client.pulp_python.exceptions import ApiException
 
 from pulp_python.tests.functional.constants import (
+    BANDERSNATCH_CONF,
+    DEFAULT_BANDER_REMOTE_BODY,
     PYTHON_INVALID_SPECIFIER_NO_NAME,
     PYTHON_INVALID_SPECIFIER_BAD_VERSION,
     PYTHON_VALID_SPECIFIER_NO_VERSION,
 )
+from tempfile import NamedTemporaryFile
 
 
 class CRUDRemotesTestCase(unittest.TestCase):
@@ -104,6 +107,30 @@ class CRUDRemotesTestCase(unittest.TestCase):
         monitor_task(response.task)
         with self.assertRaises(ApiException):
             self.remote_api.read(self.remote.pulp_href)
+
+
+class CreateRemoteFromBandersnatchConfig(unittest.TestCase):
+    """
+    Verify whether it's possible to create a remote from a Bandersnatch config
+
+    This test targets the following issues:
+
+    * `Pulp #6929 <https://pulp.plan.io/issues/6929>`_
+    """
+
+    def test_01_creation(self):
+        """Create a remote from Bandersnatch config."""
+        remote_api = RemotesPythonApi(gen_python_client())
+        with NamedTemporaryFile() as config:
+            config.write(BANDERSNATCH_CONF)
+            config.seek(0)
+            name = utils.uuid4()
+            remote = remote_api.from_bandersnatch(config.name, name)
+            self.addCleanup(remote_api.delete, remote.pulp_href)
+            expected = _gen_expected_remote_body(name)
+            for key, val in expected.items():
+                with self.subTest(key=key):
+                    self.assertEqual(remote.to_dict()[key], val, key)
 
 
 class CreateRemoteNoURLTestCase(unittest.TestCase):
@@ -358,3 +385,13 @@ def _gen_verbose_remote():
         }
     )
     return attrs
+
+
+def _gen_expected_remote_body(name, **kwargs):
+    """Generates a remote body based on names and dictionary in kwargs"""
+    # The defaults found in bandersnatch_conf
+    body = DEFAULT_BANDER_REMOTE_BODY
+    body["name"] = name
+    # overwrite the defaults if specified in kwargs
+    body.update(kwargs)
+    return body

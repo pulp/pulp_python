@@ -178,3 +178,57 @@ PYTHON_LARGE_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "python_large/")
 # FIXME: replace this with the actual number of content units in your test fixture
 PYTHON_LARGE_FIXTURE_COUNT = 25
 """The number of content units available at :data:`PYTHON_LARGE_FIXTURE_URL`."""
+
+DEFAULT_BANDER_REMOTE_BODY = {
+    "url": "https://pypi.org",
+    "download_concurrency": 3,
+    "policy": "immediate",
+    "prereleases": True,
+    "excludes": ["example1", "example2"]
+}
+
+BANDERSNATCH_CONF = b"""
+[mirror]
+; The directory where the mirror data will be stored.
+directory = /srv/pypi
+; Save JSON metadata into the web tree:
+json = false
+
+; scheme for PyPI server MUST be https
+master = https://pypi.org
+
+; The network socket timeout to use for all connections.
+timeout = 10
+global-timeout = 18000
+
+; Number of worker threads to use for parallel downloads.
+workers = 3
+
+; Whether to hash package indexes
+hash-index = false
+
+; Whether to stop a sync quickly after an error is found or whether to continue
+; syncing but not marking the sync as successful.
+stop-on-error = false
+
+storage-backend = filesystem
+
+; Number of consumers which verify metadata
+verifiers = 3
+
+; Configure a file to write out the list of files downloaded during the mirror.
+diff-file = {{mirror_directory}}/mirrored-files
+diff-append-epoch = false
+
+; Enable filtering plugins
+[plugins]
+; Enable all or specific plugins - e.g. whitelist_project
+enabled = all
+
+[blacklist]
+; List of PyPI packages not to sync - Useful if malicious packages are mirrored
+packages =
+    example1
+    example2
+
+"""
