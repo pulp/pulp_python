@@ -107,6 +107,12 @@ def write_simple_api(publication):
     )
     index_metadata.save()
 
+    def find_artifact():
+        _art = content_artifact.artifact
+        if not _art:
+            _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
+        return _art
+
     for (name, canonical_name) in index_names:
         project_dir = '{simple_dir}{name}/'.format(simple_dir=simple_dir, name=canonical_name)
         os.mkdir(project_dir)
@@ -114,10 +120,10 @@ def write_simple_api(publication):
         packages = python_models.PythonPackageContent.objects.filter(name=name)
 
         package_detail_data = []
-
         for package in packages:
             artifact_set = package.contentartifact_set.all()
             for content_artifact in artifact_set:
+                artifact = find_artifact()
                 published_artifact = models.PublishedArtifact(
                     relative_path=content_artifact.relative_path,
                     publication=publication,
@@ -125,7 +131,7 @@ def write_simple_api(publication):
                 )
                 published_artifact.save()
 
-                checksum = content_artifact.artifact.sha256
+                checksum = artifact.sha256
                 path = "../../{}".format(package.filename)
                 package_detail_data.append((package.filename, path, checksum))
 

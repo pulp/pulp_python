@@ -97,6 +97,49 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
             body = {"repository": repo.pulp_href, "repository_version": non_latest}
             publications.create(body)
 
+
+class PublishOnDemandContent(unittest.TestCase):
+    """Test whether a 'on_demand' synced repository can be published.
+
+    This test targets the following issues:
+
+    * `Pulp #7128 <https://pulp.plan.io/issues/7128>`_
+    """
+
+    def test_on_demand(self):
+        """Test whether a particular repository version can be published.
+
+        1. Create a repository
+        2. Create a remote with on_demand sync policy
+        3. Sync
+        4. Publish repository
+        """
+        client = gen_python_client()
+        repo_api = RepositoriesPythonApi(client)
+        remote_api = RemotesPythonApi(client)
+        publications = PublicationsPypiApi(client)
+
+        body = gen_python_remote(policy="on_demand")
+        remote = remote_api.create(body)
+        self.addCleanup(remote_api.delete, remote.pulp_href)
+
+        repo = repo_api.create(gen_repo())
+        self.addCleanup(repo_api.delete, repo.pulp_href)
+
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        repo = repo_api.read(repo.pulp_href)
+
+        publish_data = PythonPythonPublication(repository=repo.pulp_href)
+        publish_response = publications.create(publish_data)
+        created_resources = monitor_task(publish_response.task)
+        publication_href = created_resources[0]
+        self.addCleanup(publications.delete, publication_href)
+        publication = publications.read(publication_href)
+
+        self.assertEqual(publication.repository_version, repo.latest_version_href)
+
     # TODO TEST LIST
     # TODO TEST PARTIAL AND FULL UPDATE
     # TODO Maybe test DELETE
