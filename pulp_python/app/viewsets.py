@@ -1,5 +1,5 @@
 from bandersnatch.configuration import BandersnatchConfig
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,9 +27,9 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
     queryset = python_models.PythonRepository.objects.all()
     serializer_class = python_serializers.PythonRepositorySerializer
 
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to sync Python content.",
-        operation_summary="Sync from remote",
+    @extend_schema(
+        description="Trigger an asynchronous task to sync Python content.",
+        summary="Sync from remote",
         responses={202: AsyncOperationResponseSerializer}
     )
     @action(detail=True, methods=['post'], serializer_class=RepositorySyncURLSerializer)
@@ -132,9 +132,11 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
 
-    @swagger_auto_schema(operation_description="Create a remote from a Bandersnatch config",
-                         operation_summary="Create from Bandersnatch",
-                         responses={201: python_serializers.PythonRemoteSerializer})
+    @extend_schema(
+        description="Create a remote from a Bandersnatch config",
+        summary="Create from Bandersnatch",
+        responses={201: python_serializers.PythonRemoteSerializer},
+    )
     @action(detail=False, methods=["post"],
             serializer_class=python_serializers.PythonBanderRemoteSerializer)
     def from_bandersnatch(self, request):
@@ -180,8 +182,8 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
     queryset = python_models.PythonPublication.objects.exclude(complete=False)
     serializer_class = python_serializers.PythonPublicationSerializer
 
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to publish python content.",
+    @extend_schema(
+        description="Trigger an asynchronous task to publish python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
     def create(self, request):
