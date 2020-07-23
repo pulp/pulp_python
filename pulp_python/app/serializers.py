@@ -322,6 +322,7 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
         help_text=_('This publication is currently being hosted as configured by these '
                     'distributions.'),
         source="python_pythondistribution",
+        view_name="filedistributions-detail",
         many=True,
         read_only=True,
     )
