@@ -134,7 +134,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """
         delete_orphans()
         repo_api = RepositoriesPythonApi(gen_python_client())
-        repo = repo_api.create(data={"name": "foo"})
+        repo = repo_api.create({"name": "foo"})
         self.addCleanup(repo_api.delete, repo.pulp_href)
         response = self.do_upload(repository=repo.pulp_href)
         created_resources = monitor_task(response.task)
