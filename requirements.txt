@@ -1,4 +1,4 @@
-pulpcore>=3.4
+pulpcore>=3.5,<3.6
 pkginfo
 packaging
 requirements-parser
