@@ -1,1 +1,0 @@
-Updated sync.sh, publication.sh and distribution.sh in docs/_scripts to reference wait_until_task_finished function from base.sh 

@@ -1,4 +1,4 @@
-pulpcore>=3.4
+pulpcore>=3.6.0.dev
 pkginfo
 packaging
 requirements-parser
