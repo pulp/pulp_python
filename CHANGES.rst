@@ -13,6 +13,40 @@ Changelog
 
 .. towncrier release notes start
 
+3.0.0b9 (2020-08-05)
+====================
+
+
+Features
+--------
+
+- Added a new endpoint to remotes "/from_bandersnatch" that allows for Python remote creation from a Bandersnatch config file.
+  `#6929 <https://pulp.plan.io/issues/6929>`_
+
+
+Bugfixes
+--------
+
+- Including requirements.txt on MANIFEST.in
+  `#6891 <https://pulp.plan.io/issues/6891>`_
+- Updating API to not return publications that aren't complete.
+  `#6987 <https://pulp.plan.io/issues/6987>`_
+- Fixed an issue that prevented 'on_demand' content from being published.
+  `#7128 <https://pulp.plan.io/issues/7128>`_
+
+
+Improved Documentation
+----------------------
+
+- Change the commands for publication and distribution on the publish workflow to use their respective scripts already defined in _scripts.
+  `#6877 <https://pulp.plan.io/issues/6877>`_
+- Updated sync.sh, publication.sh and distribution.sh in docs/_scripts to reference wait_until_task_finished function from base.sh
+  `#6918 <https://pulp.plan.io/issues/6918>`_
+
+
+----
+
+
 3.0.0b9 (2020-06-01)
 ====================
 
