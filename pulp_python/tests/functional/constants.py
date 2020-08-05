@@ -150,7 +150,38 @@ PYTHON_PACKAGE_DATA = {
     "provides_dist": "[]",
     "obsoletes_dist": "[]",
     "requires_external": "[]",
-    "classifiers": [],
+    "classifiers": "[]",
+}
+
+# Info data for Shelf-reader
+PYTHON_INFO_DATA = {
+    "name": "shelf-reader",
+    "version": "0.1",
+    # "metadata_version": "",  # Maybe program "1.1" into parse_metadata of app/utils.py
+    "summary": "Make sure your collections are in call number order.",
+    "keywords": "library barcode call number shelf collection",
+    "home_page": "https://github.com/asmacdo/shelf-reader",
+    "download_url": "UNKNOWN",
+    "author": "Austin Macdonald",
+    "author_email": "asmacdo@gmail.com",
+    "maintainer": None,
+    "maintainer_email": None,
+    # "license": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991",
+    "requires_python": None,
+    "project_url": "https://pypi.org/project/shelf-reader/",
+    "platform": "UNKNOWN",
+    # "supported_platform": None,
+    "requires_dist": None,
+    # "provides_dist": [],
+    # "obsoletes_dist": [],
+    # "requires_external": [],
+    "classifiers": ['Development Status :: 4 - Beta', 'Environment :: Console',
+                    'Intended Audience :: Developers',
+                    'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+                    'Natural Language :: English', 'Programming Language :: Python :: 2',
+                    'Programming Language :: Python :: 2.7'],
+    "downloads": {"last_day": -1, "last_month": -1, "last_week": -1},
+    # maybe add description, license is long for this one
 }
 
 
@@ -232,3 +263,51 @@ packages =
     example2
 
 """
+
+SHELF_BDIST_PYTHON_DOWNLOAD = {
+    "comment_text": "",
+    "digests": {
+        # "md5": "69b867d206f1ff984651aeef25fc54f9",
+        "sha256": "2eceb1643c10c5e4a65970baf63bde43b79cbdac7de81dae853ce47ab05197e9"
+    },
+    "downloads": -1,
+    "filename": "shelf_reader-0.1-py2-none-any.whl",
+    "has_sig": False,
+    # "md5_digest": "69b867d206f1ff984651aeef25fc54f9",
+    "packagetype": "bdist_wheel",
+    "python_version": "2.7",
+    "requires_python": None,
+    "size": 22455,
+    "yanked": False,
+    "yanked_reason": None
+}
+
+SHELF_SDIST_PYTHON_DOWNLOAD = {
+    "comment_text": "",
+    "digests": {
+        # "md5": "2dac570a33d88ca224be86759be59376",
+        "sha256": "04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be116398c"
+    },
+    "downloads": -1,
+    "filename": "shelf-reader-0.1.tar.gz",
+    "has_sig": False,
+    # "md5_digest": "2dac570a33d88ca224be86759be59376",
+    "packagetype": "sdist",
+    # "python_version": "source", # This is the correct value, but hard to generate
+    "requires_python": None,
+    "size": 19097,
+    "yanked": False,
+    "yanked_reason": None
+}
+
+SHELF_0DOT1_RELEASE = [SHELF_BDIST_PYTHON_DOWNLOAD, SHELF_SDIST_PYTHON_DOWNLOAD]
+
+SHELF_PYTHON_JSON = {
+    "info": PYTHON_INFO_DATA,
+    "last_serial": 0,
+    "releases": {
+        "0.1": SHELF_0DOT1_RELEASE
+    },
+    "urls": SHELF_0DOT1_RELEASE
+
+}
