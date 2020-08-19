@@ -2,7 +2,7 @@
 http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
     name='bar' \
     url='https://pypi.org/' \
-    includes:='[{"name": "shelf-reader"}]'
+    includes:='["shelf-reader"]'
 
 # Export an environment variable for the new remote URI.
 export REMOTE_HREF=$(http $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
