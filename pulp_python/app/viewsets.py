@@ -149,8 +149,10 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
         serializer.is_valid(raise_exception=True)
         bander_config_file = serializer.validated_data.get("config")
         name = serializer.validated_data.get("name")
+        policy = serializer.validated_data.get("policy")
         bander_config = BandersnatchConfig(bander_config_file.file.name).config
         data = {"name": name,
+                "policy": policy,
                 "url": bander_config.get("mirror", "master"),
                 "download_concurrency": bander_config.get("mirror", "workers"),
                 }
