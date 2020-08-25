@@ -156,13 +156,13 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
                 }
         enabled = bander_config.get("plugins", "enabled")
         enabled_all = "all" in enabled
-        data["prereleases"] = enabled_all or "prerelease_release" in enabled
-        if bander_config.has_option("whitelist", "packages") and \
-                (enabled_all or "whitelist_project" in enabled):
-            data["includes"] = bander_config.get("whitelist", "packages").split()
-        if bander_config.has_option("blacklist", "packages") and \
-                (enabled_all or "blacklist_project" in enabled):
-            data["excludes"] = bander_config.get("blacklist", "packages").split()
+        data["prereleases"] = not (enabled_all or "prerelease_release" in enabled)
+        if bander_config.has_option("allowlist", "packages") and \
+                (enabled_all or "allowlist_project" in enabled):
+            data["includes"] = bander_config.get("allowlist", "packages").split()
+        if bander_config.has_option("blocklist", "packages") and \
+                (enabled_all or "blocklist_project" in enabled):
+            data["excludes"] = bander_config.get("blocklist", "packages").split()
         remote = python_serializers.PythonRemoteSerializer(data=data, context={"request": request})
         remote.is_valid(raise_exception=True)
         remote.save()
