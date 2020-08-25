@@ -183,7 +183,7 @@ DEFAULT_BANDER_REMOTE_BODY = {
     "url": "https://pypi.org",
     "download_concurrency": 3,
     "policy": "immediate",
-    "prereleases": True,
+    "prereleases": False,
     "excludes": ["example1", "example2"]
 }
 
@@ -222,10 +222,10 @@ diff-append-epoch = false
 
 ; Enable filtering plugins
 [plugins]
-; Enable all or specific plugins - e.g. whitelist_project
+; Enable all or specific plugins - e.g. allowlist_project
 enabled = all
 
-[blacklist]
+[blocklist]
 ; List of PyPI packages not to sync - Useful if malicious packages are mirrored
 packages =
     example1
