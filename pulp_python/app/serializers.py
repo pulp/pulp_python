@@ -312,6 +312,13 @@ class PythonBanderRemoteSerializer(serializers.Serializer):
         required=True,
     )
 
+    policy = serializers.ChoiceField(
+        help_text=_("The policy to use when downloading content. The possible values include: "
+                    "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
+        choices=core_models.Remote.POLICY_CHOICES,
+        default=core_models.Remote.IMMEDIATE
+    )
+
 
 class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     """

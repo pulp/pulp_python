@@ -116,6 +116,7 @@ class CreateRemoteFromBandersnatchConfig(unittest.TestCase):
     This test targets the following issues:
 
     * `Pulp #6929 <https://pulp.plan.io/issues/6929>`_
+    * `Pulp #7331 <https://pulp.plan.io/issues/7331>`_
     """
 
     def test_01_creation(self):
@@ -128,6 +129,21 @@ class CreateRemoteFromBandersnatchConfig(unittest.TestCase):
             remote = remote_api.from_bandersnatch(config.name, name)
             self.addCleanup(remote_api.delete, remote.pulp_href)
             expected = _gen_expected_remote_body(name)
+            for key, val in expected.items():
+                with self.subTest(key=key):
+                    self.assertEqual(remote.to_dict()[key], val, key)
+
+    def test_02_ondemand(self):
+        """Create a remote from Bandersnatch config w/ policy remote"""
+        remote_api = RemotesPythonApi(gen_python_client())
+        with NamedTemporaryFile() as config:
+            config.write(BANDERSNATCH_CONF)
+            config.seek(0)
+            name = utils.uuid4()
+            policy = "on_demand"
+            remote = remote_api.from_bandersnatch(config.name, name, policy=policy)
+            self.addCleanup(remote_api.delete, remote.pulp_href)
+            expected = _gen_expected_remote_body(name, policy=policy)
             for key, val in expected.items():
                 with self.subTest(key=key):
                     self.assertEqual(remote.to_dict()[key], val, key)
