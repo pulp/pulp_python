@@ -1,5 +1,6 @@
 from logging import getLogger
 
+from aiohttp.web import json_response
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 
@@ -10,6 +11,9 @@ from pulpcore.plugin.models import (
     Remote,
     Repository
 )
+
+from pathlib import PurePath
+from .utils import python_content_to_json, PYPI_LAST_SERIAL, PYPI_SERIAL_CONSTANT
 
 log = getLogger(__name__)
 
@@ -33,6 +37,37 @@ class PythonDistribution(PublicationDistribution):
 
     TYPE = 'python'
 
+    def content_handler(self, path):
+        """
+        Handler to serve extra, non-Artifact content for this Distribution
+
+        Args:
+            path (str): The path being requested
+        Returns:
+            None if there is no content to be served at path. Otherwise a
+            aiohttp.web_response.Response with the content.
+        """
+        path = PurePath(path)
+        name = None
+        version = None
+        if path.match("pypi/*/*/json"):
+            version = path.parts[2]
+            name = path.parts[1]
+        elif path.match("pypi/*/json"):
+            name = path.parts[1]
+        if name:
+            package_content = PythonPackageContent.objects.filter(
+                pk__in=self.publication.repository_version.content,
+                name__iexact=name
+            )
+            # TODO Change this value to the Repo's serial value when implemented
+            headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
+            json_body = python_content_to_json(self.base_path, package_content, version=version)
+            if json_body:
+                return json_response(json_body, headers=headers)
+
+        return None
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
@@ -54,6 +89,7 @@ class PythonPackageContent(Content):
     name = models.TextField()
     version = models.TextField()
     # Optional metadata
+    python_version = models.TextField()
     metadata_version = models.TextField()
     summary = models.TextField()
     description = models.TextField()
