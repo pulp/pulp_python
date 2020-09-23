@@ -1,12 +1,7 @@
-import collections
-import json
 import logging
 
 from gettext import gettext as _
-from urllib.parse import urljoin
 
-from aiohttp.client_exceptions import ClientResponseError
-from packaging import specifiers
 from rest_framework import serializers
 
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
@@ -14,7 +9,7 @@ from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
     DeclarativeVersion,
-    Stage
+    Stage,
 )
 
 from pulp_python.app.models import (
@@ -22,9 +17,13 @@ from pulp_python.app.models import (
     PythonRemote,
 )
 from pulp_python.app.utils import parse_metadata
-import re
 
-log = logging.getLogger(__name__)
+from bandersnatch.mirror import Mirror
+from bandersnatch.master import Master
+from bandersnatch.configuration import BandersnatchConfig
+from packaging.requirements import Requirement
+
+logger = logging.getLogger(__name__)
 
 
 def sync(remote_pk, repository_pk, mirror):
@@ -47,241 +46,174 @@ def sync(remote_pk, repository_pk, mirror):
 
     if not remote.url:
         raise serializers.ValidationError(
-            detail=_("A remote must have a url attribute to sync."))
+            detail=_("A remote must have a url attribute to sync.")
+        )
 
-    first_stage = PythonFirstStage(remote)
+    first_stage = PythonBanderStage(remote)
     DeclarativeVersion(first_stage, repository, mirror).create()
 
 
-class PythonFirstStage(Stage):
-    """
-    First stage of the Asyncio Stage Pipeline.
+def create_bandersnatch_config(remote):
+    """Modifies the global Bandersnatch config state for this sync"""
+    config = BandersnatchConfig().config
+    config["mirror"]["master"] = remote.url
+    config["mirror"]["workers"] = str(remote.download_concurrency)
+    if not config.has_section("plugins"):
+        config.add_section("plugins")
+    config["plugins"]["enabled"] = "blocklist_release\n"
+    if remote.includes:
+        if not config.has_section("allowlist"):
+            config.add_section("allowlist")
+        config["plugins"]["enabled"] += "allowlist_release\nallowlist_project\n"
+        config["allowlist"]["packages"] = "\n".join(remote.includes)
+    if remote.excludes:
+        if not config.has_section("blocklist"):
+            config.add_section("blocklist")
+        config["plugins"]["enabled"] += "blocklist_project\n"
+        config["blocklist"]["packages"] = "\n".join(remote.excludes)
+    if not remote.prereleases:
+        config["plugins"]["enabled"] += "prerelease_release\n"
 
-    Create a :class:`~pulpcore.plugin.stages.DeclarativeContent` object for each content unit
-    that should exist in the new :class:`~pulpcore.plugin.models.RepositoryVersion`.
+
+class PythonBanderStage(Stage):
+    """
+    Python Package Syncing Stage using Bandersnatch
     """
 
     def __init__(self, remote):
-        """
-        The first stage of a pulp_python sync pipeline.
-
-        Args:
-            remote (PythonRemote): The remote data to be used when syncing
-
-        """
+        """Initialize the stage and Bandersnatch config"""
         super().__init__()
         self.remote = remote
+        create_bandersnatch_config(remote)
 
     async def run(self):
         """
-        Build and emit `DeclarativeContent` from the remote metadata.
-
-        Fetch and parse the remote metadata, use the Project Specifiers on the Remote
-        to determine which Python packages should be synced.
-
-        Args:
-            in_q (asyncio.Queue): Unused because the first stage doesn't read from an input queue.
-            out_q (asyncio.Queue): The out_q to send `DeclarativeContent` objects to.
-
+        If includes is specified, then only sync those,else try to sync all other packages
         """
-        ps = ProjectSpecifier.create(
-            includes=self.remote.includes, excludes=self.remote.excludes
-        )
-
-        deferred_download = (self.remote.policy != Remote.IMMEDIATE)
-
-        with ProgressReport(message='Fetching Project Metadata', code='fetching.project') as pb:
-            # Group multiple specifiers to the same project together, so that we only have to fetch
-            # the metadata once, and can re-use it if there are multiple specifiers.
-            for name, project_specifiers in groupby_unsorted(ps, key=lambda x: x.name):
-                # Fetch the metadata from PyPI
-                pb.increment()
-                try:
-                    metadata = await self.get_project_metadata(name)
-                except ClientResponseError as e:
-                    # Project doesn't exist, log a message and move on
-                    log.info(_("HTTP 404 'Not Found' for url '{url}'\n"
-                               "Does project '{name}' exist on the remote repository?").format(
-                        url=e.request_info.url,
-                        name=name
-                    ))
-                    continue
-                project_specifiers = list(project_specifiers)
-
-                # Determine which packages from the project match the criteria in the specifiers
-                packages = await self.get_relevant_packages(
-                    metadata=metadata,
-                    includes=[
-                        specifier for specifier in project_specifiers if not specifier.exclude
-                    ],
-                    excludes=[
-                        specifier for specifier in project_specifiers if specifier.exclude
-                    ],
-                    prereleases=self.remote.prereleases
+        # local & global timeouts defaults to 10secs and 5 hours
+        async with Master(self.remote.url) as master:
+            deferred_download = self.remote.policy != Remote.IMMEDIATE
+            with ProgressReport(
+                message="Fetching Project Metadata", code="fetching.project"
+            ) as p:
+                pmirror = PulpMirror(
+                    serial=0,  # Serial currently isn't supported by Pulp
+                    master=master,
+                    workers=self.remote.download_concurrency,
+                    deferred_download=deferred_download,
+                    python_stage=self,
+                    progress_report=p,
                 )
+                packages_to_sync = None
+                if self.remote.includes:
+                    packages_to_sync = [
+                        Requirement(pkg).name for pkg in self.remote.includes
+                    ]
+                await pmirror.synchronize(packages_to_sync)
 
-                # For each package, create Declarative objects to pass into the next stage
-                for entry in packages:
-                    url = entry.pop('url')
 
-                    artifact = Artifact(sha256=entry.pop('sha256_digest'))
-                    package = PythonPackageContent(**entry)
+class PulpMirror(Mirror):
+    """
+    Pulp Mirror Class to perform syncing using Bandersnatch
+    """
 
-                    da = DeclarativeArtifact(
-                        artifact,
-                        url,
-                        entry['filename'],
-                        self.remote,
-                        deferred_download=deferred_download
+    def __init__(
+        self, serial, master, workers, deferred_download, python_stage, progress_report
+    ):
+        """Initialize Bandersnatch Mirror"""
+        super().__init__(master=master, workers=workers)
+        self.synced_serial = serial
+        self.python_stage = python_stage
+        self.progress_report = progress_report
+        self.deferred_download = deferred_download
+
+    async def determine_packages_to_sync(self):
+        """
+        Calling this means that includes wasn't specified,
+        so try to get all of the packages from Mirror (hopefully PyPi)
+        """
+        number_xmlrpc_attempts = 3
+        for attempt in range(number_xmlrpc_attempts):
+            logger.info(
+                "Attempt {} to get package list from {}".format(
+                    attempt, self.master.url
+                )
+            )
+            try:
+                if not self.synced_serial:
+                    logger.info("Syncing all packages.")
+                    # First get the current serial, then start to sync.
+                    all_packages = await self.master.all_packages()
+                    self.packages_to_sync.update(all_packages)
+                    self.target_serial = max(
+                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
                     )
-                    dc = DeclarativeContent(content=package, d_artifacts=[da])
-
-                    await self.put(dc)
-
-    async def get_project_metadata(self, project_name):
+                else:
+                    logger.info("Syncing based on changelog.")
+                    changed_packages = await self.master.changed_packages(
+                        self.synced_serial
+                    )
+                    self.packages_to_sync.update(changed_packages)
+                    self.target_serial = max(
+                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
+                    )
+                self._filter_packages()
+                logger.info(f"Trying to reach serial: {self.target_serial}")
+                pkg_count = len(self.packages_to_sync)
+                logger.info(f"{pkg_count} packages to sync.")
+                return
+            except Exception as e:
+                """Handle different exceptions if it is XMLRPC error or Mirror error"""
+                logger.info("Encountered an error in Master {}".format(e))
+                pass
         """
-        Get the metadata for a given project name from PyPI.
-
-        Args:
-            project_name (str): The name of a project, e.g. "Django".
-
-        Returns:
-            dict: Python project metadata from PyPI.
-
+        If we reach here, then the Mirror most likely doesn't support XMLRPC.
+        Could raise an exception or try to manually find all the packages from the index page,
+        Or just keep packages_to_sync empty and have the sync do no work
         """
-        metadata_url = urljoin(
-            self.remote.url, 'pypi/{project}/json'.format(project=project_name)
-        )
-        downloader = self.remote.get_downloader(url=metadata_url)
-        await downloader.run()
-        with open(downloader.path) as metadata_file:
-            return json.load(metadata_file)
 
-    async def get_relevant_packages(self, metadata, includes, excludes, prereleases):
+    async def process_package(self, package):
+        """Filters the package and creates content from it"""
+        # Don't save anything if our metadata filters all fail.
+        self.progress_report.increment()
+        if not package.filter_metadata(self.filters.filter_metadata_plugins()):
+            return None
+
+        package.filter_all_releases_files(self.filters.filter_release_file_plugins())
+        package.filter_all_releases(self.filters.filter_release_plugins())
+        await self.create_content(package)
+
+    async def create_content(self, pkg):
         """
-        Provided project metadata and specifiers, return the matching packages.
-
-        Compare the defined specifiers against the project metadata and create a deduplicated
-        list of metadata for the packages matching the criteria.
-
-        Args:
-            metadata (dict): Metadata about the project from PyPI.
-            includes (iterable): An iterable of project_specifiers for package versions to include.
-            excludes (iterable): An iterable of project_specifiers for package versions to exclude.
-            prereleases (bool): Whether or not to include pre-release package versions in the sync.
-
-        Returns:
-            list: List of dictionaries containing Python package metadata
-
+        Take the filtered package, separate into releases and
+        create a Content Unit to put into the pipeline
         """
-        # The set of project release metadata, in the format {"version": [package1, package2, ...]}
-        releases = metadata['releases']
-        # The packages we want to return
-        remote_packages = []
+        for version, dists in pkg.releases.items():
+            for package in dists:
+                entry = parse_metadata(pkg.info, version, package)
+                url = entry.pop("url")
 
-        # Delete versions/packages matching the exclude specifiers.
-        for exclude_specifier in excludes:
-            # Fast path: If one of the specifiers matches all versions and we don't have any
-            # digests to reference, clear the whole dict, we're done.
-            if not exclude_specifier.version_specifier:
-                releases.clear()
-                break
+                artifact = Artifact(sha256=entry.pop("sha256_digest"))
+                package = PythonPackageContent(**entry)
 
-            # Slow path: We have to check all the metadata.
-            for version, packages in list(releases.items()):  # Prevent iterator invalidation.
-                specifier = specifiers.SpecifierSet(
-                    exclude_specifier.version_specifier,
-                    prereleases=prereleases
+                da = DeclarativeArtifact(
+                    artifact,
+                    url,
+                    entry["filename"],
+                    self.python_stage.remote,
+                    deferred_download=self.deferred_download,
                 )
-                # First check the version specifer, if it matches, check the digests and delete
-                # matching packages. If there are no digests, delete them all.
-                if specifier.contains(version):
-                    del releases[version]
+                dc = DeclarativeContent(content=package, d_artifacts=[da])
 
-        for version, packages in releases.items():
-            for include_specifier in includes:
-                # Fast path: If one of the specifiers matches all versions and we don't have any
-                # digests to reference, return all of the packages for the version.
-                if prereleases and not include_specifier.version_specifier:
-                    for package in packages:
-                        remote_packages.append(parse_metadata(metadata['info'], version, package))
-                    # This breaks the inner loop, e.g. don't check any other include_specifiers.
-                    # We want to continue the outer loop.
-                    break
+                await self.python_stage.put(dc)
 
-                specifier = specifiers.SpecifierSet(
-                    include_specifier.version_specifier,
-                    prereleases=prereleases
-                )
+    def finalize_sync(self):
+        """No work to be done currently"""
+        pass
 
-                # First check the version specifer, if it matches, check the digests and include
-                # matching packages. If there are no digests, include them all.
-                if specifier.contains(version):
-                    for package in packages:
-                        remote_packages.append(
-                            parse_metadata(metadata['info'], version, package)
-                        )
-        return remote_packages
-
-
-class ProjectSpecifier:
-    """
-    This class is here to replace the ProjectSpecifier model that has been removed
-
-    Creating this class to avoid having to rewrite all of the first stage sync code.
-    This will take the new includes/excludes strings and create an object emulating
-    the old functionality of the ProjectSpecifiers
-    """
-
-    def __init__(self, name, ver_spec="", exclude=False):
-        """Mimics the fields that the original ProjecSpecifier model had"""
-        self.name = name
-        self.version_specifier = ver_spec
-        self.exclude = exclude
-
-    @staticmethod
-    def create(includes=[], excludes=[]):
+    def on_error(self, exception, **kwargs):
         """
-        Create a list of ProjectSpecifiers for each element in the includes/excludes
+        TODO
+        This should have some error checking
         """
-        return ProjectSpecifier.convert(includes, False) + ProjectSpecifier.convert(
-            excludes, True
-        )
-
-    @staticmethod
-    def convert(project_list, exclude=False):
-        """
-        Converts a list of JSON strings into a list of ProjectSpecifier
-        objects based on exclude param
-        """
-        converted = []
-        for project in project_list:
-            splitted = re.split(r"([\w-]+)", project, 1)
-            name = splitted[1]
-            version_specifier = splitted[2]
-            converted.append(ProjectSpecifier(name, version_specifier, exclude))
-        return converted
-
-
-def groupby_unsorted(seq, key=lambda x: x):
-    """
-    Group items by a key.
-
-    This function is similar to itertools.groupby() except it doesn't choke when grouping
-    non-consecutive items together.
-
-    From: http://code.activestate.com/recipes/580800-groupby-for-unsorted-input/#c1
-
-    Args:
-        seq: A sequence
-        key: A key function to sort by (default: {lambda x: x})
-
-    Yields:
-        Groups in the format tuple(group_key, [*items])
-
-    """
-    indexes = collections.defaultdict(list)
-    for i, elem in enumerate(seq):
-        indexes[key(elem)].append(i)
-    for k, idxs in indexes.items():
-        yield k, (seq[i] for i in idxs)
+        pass

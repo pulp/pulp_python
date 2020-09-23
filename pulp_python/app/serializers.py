@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 
-from requirements.requirement import Requirement
+from packaging.requirements import Requirement
 from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
@@ -272,7 +272,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         """Validates the includes"""
         for pkg in value:
             try:
-                Requirement.parse(pkg)
+                Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
                     _("includes specifier {} is invalid. {}".format(pkg, ve))
@@ -283,7 +283,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         """Validates the excludes"""
         for pkg in value:
             try:
-                Requirement.parse(pkg)
+                Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
                     _("excludes specifier {} is invalid. {}".format(pkg, ve))

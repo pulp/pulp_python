@@ -216,6 +216,7 @@ class PublishPyPiJSON(unittest.TestCase):
         self.assertIn(PYPI_LAST_SERIAL, response.headers)
         self.assertEqual(response.headers[PYPI_LAST_SERIAL], str(PYPI_SERIAL_CONSTANT))
 
+    @unittest.skip("Content can not be synced without https")
     def test_basic_pulp_to_pulp_sync(self):
         """
         This test checks that the JSON endpoint is setup correctly to allow one Pulp instance

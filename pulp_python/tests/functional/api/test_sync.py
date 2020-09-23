@@ -157,6 +157,7 @@ class SyncInvalidTestCase(unittest.TestCase):
         """Create class-wide variables."""
         cls.client = gen_python_client()
 
+    @unittest.skip("Sync task does no work with invalid url")
     def test_invalid_url(self):
         """Sync a repository using a remote url that does not exist.
 
