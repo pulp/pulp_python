@@ -208,23 +208,23 @@ class RemoteDownloadPolicyTestCase(unittest.TestCase):
             cls.remote_api.delete(result["pulp_href"])
 
     def test_01_no_defined_policy(self):
-        """Verify the default policy `immediate`.
+        """Verify the default policy `on_demand`.
 
-        When no policy is defined, the default policy of `immediate`
+        When no policy is defined, the default policy of `on_demand`
         is applied.
         """
         del self.body["policy"]
         self.remote.update(self.remote_api.create(self.body).to_dict())
-        self.assertEqual(self.remote["policy"], "immediate", self.remote)
+        self.assertEqual(self.remote["policy"], "on_demand", self.remote)
 
     @skip_if(len, "policies", 1)
     def test_02_change_policy(self):
         """Verify ability to change policy to value other than the default.
 
-        Update the remote policy to a valid value other than `immedaite`
+        Update the remote policy to a valid value other than `on_demand`
         and verify the new set value.
         """
-        changed_policy = choice([item for item in self.policies if item != "immediate"])
+        changed_policy = choice([item for item in self.policies if item != "on_demand"])
         response = self.remote_api.partial_update(
             self.remote["pulp_href"], {"policy": changed_policy}
         )

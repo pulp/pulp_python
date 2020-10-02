@@ -212,7 +212,7 @@ PYTHON_LARGE_FIXTURE_COUNT = 25
 DEFAULT_BANDER_REMOTE_BODY = {
     "url": "https://pypi.org",
     "download_concurrency": 3,
-    "policy": "immediate",
+    "policy": "on_demand",
     "prereleases": False,
     "excludes": ["example1", "example2"]
 }

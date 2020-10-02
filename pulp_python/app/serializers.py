@@ -265,7 +265,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         help_text=_("The policy to use when downloading content. The possible values include: "
                     "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
         choices=core_models.Remote.POLICY_CHOICES,
-        default=core_models.Remote.IMMEDIATE
+        default=core_models.Remote.ON_DEMAND
     )
 
     def validate_includes(self, value):
@@ -316,7 +316,7 @@ class PythonBanderRemoteSerializer(serializers.Serializer):
         help_text=_("The policy to use when downloading content. The possible values include: "
                     "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
         choices=core_models.Remote.POLICY_CHOICES,
-        default=core_models.Remote.IMMEDIATE
+        default=core_models.Remote.ON_DEMAND
     )
 
 

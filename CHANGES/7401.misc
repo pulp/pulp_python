@@ -1,0 +1,1 @@
+Change the default download policy to 'on_demand', as bulk syncs of PyPI would use several terabytes of disk space.
