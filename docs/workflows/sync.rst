@@ -38,24 +38,25 @@ itself, a fixture, or even an instance of Pulp 2.
 Remote GET Response::
 
     {
-        "pulp_created": "2019-04-29T15:58:01.196433Z",
-        "pulp_href": "/pulp/api/v3/remotes/python/python/1962b474-1545-4de1-adf4-4bf211679752/",
-        "pulp_last_updated": "2019-04-29T15:58:01.196446Z",
-        "download_concurrency": 20,
+        "ca_cert": null,
+        "client_cert": null,
+        "client_key": null,
+        "download_concurrency": 10,
         "excludes": [],
         "includes": [
-            {
-                "name": "shelf-reader",
-                "version_specifier": ""
-            }
+            "shelf-reader"
         ],
         "name": "bar",
-        "policy": "immediate",
+        "password": null,
+        "policy": "on_demand",
         "prereleases": false,
-        "proxy_url": "",
-        "ssl_validation": true,
+        "proxy_url": null,
+        "pulp_created": "2020-10-15T22:08:07.943369Z",
+        "pulp_href": "/pulp/api/v3/remotes/python/python/bbcfa980-ea53-425c-b03b-17c9c2867bba/",
+        "pulp_last_updated": "2020-10-15T22:08:07.943404Z",
+        "tls_validation": true,
         "url": "https://pypi.org/",
-        "validate": true
+        "username": null
     }
 
 Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
@@ -71,13 +72,10 @@ about will be synced::
         name='complex-remote' \
         url='https://pypi.org/' \
         includes:='[
-            { "name": "django",
-              "version_specifier": "~=2.0,!=2.0.1",
-            },
-            {"name": "pip-tools",
-             "version_specifier": ">=1.12,<=2.0"},
-            {"name": "scipy"},
-            {"name": "shelf-reader"}
+            "django~=2.0,!=2.0.1",
+            "pip-tools>=1.12,<=2.0",
+            "scipy",
+            "shelf-reader"
         ]'
 
 You can also use version specifiers to "exclude" certain versions of a project, like so::
@@ -86,15 +84,33 @@ You can also use version specifiers to "exclude" certain versions of a project, 
         name='complex-remote' \
         url='https://pypi.org/' \
         includes:='[
-            {"name": "django", "version_specifier": ""},
-            {"name": "scipy", "version_specifier": ""}
+            "django",
+            "scipy"
         ]' \
         excludes:='[
-            {"name": "django", "version_specifier": "~=1.0"},
-            {"name": "scipy"}
+            "django~=1.0",
+            "scipy"
         ]'
 
 Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
+
+Creating a remote to sync all of PyPi
+_____________________________________
+
+A remote can be setup to sync all of PyPi by not specifying any included packages like so::
+
+    $ http POST $BASE_ADDR/pulp/api/v3/remotes/python/python/ \
+        name='PyPi-mirror' \
+        url='https://pypi.org/' \
+        excludes:='[
+            "django~=1.0",
+            "scipy"
+        ]'
+
+By not setting the "includes" field Pulp will ask PyPi for all of its available packages to sync, minus the ones from
+the excludes field. Default Python remotes are created with syncing policy "on_demand" because the most common
+Python remotes involve syncing with PyPi which requires terabytes of disk space. This can be changed by
+modifying the "policy" field.
 
 Sync repository foo with remote
 -------------------------------
