@@ -47,16 +47,15 @@ Make and Run Migrations
 
 .. code-block:: bash
 
-   pulp-manager makemigrations pulp_python
-   pulp-manager migrate pulp_python
-
+   pulpcore-manager makemigrations python
+   pulpcore-manager migrate python
 
 Run Services
 ------------
 
 .. code-block:: bash
 
-   pulp-manager runserver
+   pulpcore-manager runserver
    gunicorn pulpcore.content:server --bind 'localhost:24816' --worker-class 'aiohttp.GunicornWebWorker' -w 2
    sudo systemctl restart pulpcore-resource-manager
    sudo systemctl restart pulpcore-worker@1
