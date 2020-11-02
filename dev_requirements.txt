@@ -1,4 +1,5 @@
 black
+check-manifest
 flake8
 flake8-docstrings
 flake8-tuple
