@@ -1,4 +1,4 @@
-pulpcore>=3.6
+pulpcore>=3.7,<4.0
 pkginfo
 packaging
 bandersnatch
