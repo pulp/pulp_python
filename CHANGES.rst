@@ -13,6 +13,48 @@ Changelog
 
 .. towncrier release notes start
 
+3.0.0b12 (2020-11-05)
+=====================
+
+
+Features
+--------
+
+- Pulp Python can now fully mirror all packages from PyPi
+  `#985 <https://pulp.plan.io/issues/985>`_
+- Implemented PyPi's json API at content endpoint '/pypi/{package-name}/json'.  Pulp can now perform basic syncing on other Pulp Python instances.
+  `#2886 <https://pulp.plan.io/issues/2886>`_
+- Pulp Python now uses Bandersnatch to perform syncing and filtering of package metadata
+  `#6930 <https://pulp.plan.io/issues/6930>`_
+
+
+Bugfixes
+--------
+
+- Sync now includes python package's classifiers in the content unit
+  `#3627 <https://pulp.plan.io/issues/3627>`_
+- Policy can now be specified when creating a remote from a Bandersnatch config
+  `#7331 <https://pulp.plan.io/issues/7331>`_
+- Includes/excludes/prereleases fields are now properly set in a remote from Bandersnatch config
+  `#7392 <https://pulp.plan.io/issues/7392>`_
+
+
+Improved Documentation
+----------------------
+
+- Fixed makemigrations commands in the install docs
+  `#5386 <https://pulp.plan.io/issues/5386>`_
+
+
+Misc
+----
+
+- `#6875 <https://pulp.plan.io/issues/6875>`_, `#7401 <https://pulp.plan.io/issues/7401>`_
+
+
+----
+
+
 3.0.0b11 (2020-08-18)
 =====================
 
