@@ -1,3 +1,5 @@
+.. _uploading-content:
+
 Upload and Manage Content
 =========================
 Content can be added to a repository not only by synchronizing from a remote source but also by uploading the files directly into Pulp.

@@ -1,3 +1,5 @@
+.. _workflows-index:
+
 Workflows
 =========
 
