@@ -1,8 +1,12 @@
+.. _sync-workflow:
+
 Synchronize a Repository
 ========================
 
 Users can populate their repositories with content from an external source like PyPI by syncing
 their repository.
+
+.. _versioned-repo-created:
 
 Create a Repository
 -------------------
@@ -24,6 +28,7 @@ Repository GET Response::
 Reference (pulpcore): `Repository API Usage
 <https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
 
+.. _create-remote:
 
 Create a Remote
 ---------------
@@ -93,6 +98,8 @@ You can also use version specifiers to "exclude" certain versions of a project, 
         ]'
 
 Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
+
+.. _mirror-workflow:
 
 Creating a remote to sync all of PyPi
 _____________________________________

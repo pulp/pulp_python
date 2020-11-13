@@ -1,3 +1,5 @@
+.. _host:
+
 Publish and Host
 ================
 
