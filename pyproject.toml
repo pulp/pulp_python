@@ -21,4 +21,6 @@ ignore = [
     ".travis/**",
     ".travis.yml",
     "shelf_reader-0.1-py2-none-any.whl",
+    ".github/**",
+    ".ci/**",
 ]

@@ -5,6 +5,7 @@ additional_plugins: []
 black: false
 check_commit_message: true
 check_manifest: true
+check_stray_pulpcore_imports: true
 cherry_pick_automation: false
 coverage: false
 deploy_client_to_pypi: true
@@ -34,6 +35,7 @@ redmine_project: null
 stable_branch: null
 test_bindings: false
 test_performance: false
+test_released_plugin_with_next_pulpcore_release: false
 test_s3: false
 travis_addtl_services: []
 travis_notifications: None
