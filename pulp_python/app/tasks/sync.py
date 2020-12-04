@@ -1,6 +1,7 @@
 import logging
 
 from gettext import gettext as _
+from os import environ
 
 from rest_framework import serializers
 
@@ -90,8 +91,13 @@ class PythonBanderStage(Stage):
         """
         If includes is specified, then only sync those,else try to sync all other packages
         """
+        # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
+        if self.remote.proxy_url:
+            environ['http_proxy'] = self.remote.proxy_url
         # local & global timeouts defaults to 10secs and 5 hours
         async with Master(self.remote.url) as master:
+            if self.remote.proxy_url:
+                environ.pop('http_proxy')
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             with ProgressReport(
                 message="Fetching Project Metadata", code="fetching.project"
