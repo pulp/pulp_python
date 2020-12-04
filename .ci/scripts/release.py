@@ -67,12 +67,10 @@ def validate_redmine_data(redmine_query_url, redmine_issues):
 
 
 release_path = os.path.dirname(os.path.abspath(__file__))
-plugin_path = release_path
-if ".github" in release_path:
-    plugin_path = os.path.dirname(release_path)
+plugin_path = release_path.split("/.ci")[0]
 
 version = {}
-plugin_name = "pulp_npm"
+plugin_name = "pulp_python"
 with open(f"{plugin_path}/{plugin_name}/__init__.py") as fp:
     version_line = [line for line in fp.readlines() if "__version__" in line][0]
     exec(version_line, version)
