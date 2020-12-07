@@ -8,6 +8,7 @@ from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import config, utils
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     download_content_unit,
     gen_distribution,
@@ -24,7 +25,6 @@ from pulp_python.tests.functional.utils import (
     gen_python_client,
     get_python_content_paths,
     gen_python_remote,
-    monitor_task,
     publish,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -93,7 +93,7 @@ class DownloadContentTestCase(unittest.TestCase):
         # Create a publication.
         publish_data = PythonPythonPublication(repository=repo.pulp_href)
         publish_response = publications.create(publish_data)
-        created_resources = monitor_task(publish_response.task)
+        created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]
         self.addCleanup(publications.delete, publication_href)
 
@@ -101,7 +101,7 @@ class DownloadContentTestCase(unittest.TestCase):
         body = gen_distribution()
         body["publication"] = publication_href
         distribution_response = distributions.create(body)
-        created_resources = monitor_task(distribution_response.task)
+        created_resources = monitor_task(distribution_response.task).created_resources
         distribution = distributions.read(created_resources[0])
         self.addCleanup(distributions.delete, distribution.pulp_href)
 
@@ -270,6 +270,6 @@ class PublishPyPiJSON(unittest.TestCase):
         body = gen_distribution()
         body["publication"] = publication["pulp_href"]
         distro_response = self.distro_api.create(body)
-        distro = self.distro_api.read(monitor_task(distro_response.task)[0])
+        distro = self.distro_api.read(monitor_task(distro_response.task).created_resources[0])
         self.addCleanup(self.distro_api.delete, distro.pulp_href)
         return distro

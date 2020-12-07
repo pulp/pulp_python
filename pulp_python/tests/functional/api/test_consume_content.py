@@ -3,6 +3,7 @@
 import unittest
 
 from pulp_smash import cli
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_repo, gen_distribution, delete_orphans
 
 from pulp_python.tests.functional.constants import (
@@ -17,7 +18,6 @@ from pulp_python.tests.functional.utils import (
     gen_artifact,
     gen_python_client,
     gen_python_content_attrs,
-    monitor_task,
     cfg,
     publish,
     gen_python_remote,
@@ -88,7 +88,7 @@ class PipInstallContentTestCase(unittest.TestCase):
             content_response = self.content_api.create(
                 **gen_python_content_attrs(artifact, filename)
             )
-            created_resources = monitor_task(content_response.task)
+            created_resources = monitor_task(content_response.task).created_resources
             self.repo_api.modify(
                 repo.pulp_href, {"add_content_units": created_resources}
             )
@@ -146,7 +146,7 @@ class PipInstallContentTestCase(unittest.TestCase):
         body = gen_distribution()
         body["publication"] = publication["pulp_href"]
         distro_response = self.distro_api.create(body)
-        distro = self.distro_api.read(monitor_task(distro_response.task)[0])
+        distro = self.distro_api.read(monitor_task(distro_response.task).created_resources[0])
         self.addCleanup(self.distro_api.delete, distro.pulp_href)
         return distro
 

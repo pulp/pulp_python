@@ -3,10 +3,10 @@
 from functools import partial
 import requests
 from unittest import SkipTest
-from time import sleep
 from tempfile import NamedTemporaryFile
 
 from pulp_smash import config, selectors
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
@@ -149,7 +149,7 @@ def publish(repo, version_href=None):
         publish_data = PythonPythonPublication(repository=repo["pulp_href"])
 
     publish_response = pub_api.create(publish_data)
-    created_resources = monitor_task(publish_response.task)
+    created_resources = monitor_task(publish_response.task).created_resources
     return pub_api.read(created_resources[0]).to_dict()
 
 
@@ -169,27 +169,3 @@ def gen_artifact(url=PYTHON_URL):
         temp_file.flush()
         artifact = ArtifactsApi(core_client).create(file=temp_file.name)
         return artifact.to_dict()
-
-
-def monitor_task(task_href):
-    """Polls the Task API until the task is in a completed state.
-
-    Prints the task details and a success or failure message. Exits on failure.
-
-    Args:
-        task_href(str): The href of the task to monitor
-
-    Returns:
-        list[str]: List of hrefs that identify resource created by the task
-
-    """
-    completed = ["completed", "failed", "canceled"]
-    task = tasks.read(task_href)
-    while task.state not in completed:
-        sleep(2)
-        task = tasks.read(task_href)
-
-    if task.state == "completed":
-        return task.created_resources
-
-    return task.to_dict()

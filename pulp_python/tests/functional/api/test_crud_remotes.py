@@ -5,11 +5,12 @@ import unittest
 
 from pulp_smash import utils
 
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.constants import ON_DEMAND_DOWNLOAD_POLICIES
+
 from pulp_python.tests.functional.utils import (
     gen_python_client,
     gen_python_remote,
-    monitor_task,
     skip_if,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401

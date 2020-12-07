@@ -4,14 +4,11 @@ import unittest
 from random import choice
 
 from pulp_smash import config
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, modify_repo
 
 from pulp_python.tests.functional.constants import PYTHON_CONTENT_NAME
-from pulp_python.tests.functional.utils import (
-    gen_python_client,
-    gen_python_remote,
-    monitor_task,
-)
+from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulp_python import (
@@ -73,7 +70,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         # Step 2
         publish_data = PythonPythonPublication(repository=repo.pulp_href)
         publish_response = publications.create(publish_data)
-        created_resources = monitor_task(publish_response.task)
+        created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]
         self.addCleanup(publications.delete, publication_href)
         publication = publications.read(publication_href)
@@ -85,7 +82,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         publish_data.repository = None
         publish_data.repository_version = non_latest
         publish_response = publications.create(publish_data)
-        created_resources = monitor_task(publish_response.task)
+        created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]
         publication = publications.read(publication_href)
 
@@ -133,7 +130,7 @@ class PublishOnDemandContent(unittest.TestCase):
 
         publish_data = PythonPythonPublication(repository=repo.pulp_href)
         publish_response = publications.create(publish_data)
-        created_resources = monitor_task(publish_response.task)
+        created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]
         self.addCleanup(publications.delete, publication_href)
         publication = publications.read(publication_href)
