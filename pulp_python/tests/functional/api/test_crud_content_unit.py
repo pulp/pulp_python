@@ -2,13 +2,13 @@
 """Tests that perform actions over content unit."""
 import unittest
 
+from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
 from pulp_smash.pulp3.utils import delete_orphans
 
 from pulp_python.tests.functional.utils import (
     gen_artifact,
     gen_python_client,
     gen_python_content_attrs,
-    monitor_task,
     skip_if,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -50,7 +50,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Create content unit."""
         attrs = gen_python_content_attrs(self.artifact)
         response = self.python_content_api.create(**attrs)
-        created_resources = monitor_task(response.task)
+        created_resources = monitor_task(response.task).created_resources
         content_unit = self.python_content_api.read(created_resources[0])
         self.content_unit.update(content_unit.to_dict())
         self.check_package_data(self.content_unit)
@@ -120,7 +120,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """
         delete_orphans()
         response = self.do_upload()
-        created_resources = monitor_task(response.task)
+        created_resources = monitor_task(response.task).created_resources
         content_unit = self.python_content_api.read(created_resources[0]).to_dict()
         self.assertEqual(len(created_resources), 1)
         self.check_package_data(content_unit)
@@ -137,7 +137,7 @@ class ContentUnitTestCase(unittest.TestCase):
         repo = repo_api.create({"name": "foo"})
         self.addCleanup(repo_api.delete, repo.pulp_href)
         response = self.do_upload(repository=repo.pulp_href)
-        created_resources = monitor_task(response.task)
+        created_resources = monitor_task(response.task).created_resources
         self.assertEqual(len(created_resources), 2)
         content_list_search = self.python_content_api.list(
             repository_version_added=created_resources[0]
@@ -154,11 +154,13 @@ class ContentUnitTestCase(unittest.TestCase):
         """
         delete_orphans()
         response = self.do_upload()
-        created_resources = monitor_task(response.task)
+        created_resources = monitor_task(response.task).created_resources
         content_unit = self.python_content_api.read(created_resources[0])
         self.check_package_data(content_unit.to_dict())
 
-        task_report = monitor_task(self.do_upload().task)
+        with self.assertRaises(PulpTaskError) as cm:
+            monitor_task(self.do_upload().task)
+        task_report = cm.exception.task.to_dict()
         msg = "This field must be unique"
         self.assertTrue(msg in task_report["error"]["description"])
 

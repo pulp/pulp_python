@@ -3,6 +3,7 @@
 import unittest
 
 from pulp_smash import cli, config
+from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
 from pulp_smash.pulp3.constants import MEDIA_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
@@ -30,11 +31,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
 )
-from pulp_python.tests.functional.utils import (
-    gen_python_client,
-    gen_python_remote,
-    monitor_task,
-)
+from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulp_python import (
@@ -163,7 +160,9 @@ class SyncInvalidTestCase(unittest.TestCase):
 
         Test that we get a task failure. See :meth:`do_test`.
         """
-        task = self.do_test("http://i-am-an-invalid-url.com/invalid/")
+        with self.assertRaises(PulpTaskError) as cm:
+            self.do_test("http://i-am-an-invalid-url.com/invalid/")
+        task = cm.exception.task.to_dict()
         self.assertIsNotNone(task["error"]["description"])
 
     # Provide an invalid repository and specify keywords in the anticipated error message
@@ -176,9 +175,10 @@ class SyncInvalidTestCase(unittest.TestCase):
         Assert that an exception is raised, and that error message has
         keywords related to the reason of the failure. See :meth:`do_test`.
         """
-        task = self.do_test(
-            PYTHON_INVALID_FIXTURE_URL
-        )  # this url is not valid on the fixture,
+        with self.assertRaises(PulpTaskError) as cm:
+            self.do_test(PYTHON_INVALID_FIXTURE_URL)
+        task = cm.exception.task.to_dict()
+        # this url is not valid on the fixture,
         # it needs to point to somewhere that has invalid content
         for key in ("mismached", "empty"):
             self.assertIn(key, task["error"]["description"])

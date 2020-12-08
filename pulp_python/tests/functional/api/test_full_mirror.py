@@ -3,18 +3,11 @@
 import unittest
 
 from pulp_smash import config
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    get_content_summary,
-)
+from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.utils import gen_repo, get_content_summary
 
 from pulp_python.tests.functional.constants import PYTHON_CONTENT_NAME
-
-from pulp_python.tests.functional.utils import (
-    gen_python_client,
-    gen_python_remote,
-    monitor_task,
-)
+from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulpcore import TasksApi, ApiClient as CoreApiClient, Configuration
