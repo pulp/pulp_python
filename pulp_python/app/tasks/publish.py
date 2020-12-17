@@ -118,9 +118,8 @@ def write_simple_api(publication):
         os.mkdir(project_dir)
 
         packages = python_models.PythonPackageContent.objects.filter(name=name)
-
         package_detail_data = []
-        for package in packages:
+        for package in packages.iterator():
             artifact_set = package.contentartifact_set.all()
             for content_artifact in artifact_set:
                 artifact = find_artifact()
