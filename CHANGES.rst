@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+3.0.0 (2021-01-12)
+==================
+
+
+Bugfixes
+--------
+
+- Remote proxy settings are now passed to Bandersnatch while syncing
+  `#7864 <https://pulp.plan.io/issues/7864>`_
+
+
+Improved Documentation
+----------------------
+
+- Added bullet list of Python Plugin features and a tech preview page for new experimental features
+  `#7628 <https://pulp.plan.io/issues/7628>`_
+
+
+----
+
+
 3.0.0b12 (2020-11-05)
 =====================
 
