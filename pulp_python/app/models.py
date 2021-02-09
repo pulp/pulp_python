@@ -133,18 +133,6 @@ class PythonPackageContent(Content):
         unique_together = ('filename',)
 
 
-class PythonRepository(Repository):
-    """
-    Repository for "python" content.
-    """
-
-    TYPE = "python"
-    CONTENT_TYPES = [PythonPackageContent]
-
-    class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
-
-
 class PythonPublication(Publication):
     """
     A Publication for PythonContent.
@@ -169,6 +157,19 @@ class PythonRemote(Remote):
     prereleases = models.BooleanField(default=False)
     includes = JSONField(default=list)
     excludes = JSONField(default=list)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class PythonRepository(Repository):
+    """
+    Repository for "python" content.
+    """
+
+    TYPE = "python"
+    CONTENT_TYPES = [PythonPackageContent]
+    REMOTE_TYPES = [PythonRemote]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
