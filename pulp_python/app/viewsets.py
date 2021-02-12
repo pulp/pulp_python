@@ -95,6 +95,7 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
             'name': ['exact', 'in'],
             'author': ['exact', 'in'],
             'packagetype': ['exact', 'in'],
+            'requires_python': ['exact', 'in', "contains"],
             'filename': ['exact', 'in', 'contains'],
             'keywords': ['in', 'contains'],
         }
