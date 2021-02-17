@@ -51,7 +51,7 @@ def sync(remote_pk, repository_pk, mirror):
         )
 
     first_stage = PythonBanderStage(remote)
-    DeclarativeVersion(first_stage, repository, mirror).create()
+    return DeclarativeVersion(first_stage, repository, mirror).create()
 
 
 def create_bandersnatch_config(remote):
@@ -100,7 +100,7 @@ class PythonBanderStage(Stage):
                 environ.pop('http_proxy')
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             with ProgressReport(
-                message="Fetching Project Metadata", code="fetching.project"
+                message="Downloading Project Metadata", code="sync.downloading.project_metadata"
             ) as p:
                 pmirror = PulpMirror(
                     serial=0,  # Serial currently isn't supported by Pulp
@@ -203,10 +203,10 @@ class PulpMirror(Mirror):
                 package = PythonPackageContent(**entry)
 
                 da = DeclarativeArtifact(
-                    artifact,
-                    url,
-                    entry["filename"],
-                    self.python_stage.remote,
+                    artifact=artifact,
+                    url=url,
+                    relative_path=entry["filename"],
+                    remote=self.python_stage.remote,
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])

@@ -328,8 +328,7 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     distributions = core_serializers.DetailRelatedField(
         help_text=_('This publication is currently being hosted as configured by these '
                     'distributions.'),
-        source="python_pythondistribution",
-        view_name="filedistributions-detail",
+        view_name="pythondistributions-detail",
         many=True,
         read_only=True,
     )
@@ -337,3 +336,13 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     class Meta:
         fields = core_serializers.PublicationSerializer.Meta.fields + ('distributions',)
         model = python_models.PythonPublication
+
+
+class PythonPublishSettingsSerializer(core_serializers.PublishSettingsSerializer):
+    """
+    Serializer for File Publications.
+    """
+
+    class Meta:
+        model = python_models.PythonPublishSettings
+        fields = core_serializers.PublishSettingsSerializer.Meta.fields

@@ -45,15 +45,16 @@ simple_detail_template = """<!DOCTYPE html>
 """
 
 
-def publish(repository_version_pk):
+def publish(repository_version_pk, publish_settings_pk):
     """
     Create a Publication based on a RepositoryVersion.
 
     Args:
         repository_version_pk (str): Create a Publication from this RepositoryVersion.
-
+        publish_settings_pk (str): Create a publication using these publish settings.
     """
     repository_version = models.RepositoryVersion.objects.get(pk=repository_version_pk)
+    publish_settings = python_models.PublishSettings.objects.get(pk=publish_settings_pk)
 
     log.info(_('Publishing: repository={repo}, version={version}').format(
         repo=repository_version.repository.name,
@@ -61,10 +62,12 @@ def publish(repository_version_pk):
     ))
 
     with WorkingDirectory():
-        with python_models.PythonPublication.create(repository_version) as publication:
+        with python_models.PythonPublication.create(
+                repository_version, publish_settings) as publication:
             write_simple_api(publication)
 
-    log.info(_('Publication: {pk} created').format(pk=publication.pk))
+        log.info(_('Publication: {pk} created').format(pk=publication.pk))
+        return publication
 
 
 def write_simple_api(publication):
@@ -107,22 +110,20 @@ def write_simple_api(publication):
     )
     index_metadata.save()
 
-    def find_artifact():
-        _art = content_artifact.artifact
-        if not _art:
-            _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
-        return _art
-
     for (name, canonical_name) in index_names:
         project_dir = '{simple_dir}{name}/'.format(simple_dir=simple_dir, name=canonical_name)
         os.mkdir(project_dir)
 
         packages = python_models.PythonPackageContent.objects.filter(name=name)
         package_detail_data = []
+
         for package in packages.iterator():
-            artifact_set = package.contentartifact_set.all()
-            for content_artifact in artifact_set:
-                artifact = find_artifact()
+            for content_artifact in package.contentartifact_set.select_related('artifact').all():
+                artifact = content_artifact.artifact
+                if not artifact:
+                    artifact = content_artifact.remoteartifact_set.first()
+
+                assert artifact
                 published_artifact = models.PublishedArtifact(
                     relative_path=content_artifact.relative_path,
                     publication=publication,

@@ -8,8 +8,9 @@ from pulpcore.plugin.models import (
     Content,
     Publication,
     PublicationDistribution,
+    PublishSettings,
     Remote,
-    Repository
+    Repository,
 )
 
 from pathlib import PurePath
@@ -144,6 +145,17 @@ class PythonPublication(Publication):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
+class PythonPublishSettings(PublishSettings):
+    """
+    Publish Settings for 'python' content.
+    """
+
+    TYPE = "python"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
 class PythonRemote(Remote):
     """
     A Remote for Python Content.
@@ -173,3 +185,26 @@ class PythonRepository(Repository):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+    def on_new_version(self, version):
+        """
+        Called when new repository versions are created.
+        Args:
+            version: The new repository version.
+        """
+        super().on_new_version(version)
+
+        # avoid circular import issues
+        from pulp_python.app import tasks
+
+        if self.publish_settings:
+            publication = tasks.publish(
+                repository_version_pk=version.pk, publish_settings_pk=self.publish_settings.pk
+            )
+
+            distributions = self.distributions.all()
+
+            if publication and distributions:
+                for distribution in distributions:
+                    distribution.publication = publication
+                    distribution.save()

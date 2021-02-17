@@ -198,6 +198,8 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
         serializer.is_valid(raise_exception=True)
         repository_version = serializer.validated_data.get('repository_version')
 
+        publish_settings, _ = python_models.PythonPublishSettings.objects.get_or_create()
+
         # Safe because version OR repository is enforced by serializer.
         if not repository_version:
             repository = serializer.validated_data.get('repository')
@@ -207,7 +209,22 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
             tasks.publish,
             [repository_version.repository],
             kwargs={
-                'repository_version_pk': repository_version.pk
-            }
+                "repository_version_pk": str(repository_version.pk),
+                "publish_settings_pk": str(publish_settings.pk),
+            },
         )
         return core_viewsets.OperationPostponedResponse(result, request)
+
+
+class PythonPublishSettingsViewSet(core_viewsets.PublishSettingsViewSet):
+    """
+    <!-- User-facing documentation, rendered as html-->
+    FilePublishSettings represents an configuration for creating
+    <a href="#operation/publication_file_file_list">File Publications</a>.
+    The FilePublishSettings stores the location of a manifest file, which contains the
+    metadata for all files in the repository.
+    """
+
+    endpoint_name = "python"
+    queryset = python_models.PythonPublishSettings.objects.all()
+    serializer_class = python_serializers.PythonPublishSettingsSerializer
