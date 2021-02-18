@@ -30,6 +30,11 @@ from pulp_python.tests.functional.constants import (
     PYTHON_SM_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
+    PYTHON_LG_PROJECT_SPECIFIER,
+    PYTHON_LG_FIXTURE_SUMMARY,
+    PYTHON_LG_FIXTURE_COUNTS,
+    DJANGO_LATEST_3,
+    SCIPY_COUNTS,
 )
 from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -448,6 +453,229 @@ class UnavailableProjectsTestCase(unittest.TestCase):
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
             PYTHON_MD_PACKAGE_COUNT - PYTHON_UNAVAILABLE_PACKAGE_COUNT,
+        )
+
+
+class LatestKeptPackagesTestCase(unittest.TestCase):
+    """
+    Test checks that latest X packages are synced when latest kept is
+    specified
+
+    Targets issue:
+    https://pulp.plan.io/issues/138
+
+    This feature uses Bandersnatch's latest_kept filter which doesn't work well
+    with the other filters like pre-releases and allow/blocklist. Whether to
+    count the behavior as a bug or feature is hard to tell.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create class-wide variables."""
+        cls.client = gen_python_client()
+        cls.repo_api = RepositoriesPythonApi(cls.client)
+        cls.remote_api = RemotesPythonApi(cls.client)
+
+    @classmethod
+    def setUp(cls):
+        """Create class-wide variables per test"""
+        cls.repo = cls.repo_api.create(gen_repo())
+        cls.remote = None
+
+    @classmethod
+    def tearDown(cls):
+        """Destroy class-wide variables per test"""
+        cls.remote_api.delete(cls.remote.pulp_href)
+        cls.repo_api.delete(cls.repo.pulp_href)
+
+    def test_latest_kept_sync(self):
+        """
+        Tests latest_kept on syncing one package w/ prereleases
+        """
+        body = gen_python_remote(
+            includes=["Django"],
+            keep_latest_packages=3,
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            DJANGO_LATEST_3,
+        )
+
+    def test_latest_kept_sync_all(self):
+        """
+        Tests latest_kept on syncing multiple packages w/ prereleases
+        """
+        body = gen_python_remote(
+            includes=PYTHON_LG_PROJECT_SPECIFIER,
+            keep_latest_packages=3,
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            PYTHON_LG_FIXTURE_COUNTS["latest_3"]
+        )
+
+
+class PackageTypeTestCase(unittest.TestCase):
+    """
+    Tests that check only specified package types can be synced
+
+    Targets:
+    https://pulp.plan.io/issues/2040
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create class-wide variables."""
+        cls.client = gen_python_client()
+        cls.repo_api = RepositoriesPythonApi(cls.client)
+        cls.remote_api = RemotesPythonApi(cls.client)
+
+    @classmethod
+    def setUp(cls):
+        """Create class-wide variables per test"""
+        cls.repo = cls.repo_api.create(gen_repo())
+        cls.remote = None
+
+    @classmethod
+    def tearDown(cls):
+        """Destroy class-wide variables per test"""
+        cls.remote_api.delete(cls.remote.pulp_href)
+        cls.repo_api.delete(cls.repo.pulp_href)
+
+    def test_sdist_sync_only(self):
+        """Checks that only sdist content is synced"""
+        body = gen_python_remote(
+            includes=PYTHON_LG_PROJECT_SPECIFIER,
+            package_types=["sdist"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            PYTHON_LG_FIXTURE_COUNTS["sdist"]
+        )
+
+    def test_bdist_wheel_sync_only(self):
+        """Checks that only bdist_wheel content is synced"""
+        body = gen_python_remote(
+            includes=PYTHON_LG_PROJECT_SPECIFIER,
+            package_types=["bdist_wheel"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            PYTHON_LG_FIXTURE_COUNTS["bdist_wheel"]
+        )
+
+    def test_both_together_sync(self):
+        """Checks that specifying sdist and bdist_wheel gets all packages"""
+        body = gen_python_remote(
+            includes=PYTHON_LG_PROJECT_SPECIFIER,
+            package_types=["bdist_wheel", "sdist"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict()),
+            PYTHON_LG_FIXTURE_SUMMARY
+        )
+
+
+class PlatformExcludeTestCase(unittest.TestCase):
+    """
+    Tests for platform specific packages not being synced when specified
+
+    Only our scipy packages have platform specific versions
+    23 release files:
+    4 macos releases
+    8 windows releases
+    10 linux releases
+    1 any platform release
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create class-wide variables."""
+        cls.client = gen_python_client()
+        cls.repo_api = RepositoriesPythonApi(cls.client)
+        cls.remote_api = RemotesPythonApi(cls.client)
+
+    @classmethod
+    def setUp(cls):
+        """Create class-wide variables per test"""
+        cls.repo = cls.repo_api.create(gen_repo())
+        cls.remote = None
+
+    @classmethod
+    def tearDown(cls):
+        """Destroy class-wide variables per test"""
+        cls.remote_api.delete(cls.remote.pulp_href)
+        cls.repo_api.delete(cls.repo.pulp_href)
+
+    def test_no_windows_sync(self):
+        """Tests that no windows packages are synced"""
+        body = gen_python_remote(
+            includes=["scipy"],
+            exclude_platforms=["windows"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["windows"]
+        )
+
+    def test_no_macos_sync(self):
+        """Tests that no macos packages are synced"""
+        body = gen_python_remote(
+            includes=["scipy"],
+            exclude_platforms=["macos"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["macos"]
+        )
+
+    def test_no_linux_sync(self):
+        """Tests that no linux packages are synced"""
+        body = gen_python_remote(
+            includes=["scipy"],
+            exclude_platforms=["linux"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["linux"]
+        )
+
+    def test_no_platform_sync(self):
+        """Tests that no package specified for a platform is synced"""
+        body = gen_python_remote(
+            includes=["scipy"],
+            exclude_platforms=["linux", "windows", "macos", "freebsd"],
+            prereleases=True,
+        )
+        sync_to_remote(self, body, create=True)
+
+        self.assertEqual(
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
+            SCIPY_COUNTS["no_os"]
         )
 
 

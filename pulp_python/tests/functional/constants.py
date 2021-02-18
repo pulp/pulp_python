@@ -105,6 +105,21 @@ PYTHON_LG_PROJECT_SPECIFIER = [
 ]
 PYTHON_LG_PACKAGE_COUNT = 76
 PYTHON_LG_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT}
+PYTHON_LG_FIXTURE_COUNTS = {
+    "latest_3": 35,
+    "sdist": 23,
+    "bdist_wheel": 53,
+}
+
+DJANGO_LATEST_3 = 4  # latest version has 2 dists, each other has 1
+SCIPY_COUNTS = {
+    "total": 23,  # scipy has 23 different release files for the same release
+    "windows": 8,
+    "macos": 4,
+    "linux": 10,
+    "no_os": 1,
+}
+
 
 # Intended to be used with the XS specifier
 PYTHON_EGG_FILENAME = "shelf-reader-0.1.tar.gz"

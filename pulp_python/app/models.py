@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from aiohttp.web import json_response
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import ArrayField, JSONField
 from django.db import models
 
 from pulpcore.plugin.models import (
@@ -28,6 +28,11 @@ PACKAGE_TYPES = (
     ("bdist_wininst", "bdist_wininst"),
     ("sdist", "sdist"),
 )
+
+PLATFORMS = (("windows", "windows"),
+             ("macos", "macos"),
+             ("freebsd", "freebsd"),
+             ("linux", "linux"))
 
 
 class PythonDistribution(PublicationDistribution):
@@ -157,6 +162,11 @@ class PythonRemote(Remote):
     prereleases = models.BooleanField(default=False)
     includes = JSONField(default=list)
     excludes = JSONField(default=list)
+    package_types = ArrayField(models.CharField(max_length=15, blank=True),
+                               choices=PACKAGE_TYPES, default=list)
+    keep_latest_packages = models.IntegerField(default=0)
+    exclude_platforms = ArrayField(models.CharField(max_length=10, blank=True),
+                                   choices=PLATFORMS, default=list)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
