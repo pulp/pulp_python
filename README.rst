@@ -1,11 +1,9 @@
 pulp_python
 ===========
 
-.. image:: https://travis-ci.org/pulp/pulp_python.svg?branch=3.0-dev
-   :target: https://travis-ci.org/pulp/pulp_python
+[![Pulp CI](https://github.com/pulp/pulp_python/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/pulp/pulp_python/actions/workflows/ci.yml)
 
-.. image:: https://coveralls.io/repos/pulp/pulp_python/badge.png?branch=3.0-dev
-   :target: https://coveralls.io/r/pulp/pulp_python?branch=3.0-dev
+[![Pulp Nightly CI/CD](https://github.com/pulp/pulp_python/actions/workflows/nightly.yml/badge.svg)](https://github.com/pulp/pulp_python/actions/workflows/nightly.yml)
 
 A Pulp plugin to support hosting your own pip compatible Python packages.
 
