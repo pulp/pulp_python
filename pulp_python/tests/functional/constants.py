@@ -1,5 +1,6 @@
 from urllib.parse import urljoin
 
+from pulp_smash import config
 from pulp_smash.pulp3.constants import (
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLICATION_PATH,
@@ -9,7 +10,7 @@ from pulp_smash.pulp3.constants import (
 )
 
 
-PULP_FIXTURES_BASE_URL = "https://fixtures.pulpproject.org"
+PULP_FIXTURES_BASE_URL = config.get_config().get_fixtures_url()
 
 PYPI_URL = "https://pypi.org/"
 
