@@ -7,8 +7,10 @@
 
 # From the _scripts directory, run with `source quickstart.sh` (source to preserve the environment
 # variables)
-source clean.sh
+set -e
+
 source base.sh
+source clean.sh
 
 source repo.sh
 source remote.sh
@@ -17,3 +19,6 @@ source sync.sh
 source publication.sh
 source distribution.sh
 source pip.sh
+
+source upload.sh
+source add_content_repo.sh
