@@ -7,28 +7,20 @@ export CONTENT_ADDR=${CONTENT_ADDR:-http://localhost:24816}
 # Necessary for `django-admin`
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings
 
-# Poll a Pulp task until it is finished.
-wait_until_task_finished() {
-    echo "Polling the task until it has reached a final state."
-    local task_url=$1
-    while true
-    do
-        local response=$(http $task_url)
-        local state=$(jq -r .state <<< ${response})
-        jq . <<< "${response}"
-        case ${state} in
-            failed|canceled)
-                echo "Task in final state: ${state}"
-                exit 1
-                ;;
-            completed)
-                echo "$task_url complete."
-                break
-                ;;
-            *)
-                echo "Still waiting..."
-                sleep 1
-                ;;
-        esac
-    done
-}
+# Install from source
+if [ -z "$(pip freeze | grep pulp-cli)" ]; then
+  echo "Installing Pulp CLI"
+  git clone https://github.com/pulp/pulp-cli.git
+  cd pulp-cli
+  pip install -e .
+  cd ..
+fi
+
+# Set up CLI config file
+mkdir ~/.config/pulp
+cat > ~/.config/pulp/settings.toml << EOF
+[cli]
+base_url = "$BASE_ADDR" # common to be localhost
+verify_ssl = false
+format = "json"
+EOF

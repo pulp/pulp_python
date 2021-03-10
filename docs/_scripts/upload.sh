@@ -1,17 +1,9 @@
-pclean
-prestart
+source clean.sh
+source repo.sh
 
-source ./base.sh
+# Get a Python package or choose your own
+curl -O https://fixtures.pulpproject.org/python-pypi/packages/shelf-reader-0.1.tar.gz
+export PKG="shelf-reader-0.1.tar.gz"
 
-# Upload your file, optionally specifying a repository
-export TASK_URL=$(http --form POST $BASE_ADDR/pulp/api/v3/python/upload/ file@../../shelf_reader-0.1-py2-none-any.whl relative_path=shelf_reader-0.1-py2-none-any.whl | \
-	jq -r '.task')
-
-wait_until_task_finished $BASE_ADDR$TASK_URL
-
-# If you want to copy/paste your way through the guide,
-# create an environment variable for the repository URI.
-export CONTENT_HREF=$(http $BASE_ADDR$TASK_URL | jq -r '.created_resources | first')
-
-# Let's inspect our newly created content.
-http $BASE_ADDR$CONTENT_HREF
+# Upload it to Pulp
+pulp python content upload --relative-path "$PKG" --file "$PKG"

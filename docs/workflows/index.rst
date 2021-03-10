@@ -7,24 +7,18 @@ If you have not yet installed the `python` plugin on your Pulp installation, ple
 :doc:`../installation`. These documents will assume you have the environment installed and
 ready to go.
 
-The REST API examples here use `httpie <https://httpie.org/doc>`_ to perform the requests.
-The ``httpie`` commands below assume that the user executing the commands has a ``.netrc`` file
-in the home directory. The ``.netrc`` should have the following configuration:
+The example workflows here use the Pulp CLI. Get and setup the Pulp CLI from PyPI with the following
+commands. For more information about setting up the Pulp CLI please read the `installation and configuration
+doc page <https://github.com/pulp/pulp-cli/blob/develop/docs/install.md>`_.
 
 .. code-block:: bash
 
-    machine localhost
-    login admin
-    password admin
+    pip install pulp-cli[pygments] # For colored output
+    pulp config create -e
 
 If you configured the ``admin`` user with a different password, adjust the configuration
 accordingly. If you prefer to specify the username and password with each request, please see
-``httpie`` documentation on how to do that.
-
-To make these workflows copy/pastable, we make use of environment variables. The first variable to
-set is the hostname and port::
-
-   $ export BASE_ADDR=http://<hostname>:24817
+Pulp CLI documentation on how to do that.
 
 
 .. toctree::

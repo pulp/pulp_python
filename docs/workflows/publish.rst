@@ -16,17 +16,15 @@ Distribution before it is consumable).
 .. literalinclude:: ../_scripts/publication.sh
     :language: bash
 
-Response::
+Publication Create Response::
 
     {
-    "distributions": [],
-    "pulp_created": "2020-06-02T18:59:50.279427Z",
-    "pulp_href": "/pulp/api/v3/publications/python/pypi/da07d7fa-9e13-43d4-925d-2f97bce1b687/",
-    "repository": "/pulp/api/v3/repositories/python/python/da7e0e59-214d-44f5-be21-d8c7404e37f1/",
-    "repository_version": "/pulp/api/v3/repositories/python/python/da7e0e59-214d-44f5-be21-d8c7404e37f1/versions/0/"
+      "pulp_href": "/pulp/api/v3/publications/python/pypi/cad6007d-7172-41d1-8c22-0ec95e1d242a/",
+      "pulp_created": "2021-03-09T04:30:16.686784Z",
+      "repository_version": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/",
+      "repository": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/",
+      "distributions": []
     }
-
-
 
 Host a Publication (Create a Distribution)
 --------------------------------------------
@@ -40,16 +38,15 @@ will serve the associated publication at ``/pulp/content/<distribution.base_path
 Response::
 
    {
-    "base_path": "foo",
-    "base_url": "http://pulp3-source-fedora31.localhost.example.com/pulp/content/foo/",
-    "content_guard": null,
-    "name": "baz",
-    "publication": "/pulp/api/v3/publications/python/pypi/da07d7fa-9e13-43d4-925d-2f97bce1b687/",
-    "pulp_created": "2020-06-02T19:02:25.999696Z",
-    "pulp_href": "/pulp/api/v3/distributions/python/pypi/5be6b6f5-7d83-4143-af22-1c674f58542b/"
+      "pulp_href": "/pulp/api/v3/distributions/python/pypi/4839c056-6f2b-46b9-ac5f-88eb8a7739a5/",
+      "pulp_created": "2021-03-09T04:36:48.289737Z",
+      "base_path": "foo",
+      "base_url": "https://pulp3-source-fedora33.localhost.example.com/pulp/content/foo/",
+      "content_guard": null,
+      "pulp_labels": {},
+      "name": "foo",
+      "publication": "/pulp/api/v3/publications/python/pypi/a09111b1-6bce-43ac-aed7-2e8441c22704/"
     }
-
-
 
 .. _using-distributions:
 
