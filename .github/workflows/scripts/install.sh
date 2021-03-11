@@ -13,6 +13,8 @@ REPO_ROOT="$PWD"
 
 set -euv
 
+source .github/workflows/scripts/utils.sh
+
 if [ "${GITHUB_REF##refs/tags/}" = "${GITHUB_REF}" ]
 then
   TAG_BUILD=0
@@ -75,12 +77,9 @@ cat >> vars/main.yaml << VARSYAML
 pulp_settings: null
 VARSYAML
 
-if [[ "$TEST" == "pulp" || "$TEST" == "performance" || "$TEST" == "s3" || "$TEST" == "plugin-from-pypi" ]]; then
-  sed -i -e '/^services:/a \
-  - name: pulp-fixtures\
-    image: docker.io/pulp/pulp-fixtures:latest\
-    env: {BASE_URL: "http://pulp-fixtures:8080"}' vars/main.yaml
-fi
-
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
+
+echo ::group::PIP_LIST
+cmd_prefix bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
+echo ::endgroup::
