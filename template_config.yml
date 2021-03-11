@@ -13,7 +13,7 @@ deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
-docker_fixtures: true
+docker_fixtures: false
 docs_test: true
 plugin_app_label: python
 plugin_camel: PulpPython
