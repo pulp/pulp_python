@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+3.1.0 (2021-03-12)
+==================
+
+
+Features
+--------
+
+- Python content can now be filtered by requires_python
+  `#3629 <https://pulp.plan.io/issues/3629>`_
+
+
+Improved Documentation
+----------------------
+
+- Updated workflows to use Pulp CLI commands
+  `#8364 <https://pulp.plan.io/issues/8364>`_
+
+
+----
+
+
 3.0.0 (2021-01-12)
 ==================
 
