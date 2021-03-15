@@ -1,5 +1,7 @@
 from pulpcore.plugin import PulpPluginAppConfig
 
+__version__ = "3.2.0.dev"
+
 
 class PulpPythonPluginAppConfig(PulpPluginAppConfig):
     """
@@ -8,4 +10,4 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_python.app"
     label = "python"
-    version = "3.2.0.dev"
+    version = __version__
