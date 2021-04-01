@@ -1,13 +1,13 @@
 from gettext import gettext as _
 import logging
 import os
+import tempfile
 
 from packaging.utils import canonicalize_name
 from django.core.files import File
 from django.template import Context, Template
 
 from pulpcore.plugin import models
-from pulpcore.plugin.tasking import WorkingDirectory
 
 from pulp_python.app import models as python_models
 
@@ -60,7 +60,7 @@ def publish(repository_version_pk):
         version=repository_version.number,
     ))
 
-    with WorkingDirectory():
+    with tempfile.TemporaryDirectory("."):
         with python_models.PythonPublication.create(repository_version) as publication:
             write_simple_api(publication)
 
