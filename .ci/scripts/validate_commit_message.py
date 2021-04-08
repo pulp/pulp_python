@@ -6,38 +6,30 @@
 # For more info visit https://github.com/pulp/plugin_template
 
 import re
-import requests
+
 import subprocess
 import sys
 from pathlib import Path
 
-KEYWORDS = ["fixes", "closes", "re", "ref"]
+from github import Github
+
+KEYWORDS = ["fixes", "closes"]
 NO_ISSUE = "[noissue]"
-STATUSES = ["NEW", "ASSIGNED", "POST", "MODIFIED"]
-REDMINE_URL = "https://pulp.plan.io"
 CHANGELOG_EXTS = [".feature", ".bugfix", ".doc", ".removal", ".misc", ".deprecation"]
 
 sha = sys.argv[1]
-project = ""
 message = subprocess.check_output(["git", "log", "--format=%B", "-n 1", sha]).decode("utf-8")
+
+g = Github()
+repo = g.get_repo("pulp/pulp_python")
 
 
 def __check_status(issue):
-    response = requests.get(f"{REDMINE_URL}/issues/{issue}.json")
-    response.raise_for_status()
-    bug_json = response.json()
-    status = bug_json["issue"]["status"]["name"]
-    if status not in STATUSES:
-        sys.exit(
-            "Error: issue #{issue} has invalid status of {status}. Status must be one of "
-            "{statuses}.".format(issue=issue, status=status, statuses=", ".join(STATUSES))
-        )
-
-    if project:
-        project_id = bug_json["issue"]["project"]["id"]
-        project_json = requests.get(f"{REDMINE_URL}/projects/{project_id}.json").json()
-        if project_json["project"]["identifier"] != project:
-            sys.exit(f"Error: issue {issue} is not in the {project} project.")
+    gi = repo.get_issue(int(issue))
+    if gi.pull_request:
+        sys.exit(f"Error: issue #{issue} is a pull request.")
+    if gi.closed_at:
+        sys.exit(f"Error: issue #{issue} is closed.")
 
 
 def __check_changelog(issue):
