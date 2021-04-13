@@ -74,6 +74,22 @@ def create_bandersnatch_config(remote):
         config["blocklist"]["packages"] = "\n".join(remote.excludes)
     if not remote.prereleases:
         config["plugins"]["enabled"] += "prerelease_release\n"
+    if remote.package_types:
+        rrfm = "regex_release_file_metadata"
+        config["plugins"]["enabled"] += rrfm
+        if not config.has_section(rrfm):
+            config.add_section(rrfm)
+        config[rrfm]["any:release_file.packagetype"] = "\n".join(remote.package_types)
+    if remote.keep_latest_packages:
+        config["plugins"]["enabled"] += "latest_release\n"
+        if not config.has_section("latest_release"):
+            config.add_section("latest_release")
+        config["latest_release"]["keep"] = str(remote.keep_latest_packages)
+    if remote.exclude_platforms:
+        config["plugins"]["enabled"] += "exclude_platform\n"
+        if not config.has_section("blocklist"):
+            config.add_section("blocklist")
+        config["blocklist"]["platforms"] = "\n".join(remote.exclude_platforms)
 
 
 class PythonBanderStage(Stage):

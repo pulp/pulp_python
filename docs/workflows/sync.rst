@@ -104,6 +104,17 @@ You can also use version specifiers to "exclude" certain versions of a project, 
             "scipy"
         ]'
 
+You can also filter packages by their type, platform and amount synced through the "package_types",
+"exclude_platforms", and "keep_latest_packages" fields respectively, like so::
+
+    $ pulp python remote create \
+        --name 'complex-filters' \
+        --url 'https://pypi.org/' \
+        --includes '["django"]' \
+        --package-types '["sdist", "bdist-wheel"]' # only sync sdist and bdist-wheel package types \
+        --exclude-platforms '["windows"]' # exclude any packages built for windows \
+        --keep-latest-packages 5 # keep the five latest versions
+
 Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
 
 .. _mirror-workflow:

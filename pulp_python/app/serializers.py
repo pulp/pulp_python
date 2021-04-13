@@ -237,6 +237,16 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
         model = python_models.PythonPackageContent
 
 
+class MultipleChoiceArrayField(serializers.MultipleChoiceField):
+    """
+    A wrapper to make sure this DRF serializer works properly with ArrayFields.
+    """
+
+    def to_internal_value(self, data):
+        """Converts set to list."""
+        return list(super().to_internal_value(data))
+
+
 class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     """
     A Serializer for PythonRemote.
@@ -267,6 +277,26 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         choices=core_models.Remote.POLICY_CHOICES,
         default=core_models.Remote.ON_DEMAND
     )
+    package_types = MultipleChoiceArrayField(
+        required=False,
+        help_text=_("The package types to sync for Python content. Leave blank to get every"
+                    "package type."),
+        choices=python_models.PACKAGE_TYPES,
+        default=list
+    )
+    keep_latest_packages = serializers.IntegerField(
+        required=False,
+        help_text=_("The amount of latest versions of a package to keep on sync, includes"
+                    "pre-releases if synced. Default 0 keeps all versions."),
+        default=0
+    )
+    exclude_platforms = MultipleChoiceArrayField(
+        required=False,
+        help_text=_("List of platforms to exclude syncing Python packages for. Possible values"
+                    "include: windows, macos, freebsd, and linux."),
+        choices=python_models.PLATFORMS,
+        default=list
+    )
 
     def validate_includes(self, value):
         """Validates the includes"""
@@ -292,7 +322,8 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
 
     class Meta:
         fields = core_serializers.RemoteSerializer.Meta.fields + (
-            "includes", "excludes", "prereleases"
+            "includes", "excludes", "prereleases", "package_types", "keep_latest_packages",
+            "exclude_platforms",
         )
         model = python_models.PythonRemote
 

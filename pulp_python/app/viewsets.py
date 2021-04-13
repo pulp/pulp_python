@@ -160,12 +160,22 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
         enabled = bander_config.get("plugins", "enabled")
         enabled_all = "all" in enabled
         data["prereleases"] = not (enabled_all or "prerelease_release" in enabled)
-        if bander_config.has_option("allowlist", "packages") and \
-                (enabled_all or "allowlist_project" in enabled):
-            data["includes"] = bander_config.get("allowlist", "packages").split()
-        if bander_config.has_option("blocklist", "packages") and \
-                (enabled_all or "blocklist_project" in enabled):
-            data["excludes"] = bander_config.get("blocklist", "packages").split()
+        # TODO refactor to use a translation object
+        plugin_filters = {  # plugin : (section_name, bander_option, pulp_option)
+            "allowlist_project": ("allowlist", "packages", "includes"),
+            "blocklist_project": ("blocklist", "packages", "excludes"),
+            "regex_release_file_metadata": (
+                "regex_release_file_metadata",
+                "any:release_file.packagetype",
+                "package_types",
+            ),
+            "latest_release": ("latest_release", "keep", "keep_latest_packages"),
+            "exclude_platform": ("blocklist", "platforms", "exclude_platforms"),
+        }
+        for plugin, options in plugin_filters.items():
+            if (enabled_all or plugin in enabled) and \
+                    bander_config.has_option(options[0], options[1]):
+                data[options[2]] = bander_config.get(options[0], options[1]).split()
         remote = python_serializers.PythonRemoteSerializer(data=data, context={"request": request})
         remote.is_valid(raise_exception=True)
         remote.save()
