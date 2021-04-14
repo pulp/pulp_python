@@ -101,7 +101,7 @@ git.add(f"{plugin_path}/setup.py")
 git.add(f"{plugin_path}/requirements.txt")
 git.add(f"{plugin_path}/.bumpversion.cfg")
 
-git.commit("-m", f"Release {release_version}")
+git.commit("-m", f"Release {release_version}\n\n[noissue]")
 
 
 sha = repo.head.object.hexsha
