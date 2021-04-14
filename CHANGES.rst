@@ -13,6 +13,28 @@ Changelog
 
 .. towncrier release notes start
 
+3.2.0 (2021-04-14)
+==================
+
+
+Features
+--------
+
+- Added new sync filter `keep_latest_packages` to specify how many latest versions of packages to sync
+  `#339 <https://github.com/pulp/pulp_python/issues/339>`_
+- Added new sync filters `package_types` and `exclude_platforms` to specify package types to sync
+  `#341 <https://github.com/pulp/pulp_python/issues/341>`_
+
+
+Misc
+----
+
+- `#354 <https://github.com/pulp/pulp_python/issues/354>`_
+
+
+----
+
+
 3.1.0 (2021-03-12)
 ==================
 
