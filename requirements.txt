@@ -1,4 +1,4 @@
-pulpcore>=3.9
+pulpcore>=3.12
 pkginfo
 packaging
 bandersnatch==4.4.0

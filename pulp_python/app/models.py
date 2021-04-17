@@ -7,7 +7,7 @@ from django.db import models
 from pulpcore.plugin.models import (
     Content,
     Publication,
-    PublicationDistribution,
+    Distribution,
     Remote,
     Repository
 )
@@ -35,7 +35,7 @@ PLATFORMS = (("windows", "windows"),
              ("linux", "linux"))
 
 
-class PythonDistribution(PublicationDistribution):
+class PythonDistribution(Distribution):
     """
     Distribution for 'Python' Content.
     """

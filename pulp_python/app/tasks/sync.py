@@ -116,7 +116,7 @@ class PythonBanderStage(Stage):
                 environ.pop('http_proxy')
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             with ProgressReport(
-                message="Fetching Project Metadata", code="fetching.project"
+                message="Fetching Project Metadata", code="sync.fetching.project"
             ) as p:
                 pmirror = PulpMirror(
                     serial=0,  # Serial currently isn't supported by Pulp

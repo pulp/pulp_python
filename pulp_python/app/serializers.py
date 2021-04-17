@@ -24,14 +24,22 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
         model = python_models.PythonRepository
 
 
-class PythonDistributionSerializer(core_serializers.PublicationDistributionSerializer):
+class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     """
     Serializer for Pulp distributions for the Python type.
 
     """
 
+    publication = core_serializers.DetailRelatedField(
+        required=False,
+        help_text=_("Publication to be served"),
+        view_name_pattern=r"publications(-.*/.*)?-detail",
+        queryset=core_models.Publication.objects.exclude(complete=False),
+        allow_null=True,
+    )
+
     class Meta:
-        fields = core_serializers.PublicationDistributionSerializer.Meta.fields
+        fields = core_serializers.DistributionSerializer.Meta.fields + ('publication', )
         model = python_models.PythonDistribution
 
 
@@ -359,8 +367,8 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     distributions = core_serializers.DetailRelatedField(
         help_text=_('This publication is currently being hosted as configured by these '
                     'distributions.'),
-        source="python_pythondistribution",
-        view_name="filedistributions-detail",
+        source="distribution_set",
+        view_name="pythondistributions-detail",
         many=True,
         read_only=True,
     )
