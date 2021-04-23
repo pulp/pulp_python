@@ -11,7 +11,7 @@ from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
 )
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import dispatch
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
@@ -49,12 +49,12 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
         remote = serializer.validated_data.get('remote', repository.remote)
         mirror = serializer.validated_data.get('mirror')
 
-        result = enqueue_with_reservation(
+        result = dispatch(
             tasks.sync,
             [repository, remote],
             kwargs={
-                'remote_pk': remote.pk,
-                'repository_pk': repository.pk,
+                'remote_pk': str(remote.pk),
+                'repository_pk': str(repository.pk),
                 'mirror': mirror
             }
         )
@@ -69,7 +69,7 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
     parent_viewset = PythonRepositoryViewSet
 
 
-class PythonDistributionViewSet(core_viewsets.BaseDistributionViewSet):
+class PythonDistributionViewSet(core_viewsets.DistributionViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
     Pulp Python Distributions are used to distribute
@@ -213,11 +213,11 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
             repository = serializer.validated_data.get('repository')
             repository_version = RepositoryVersion.latest(repository)
 
-        result = enqueue_with_reservation(
+        result = dispatch(
             tasks.publish,
             [repository_version.repository],
             kwargs={
-                'repository_version_pk': repository_version.pk
+                'repository_version_pk': str(repository_version.pk)
             }
         )
         return core_viewsets.OperationPostponedResponse(result, request)
