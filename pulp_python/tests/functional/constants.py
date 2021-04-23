@@ -28,6 +28,10 @@ PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "python/python/")
 
 PYTHON_REPO_PATH = urljoin(BASE_REPO_PATH, "python/python/")
 
+PULP_CONTENT_HOST_BASE_URL = config.get_config().get_content_host_base_url()
+
+PULP_CONTENT_BASE_URL = urljoin(PULP_CONTENT_HOST_BASE_URL, "pulp/content/")
+
 
 # Specifier for testing empty syncs, or no excludes
 PYTHON_EMPTY_PROJECT_SPECIFIER = []
@@ -86,6 +90,23 @@ PYTHON_SM_PROJECT_SPECIFIER = [
 ]
 PYTHON_SM_PACKAGE_COUNT = 13
 PYTHON_SM_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_SM_PACKAGE_COUNT}
+PYTHON_SM_FIXTURE_RELEASES = {
+    "aiohttp": ["aiohttp-3.3.0.tar.gz", "aiohttp-3.2.1.tar.gz", "aiohttp-3.2.0.tar.gz"],
+    "Django": [
+        "Django-1.10.4.tar.gz",
+        "Django-1.10.4-py2.py3-none-any.whl",
+        "Django-1.10.3.tar.gz",
+        "Django-1.10.3-py2.py3-none-any.whl",
+        "Django-1.10.2.tar.gz",
+        "Django-1.10.2-py2.py3-none-any.whl",
+        "Django-1.10.1.tar.gz",
+        "Django-1.10.1-py2.py3-none-any.whl",
+    ],
+    "celery": [
+        "celery-4.2.0-py2.py3-none-any.whl",
+        "celery-4.1.1-py2.py3-none-any.whl",
+    ],
+}
 
 PYTHON_MD_PROJECT_SPECIFIER = [
     "shelf-reader",  # matches 2

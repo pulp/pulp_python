@@ -117,7 +117,9 @@ def write_simple_api(publication):
         project_dir = '{simple_dir}{name}/'.format(simple_dir=simple_dir, name=canonical_name)
         os.mkdir(project_dir)
 
-        packages = python_models.PythonPackageContent.objects.filter(name=name)
+        packages = python_models.PythonPackageContent.objects.filter(
+            name=name, pk__in=publication.repository_version.content
+        )
         package_detail_data = []
         for package in packages.iterator():
             artifact_set = package.contentartifact_set.all()
