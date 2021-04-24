@@ -61,7 +61,7 @@ def publish(repository_version_pk):
     ))
 
     with tempfile.TemporaryDirectory("."):
-        with python_models.PythonPublication.create(repository_version) as publication:
+        with python_models.PythonPublication.create(repository_version, True) as publication:
             write_simple_api(publication)
 
     log.info(_('Publication: {pk} created').format(pk=publication.pk))
@@ -107,41 +107,41 @@ def write_simple_api(publication):
     )
     index_metadata.save()
 
-    def find_artifact():
-        _art = content_artifact.artifact
-        if not _art:
-            _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
-        return _art
+    if len(index_names) == 0:
+        return
 
-    for (name, canonical_name) in index_names:
-        project_dir = '{simple_dir}{name}/'.format(simple_dir=simple_dir, name=canonical_name)
-        os.mkdir(project_dir)
-
-        packages = python_models.PythonPackageContent.objects.filter(
-            name=name, pk__in=publication.repository_version.content
+    releases = (
+        python_models.PythonPackageContent.objects.filter(
+            pk__in=publication.repository_version.content
         )
-        package_detail_data = []
-        for package in packages.iterator():
-            artifact_set = package.contentartifact_set.all()
-            for content_artifact in artifact_set:
-                artifact = find_artifact()
-                published_artifact = models.PublishedArtifact(
-                    relative_path=content_artifact.relative_path,
-                    publication=publication,
-                    content_artifact=content_artifact
-                )
-                published_artifact.save()
+        .values("name", "filename", "contentartifact", "_artifacts__sha256")
+        .order_by("name")
+    )
+    release_content_artifacts = (
+        python_models.PythonPackageContent.objects.filter(
+            pk__in=publication.repository_version.content
+        )
+        .values_list("contentartifact", flat=True)
+    )
+    remote_artifacts = (
+        models.RemoteArtifact.objects.filter(
+            content_artifact__in=release_content_artifacts
+        )
+        .values_list("content_artifact", "sha256").iterator()
+    )
+    # This can grow to 4 million elements if fully PyPI synced
+    checksums = {ca: sha for ca, sha in remote_artifacts}
 
-                checksum = artifact.sha256
-                path = "../../{}".format(package.filename)
-                package_detail_data.append((package.filename, path, checksum))
-
-        metadata_relative_path = '{project_dir}index.html'.format(project_dir=project_dir)
+    def write_project_page():
+        name = index_names[ind][1]
+        project_dir = f'{simple_dir}{name}/'
+        os.mkdir(project_dir)
+        metadata_relative_path = f'{project_dir}index.html'
 
         with open(metadata_relative_path, 'w') as simple_metadata:
             context = Context({
                 'project_name': name,
-                'project_packages': package_detail_data
+                'project_packages': package_releases
             })
             template = Template(simple_detail_template)
             simple_metadata.write(template.render(context))
@@ -151,4 +151,20 @@ def write_simple_api(publication):
             publication=publication,
             file=File(open(metadata_relative_path, 'rb'))
         )
-        project_metadata.save()
+        project_metadata.save()  # change to bulk create when multi-table supported
+
+    ind = 0
+    current_name = index_names[ind][0]
+    package_releases = []
+    for release in releases.iterator():
+        if release['name'] != current_name:
+            write_project_page()
+            package_releases = []
+            ind += 1
+            current_name = index_names[ind][0]
+        content_artifact = release['contentartifact']
+        relative_path = release['filename']
+        path = f"../../{release['filename']}"
+        checksum = release['_artifacts__sha256'] or checksums[content_artifact]
+        package_releases.append((relative_path, path, checksum))
+    write_project_page()  # Write the final project's page
