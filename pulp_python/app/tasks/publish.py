@@ -61,10 +61,10 @@ def publish(repository_version_pk):
     ))
 
     with tempfile.TemporaryDirectory("."):
-        with python_models.PythonPublication.create(repository_version, True) as publication:
-            write_simple_api(publication)
+        with python_models.PythonPublication.create(repository_version, pass_through=True) as pub:
+            write_simple_api(pub)
 
-    log.info(_('Publication: {pk} created').format(pk=publication.pk))
+    log.info(_('Publication: {pk} created').format(pk=pub.pk))
 
 
 def write_simple_api(publication):
@@ -110,61 +110,55 @@ def write_simple_api(publication):
     if len(index_names) == 0:
         return
 
-    releases = (
-        python_models.PythonPackageContent.objects.filter(
-            pk__in=publication.repository_version.content
-        )
-        .values("name", "filename", "contentartifact", "_artifacts__sha256")
-        .order_by("name")
+    packages = python_models.PythonPackageContent.objects.filter(
+        pk__in=publication.repository_version.content
     )
-    release_content_artifacts = (
-        python_models.PythonPackageContent.objects.filter(
-            pk__in=publication.repository_version.content
-        )
-        .values_list("contentartifact", flat=True)
-    )
-    remote_artifacts = (
-        models.RemoteArtifact.objects.filter(
-            content_artifact__in=release_content_artifacts
-        )
-        .values_list("content_artifact", "sha256").iterator()
-    )
-    # This can grow to 4 million elements if fully PyPI synced
-    checksums = {ca: sha for ca, sha in remote_artifacts}
-
-    def write_project_page():
-        name = index_names[ind][1]
-        project_dir = f'{simple_dir}{name}/'
-        os.mkdir(project_dir)
-        metadata_relative_path = f'{project_dir}index.html'
-
-        with open(metadata_relative_path, 'w') as simple_metadata:
-            context = Context({
-                'project_name': name,
-                'project_packages': package_releases
-            })
-            template = Template(simple_detail_template)
-            simple_metadata.write(template.render(context))
-
-        project_metadata = models.PublishedMetadata.create_from_file(
-            relative_path=metadata_relative_path,
-            publication=publication,
-            file=File(open(metadata_relative_path, 'rb'))
-        )
-        project_metadata.save()  # change to bulk create when multi-table supported
+    releases = packages.order_by("name").values("name", "filename", "sha256")
 
     ind = 0
     current_name = index_names[ind][0]
     package_releases = []
     for release in releases.iterator():
         if release['name'] != current_name:
-            write_project_page()
+            write_project_page(
+                name=index_names[ind][1],
+                simple_dir=simple_dir,
+                package_releases=package_releases,
+                publication=publication
+            )
             package_releases = []
             ind += 1
             current_name = index_names[ind][0]
-        content_artifact = release['contentartifact']
         relative_path = release['filename']
-        path = f"../../{release['filename']}"
-        checksum = release['_artifacts__sha256'] or checksums[content_artifact]
+        path = f"../../{relative_path}"
+        checksum = release['sha256']
         package_releases.append((relative_path, path, checksum))
-    write_project_page()  # Write the final project's page
+    # Write the final project's page
+    write_project_page(
+        name=index_names[ind][1],
+        simple_dir=simple_dir,
+        package_releases=package_releases,
+        publication=publication
+    )
+
+
+def write_project_page(name, simple_dir, package_releases, publication):
+    """Writes a project's simple page."""
+    project_dir = f'{simple_dir}{name}/'
+    os.mkdir(project_dir)
+    metadata_relative_path = f'{project_dir}index.html'
+
+    with open(metadata_relative_path, 'w') as simple_metadata:
+        context = Context({
+            'project_name': name,
+            'project_packages': package_releases
+        })
+        template = Template(simple_detail_template)
+        simple_metadata.write(template.render(context))
+
+    project_metadata = models.PublishedMetadata.create_from_file(
+        relative_path=metadata_relative_path,
+        publication=publication,
+        file=File(open(metadata_relative_path, 'rb'))
+    )
+    project_metadata.save()  # change to bulk create when multi-table supported

@@ -21,6 +21,7 @@ from pulp_python.tests.functional.constants import (
     PULP_CONTENT_BASE_URL,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_EGG_FILENAME,
     PYTHON_WHEEL_FILENAME,
 )
@@ -113,13 +114,21 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
             publications.create(body)
 
 
-class PublishOnDemandContent(unittest.TestCase):
-    """Test whether a 'on_demand' synced repository can be published.
+class PublishDifferentPolicyContent(unittest.TestCase):
+    """Test whether a 'on_demand', 'immediate', or 'streamed' synced repository can be published.
 
     This test targets the following issues:
 
     * `Pulp #7128 <https://pulp.plan.io/issues/7128>`_
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """Sets up APIs used by tests."""
+        client = gen_python_client()
+        cls.repo_api = RepositoriesPythonApi(client)
+        cls.remote_api = RemotesPythonApi(client)
+        cls.pub_api = PublicationsPypiApi(client)
 
     def test_on_demand(self):
         """Test whether a particular repository version can be published.
@@ -129,13 +138,41 @@ class PublishOnDemandContent(unittest.TestCase):
         3. Sync
         4. Publish repository
         """
-        client = gen_python_client()
-        repo_api = RepositoriesPythonApi(client)
-        remote_api = RemotesPythonApi(client)
-        publications = PublicationsPypiApi(client)
-
-        repo, _, pub = create_workflow(repo_api, publications, remote_api=remote_api,
+        repo, _, pub = create_workflow(self.repo_api, self.pub_api, remote_api=self.remote_api,
                                        body={"policy": "on_demand"}, cleanup=self.addCleanup)
+
+        self.assertEqual(pub.repository_version, repo.latest_version_href)
+
+    def test_immediate(self):
+        """Test if immediate synced content can be published."""
+        repo, _, pub = create_workflow(self.repo_api, self.pub_api, remote_api=self.remote_api,
+                                       body={"policy": "immediate"}, cleanup=self.addCleanup)
+
+        self.assertEqual(pub.repository_version, repo.latest_version_href)
+
+    def test_streamed(self):
+        """Test if streamed synced content can be published."""
+        repo, _, pub = create_workflow(self.repo_api, self.pub_api, remote_api=self.remote_api,
+                                       body={"policy": "streamed"}, cleanup=self.addCleanup)
+
+        self.assertEqual(pub.repository_version, repo.latest_version_href)
+
+    def test_mixed(self):
+        """Test if repository with mixed synced content can be published."""
+        # Sync on demand content
+        body = {"includes": PYTHON_SM_PROJECT_SPECIFIER}
+        repo, _, pub = create_workflow(self.repo_api, self.pub_api, remote_api=self.remote_api,
+                                       body=body, cleanup=self.addCleanup)
+
+        self.assertEqual(pub.repository_version, repo.latest_version_href)
+        # Add immediate content
+        body = {"policy": "immediate"}
+        remote = create_remote(self.remote_api, body=body, cleanup=self.addCleanup)
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        repo = self.repo_api.read(repo.pulp_href)
+        pub = create_publication(self.pub_api, repo, cleanup=self.addCleanup)
 
         self.assertEqual(pub.repository_version, repo.latest_version_href)
 
@@ -244,7 +281,7 @@ class PublishedCorrectContent(unittest.TestCase):
     """
 
     @staticmethod
-    def ensure_simple(base_path, packages):
+    def ensure_simple(base_path, packages, sha_digests=None):
         """
         Tests that the simple api at `base_path` matches the packages supplied.
 
@@ -286,9 +323,13 @@ class PublishedCorrectContent(unittest.TestCase):
         for release_link in found_release_links:
             dl_links += explore_links(urljoin(simple_url, release_link), "release", releases_found)
         for dl_link in dl_links:
-            _, _, sha = dl_link.partition("#sha256=")
+            package_link, _, sha = dl_link.partition("#sha256=")
             if len(sha) != 64:
                 msgs += f"\nRelease download link has bad sha256 {dl_link}"
+            if sha_digests:
+                package = package_link.split("/")[-1]
+                if sha_digests[package] != sha:
+                    msgs += f"\nRelease has bad sha256 attached to it {package}"
         msgs += "".join(map(lambda x: f"\nSimple link not found for {x}",
                             [name for name, val in packages_found.items() if not val]))
         msgs += "".join(map(lambda x: f"\nReleases link not found for {x}",
@@ -311,7 +352,8 @@ class PublishedCorrectContent(unittest.TestCase):
         _, _, _, distro = create_workflow(self.repo_api, self.pub_api, self.rem_api,
                                           body, self.dis_api, self.addCleanup)
 
-        proper, msgs = self.ensure_simple(distro.base_path, PYTHON_SM_FIXTURE_RELEASES)
+        proper, msgs = self.ensure_simple(distro.base_path, PYTHON_SM_FIXTURE_RELEASES,
+                                          sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS)
         self.assertTrue(proper, msg=msgs)
 
     def test_removed_content_not_published(self):
