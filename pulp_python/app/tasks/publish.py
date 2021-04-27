@@ -64,7 +64,8 @@ def publish(repository_version_pk):
         with python_models.PythonPublication.create(repository_version, pass_through=True) as pub:
             write_simple_api(pub)
 
-    log.info(_('Publication: {pk} created').format(pk=pub.pk))
+        log.info(_('Publication: {pk} created').format(pk=pub.pk))
+        return pub
 
 
 def write_simple_api(publication):

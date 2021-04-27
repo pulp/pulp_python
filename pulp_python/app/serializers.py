@@ -19,15 +19,23 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
     Serializer for Python Repositories.
     """
 
+    autopublish = serializers.BooleanField(
+        help_text=_(
+            "Whether to automatically create publications for new repository versions, "
+            "and update any distributions pointing to this repository."
+        ),
+        default=False,
+        required=False,
+    )
+
     class Meta:
-        fields = core_serializers.RepositorySerializer.Meta.fields
+        fields = core_serializers.RepositorySerializer.Meta.fields + ("autopublish",)
         model = python_models.PythonRepository
 
 
 class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     """
     Serializer for Pulp distributions for the Python type.
-
     """
 
     publication = core_serializers.DetailRelatedField(
