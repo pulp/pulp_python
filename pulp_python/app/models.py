@@ -43,6 +43,8 @@ class PythonDistribution(Distribution):
 
     TYPE = 'python'
 
+    allow_uploads = models.BooleanField(default=True)
+
     def content_handler(self, path):
         """
         Handler to serve extra, non-Artifact content for this Distribution

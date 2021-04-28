@@ -168,12 +168,14 @@ SCIPY_COUNTS = {
 # Intended to be used with the XS specifier
 PYTHON_EGG_FILENAME = "shelf-reader-0.1.tar.gz"
 PYTHON_EGG_URL = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), PYTHON_EGG_FILENAME)
+PYTHON_EGG_SHA256 = "04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be116398c"
 
 # Intended to be used with the XS specifier
 PYTHON_WHEEL_FILENAME = "shelf_reader-0.1-py2-none-any.whl"
 PYTHON_WHEEL_URL = urljoin(
     urljoin(PYTHON_FIXTURES_URL, "packages/"), PYTHON_WHEEL_FILENAME
 )
+PYTHON_WHEEL_SHA256 = "2eceb1643c10c5e4a65970baf63bde43b79cbdac7de81dae853ce47ab05197e9"
 
 PYTHON_FIXTURES_PACKAGES = [
     "shelf-reader",

@@ -7,6 +7,7 @@
 
 # From the _scripts directory, run with `source quickstart.sh` (source to preserve the environment
 # variables)
+export PLUGIN_SOURCE="../../"
 set -e
 
 source base.sh
@@ -23,3 +24,6 @@ source pip.sh
 
 source upload.sh
 source add_content_repo.sh
+
+source index.sh
+source twine.sh
