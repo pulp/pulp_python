@@ -93,6 +93,7 @@ class PythonPackageContent(Content):
     packagetype = models.TextField(choices=PACKAGE_TYPES)
     name = models.TextField()
     version = models.TextField()
+    sha256 = models.CharField(max_length=64)
     # Optional metadata
     python_version = models.TextField()
     metadata_version = models.TextField()

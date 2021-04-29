@@ -61,10 +61,10 @@ def publish(repository_version_pk):
     ))
 
     with tempfile.TemporaryDirectory("."):
-        with python_models.PythonPublication.create(repository_version) as publication:
-            write_simple_api(publication)
+        with python_models.PythonPublication.create(repository_version, pass_through=True) as pub:
+            write_simple_api(pub)
 
-    log.info(_('Publication: {pk} created').format(pk=publication.pk))
+    log.info(_('Publication: {pk} created').format(pk=pub.pk))
 
 
 def write_simple_api(publication):
@@ -107,46 +107,58 @@ def write_simple_api(publication):
     )
     index_metadata.save()
 
-    def find_artifact():
-        _art = content_artifact.artifact
-        if not _art:
-            _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
-        return _art
+    if len(index_names) == 0:
+        return
 
-    for (name, canonical_name) in index_names:
-        project_dir = '{simple_dir}{name}/'.format(simple_dir=simple_dir, name=canonical_name)
-        os.mkdir(project_dir)
+    packages = python_models.PythonPackageContent.objects.filter(
+        pk__in=publication.repository_version.content
+    )
+    releases = packages.order_by("name").values("name", "filename", "sha256")
 
-        packages = python_models.PythonPackageContent.objects.filter(name=name)
-        package_detail_data = []
-        for package in packages.iterator():
-            artifact_set = package.contentartifact_set.all()
-            for content_artifact in artifact_set:
-                artifact = find_artifact()
-                published_artifact = models.PublishedArtifact(
-                    relative_path=content_artifact.relative_path,
-                    publication=publication,
-                    content_artifact=content_artifact
-                )
-                published_artifact.save()
+    ind = 0
+    current_name = index_names[ind][0]
+    package_releases = []
+    for release in releases.iterator():
+        if release['name'] != current_name:
+            write_project_page(
+                name=index_names[ind][1],
+                simple_dir=simple_dir,
+                package_releases=package_releases,
+                publication=publication
+            )
+            package_releases = []
+            ind += 1
+            current_name = index_names[ind][0]
+        relative_path = release['filename']
+        path = f"../../{relative_path}"
+        checksum = release['sha256']
+        package_releases.append((relative_path, path, checksum))
+    # Write the final project's page
+    write_project_page(
+        name=index_names[ind][1],
+        simple_dir=simple_dir,
+        package_releases=package_releases,
+        publication=publication
+    )
 
-                checksum = artifact.sha256
-                path = "../../{}".format(package.filename)
-                package_detail_data.append((package.filename, path, checksum))
 
-        metadata_relative_path = '{project_dir}index.html'.format(project_dir=project_dir)
+def write_project_page(name, simple_dir, package_releases, publication):
+    """Writes a project's simple page."""
+    project_dir = f'{simple_dir}{name}/'
+    os.mkdir(project_dir)
+    metadata_relative_path = f'{project_dir}index.html'
 
-        with open(metadata_relative_path, 'w') as simple_metadata:
-            context = Context({
-                'project_name': name,
-                'project_packages': package_detail_data
-            })
-            template = Template(simple_detail_template)
-            simple_metadata.write(template.render(context))
+    with open(metadata_relative_path, 'w') as simple_metadata:
+        context = Context({
+            'project_name': name,
+            'project_packages': package_releases
+        })
+        template = Template(simple_detail_template)
+        simple_metadata.write(template.render(context))
 
-        project_metadata = models.PublishedMetadata.create_from_file(
-            relative_path=metadata_relative_path,
-            publication=publication,
-            file=File(open(metadata_relative_path, 'rb'))
-        )
-        project_metadata.save()
+    project_metadata = models.PublishedMetadata.create_from_file(
+        relative_path=metadata_relative_path,
+        publication=publication,
+        file=File(open(metadata_relative_path, 'rb'))
+    )
+    project_metadata.save()  # change to bulk create when multi-table supported

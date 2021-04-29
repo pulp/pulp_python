@@ -67,7 +67,7 @@ def parse_metadata(project, version, distribution):
     package['packagetype'] = distribution.get('packagetype') or ""
     package['version'] = version
     package['url'] = distribution.get('url') or ""
-    package['sha256_digest'] = distribution.get('digests', {}).get('sha256') or ""
+    package['sha256'] = distribution.get('digests', {}).get('sha256') or ""
     package['python_version'] = distribution.get('python_version') or ""
 
     package.update(parse_project_metadata(project))
