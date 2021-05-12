@@ -6,8 +6,8 @@ Publish and Host
 This section assumes that you have a repository with content in it. To do this, see the
 :doc:`sync` or :doc:`upload` documentation.
 
-Create a Publication
---------------------
+Create a Publication (manually)
+-------------------------------
 
 Kick off a publish task by creating a new publication. The publish task will generate all the
 metadata that ``pip`` needs to install packages (although it will need to be hosted through a
@@ -47,6 +47,20 @@ Response::
       "name": "foo",
       "publication": "/pulp/api/v3/publications/python/pypi/a09111b1-6bce-43ac-aed7-2e8441c22704/"
     }
+
+Automate Publication and Distribution
+-------------------------------------
+
+With a little more initial setup, you can have publications and distributions for your repositories
+updated automatically when new repository versions are created.
+
+.. literalinclude:: ../_scripts/autoupdate.sh
+    :language: bash
+
+.. warning::
+    Support for automatic publication and distribution is provided as a tech preview in Pulp 3.
+    Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
+    is not guaranteed.
 
 .. _using-distributions:
 

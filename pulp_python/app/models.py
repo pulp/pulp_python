@@ -182,5 +182,31 @@ class PythonRepository(Repository):
     CONTENT_TYPES = [PythonPackageContent]
     REMOTE_TYPES = [PythonRemote]
 
+    autopublish = models.BooleanField(default=False)
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+    def on_new_version(self, version):
+        """
+        Called when new repository versions are created.
+
+        Args:
+            version: The new repository version
+        """
+        super().on_new_version(version)
+
+        # avoid circular import issues
+        from pulp_python.app import tasks
+
+        if self.autopublish:
+            publication = tasks.publish(
+                repository_version_pk=version.pk,
+            )
+
+            distributions = self.distributions.all()
+
+            if publication and distributions:
+                for distribution in distributions:
+                    distribution.publication = publication
+                    distribution.save()
