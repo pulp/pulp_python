@@ -1,11 +1,42 @@
 import json
 from collections import defaultdict
 from django.conf import settings
+from jinja2 import Template
+from packaging.utils import canonicalize_name
 from packaging.version import parse
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
+
+simple_index_template = """<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+    <meta name="api-version" value="2" />
+  </head>
+  <body>
+    {% for name, canonical_name in projects %}
+    <a href="{{ canonical_name }}/">{{ name }}</a><br/>
+    {% endfor %}
+  </body>
+</html>
+"""
+
+simple_detail_template = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Links for {{ project_name }}</title>
+  <meta name="api-version" value="2" />
+</head>
+<body>
+    <h1>Links for {{ project_name }}</h1>
+    {% for name, path, sha256 in project_packages %}
+    <a href="{{ path }}#sha256={{ sha256 }}" rel="internal">{{ name }}</a><br/>
+    {% endfor %}
+</body>
+</html>
+"""
 
 
 def parse_project_metadata(project):
@@ -198,3 +229,17 @@ def python_content_to_download_info(content, base_path):
         "yanked": False,
         "yanked_reason": None
     }
+
+
+def write_simple_index(project_names, streamed=False):
+    """Writes the simple index."""
+    simple = Template(simple_index_template)
+    context = {"projects": ((x, canonicalize_name(x)) for x in project_names)}
+    return simple.stream(**context) if streamed else simple.render(**context)
+
+
+def write_simple_detail(project_name, project_packages, streamed=False):
+    """Writes the simple detail page of a package."""
+    detail = Template(simple_detail_template)
+    context = {"project_name": project_name, "project_packages": project_packages}
+    return detail.stream(**context) if streamed else detail.render(**context)

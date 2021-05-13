@@ -75,6 +75,10 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         help_text=_('The packages version number.'),
         read_only=True,
     )
+    sha256 = serializers.CharField(
+        help_text=_('The SHA256 digest of this package.'),
+        read_only=True,
+    )
     metadata_version = serializers.CharField(
         help_text=_('Version of the file format'),
         read_only=True,
@@ -232,7 +236,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
-            'filename', 'packagetype', 'name', 'version', 'metadata_version', 'summary',
+            'filename', 'packagetype', 'name', 'version', 'sha256', 'metadata_version', 'summary',
             'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
             'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
             'platform', 'supported_platform', 'requires_dist', 'provides_dist',
@@ -248,7 +252,7 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
-            'filename', 'packagetype', 'name', 'version',
+            'filename', 'packagetype', 'name', 'version', 'sha256',
         )
         model = python_models.PythonPackageContent
 
