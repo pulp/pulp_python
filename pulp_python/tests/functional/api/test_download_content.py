@@ -7,7 +7,7 @@ import requests
 from random import choice
 from urllib.parse import urljoin
 
-from pulp_smash import config, utils
+from pulp_smash import utils
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     download_content_unit,
@@ -22,27 +22,22 @@ from pulp_python.tests.functional.constants import (
     PYTHON_LG_PROJECT_SPECIFIER,
 )
 from pulp_python.tests.functional.utils import (
-    gen_python_client,
+    cfg,
     get_python_content_paths,
     gen_python_remote,
     publish,
+    TestCaseUsingBindings,
+    TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulp_python import (
-    DistributionsPypiApi,
-    PublicationsPypiApi,
-    RepositoriesPythonApi,
-    RepositorySyncURL,
-    RemotesPythonApi,
-    PythonPythonPublication,
-)
+from pulpcore.client.pulp_python import RepositorySyncURL
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
 
 
-class DownloadContentTestCase(unittest.TestCase):
+class DownloadContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
     """Verify whether content served by pulp can be downloaded."""
 
     def test_all(self):
@@ -71,40 +66,10 @@ class DownloadContentTestCase(unittest.TestCase):
         * `Pulp #2895 <https://pulp.plan.io/issues/2895>`_
         * `Pulp Smash #872 <https://github.com/pulp/pulp-smash/issues/872>`_
         """
-        client = gen_python_client()
-        repo_api = RepositoriesPythonApi(client)
-        remote_api = RemotesPythonApi(client)
-        publications = PublicationsPypiApi(client)
-        distributions = DistributionsPypiApi(client)
-
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
-
-        body = gen_python_remote()
-        remote = remote_api.create(body)
-        self.addCleanup(remote_api.delete, remote.pulp_href)
-
-        # Sync a Repository
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = repo_api.read(repo.pulp_href)
-
-        # Create a publication.
-        publish_data = PythonPythonPublication(repository=repo.pulp_href)
-        publish_response = publications.create(publish_data)
-        created_resources = monitor_task(publish_response.task).created_resources
-        publication_href = created_resources[0]
-        self.addCleanup(publications.delete, publication_href)
-
-        # Create a distribution.
-        body = gen_distribution()
-        body["publication"] = publication_href
-        distribution_response = distributions.create(body)
-        created_resources = monitor_task(distribution_response.task).created_resources
-        distribution = distributions.read(created_resources[0])
-        self.addCleanup(distributions.delete, distribution.pulp_href)
-
+        remote = self._create_remote()
+        repo = self._create_repo_and_sync_with_remote(remote)
+        pub = self._create_publication(repo)
+        distro = self._create_distribution_from_publication(pub)
         # Pick a content unit (of each type), and download it from both Pulp Fixtures…
         unit_paths = [
             choice(paths) for paths in get_python_content_paths(repo.to_dict()).values()
@@ -120,15 +85,14 @@ class DownloadContentTestCase(unittest.TestCase):
 
         # …and Pulp.
         pulp_hashes = []
-        cfg = config.get_config()
         for unit_path in unit_paths:
-            content = download_content_unit(cfg, distribution.to_dict(), unit_path[1])
+            content = download_content_unit(cfg, distro.to_dict(), unit_path[1])
             pulp_hashes.append(hashlib.sha256(content).hexdigest())
 
         self.assertEqual(fixtures_hashes, pulp_hashes)
 
 
-class PublishPyPiJSON(unittest.TestCase):
+class PublishPyPiJSON(TestCaseUsingBindings):
     """Test whether a distributed Python repository has a PyPi json endpoint
     a.k.a Can be consumed by another Pulp instance
 
@@ -136,16 +100,6 @@ class PublishPyPiJSON(unittest.TestCase):
 
     * `Pulp #2886 <https://pulp.plan.io/issues/2886>`_
     """
-
-    @classmethod
-    def setUpClass(cls):
-        """Sets up the class"""
-        client = gen_python_client()
-        cls.cfg = config.get_config()
-        cls.repo_api = RepositoriesPythonApi(client)
-        cls.remote_api = RemotesPythonApi(client)
-        cls.publications_api = PublicationsPypiApi(client)
-        cls.distro_api = DistributionsPypiApi(client)
 
     @classmethod
     def setUp(cls):
@@ -166,7 +120,7 @@ class PublishPyPiJSON(unittest.TestCase):
         self.addCleanup(self.remote_api.delete, self.remote.pulp_href)
         distro = self.gen_pub_dist()
         rel_url = "pypi/shelf-reader/json"
-        package_json = download_content_unit(self.cfg, distro.to_dict(), rel_url)
+        package_json = download_content_unit(cfg, distro.to_dict(), rel_url)
         package = json.loads(package_json)
         self.assertEqual(SHELF_PYTHON_JSON["last_serial"], package["last_serial"])
         self.assertTrue(SHELF_PYTHON_JSON["info"].items() <= package["info"].items())
@@ -206,7 +160,7 @@ class PublishPyPiJSON(unittest.TestCase):
         distro = self.gen_pub_dist().to_dict()
         rel_url = "pypi/shelf-reader/json"
         url_fragments = [
-            self.cfg.get_content_host_base_url(),
+            cfg.get_content_host_base_url(),
             "pulp/content",
             distro["base_path"],
             rel_url,
@@ -230,7 +184,7 @@ class PublishPyPiJSON(unittest.TestCase):
         self.assertEqual(get_content_summary(self.repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
         distro = self.gen_pub_dist().to_dict()
         url_fragments = [
-            self.cfg.get_content_host_base_url(),
+            cfg.get_content_host_base_url(),
             "pulp/content",
             distro["base_path"],
             ""
@@ -269,7 +223,7 @@ class PublishPyPiJSON(unittest.TestCase):
 
         body = gen_distribution()
         body["publication"] = publication["pulp_href"]
-        distro_response = self.distro_api.create(body)
-        distro = self.distro_api.read(monitor_task(distro_response.task).created_resources[0])
-        self.addCleanup(self.distro_api.delete, distro.pulp_href)
+        response = self.distributions_api.create(body)
+        distro = self.distributions_api.read(monitor_task(response.task).created_resources[0])
+        self.addCleanup(self.distributions_api.delete, distro.pulp_href)
         return distro
