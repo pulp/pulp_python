@@ -1,37 +1,28 @@
 # coding=utf-8
 """Tests that verify download of content served by Pulp."""
 import hashlib
-import json
 import unittest
-import requests
 from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import utils
-from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     download_content_unit,
-    gen_distribution,
-    gen_repo,
     get_content_summary,
 )
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURE_URL,
-    SHELF_PYTHON_JSON,
     PYTHON_LG_FIXTURE_SUMMARY,
     PYTHON_LG_PROJECT_SPECIFIER,
 )
 from pulp_python.tests.functional.utils import (
     cfg,
     get_python_content_paths,
-    gen_python_remote,
-    publish,
     TestCaseUsingBindings,
     TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulp_python import RepositorySyncURL
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
@@ -92,7 +83,7 @@ class DownloadContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
         self.assertEqual(fixtures_hashes, pulp_hashes)
 
 
-class PublishPyPiJSON(TestCaseUsingBindings):
+class PublishPyPiJSON(TestCaseUsingBindings, TestHelpersMixin):
     """Test whether a distributed Python repository has a PyPi json endpoint
     a.k.a Can be consumed by another Pulp instance
 
@@ -101,129 +92,26 @@ class PublishPyPiJSON(TestCaseUsingBindings):
     * `Pulp #2886 <https://pulp.plan.io/issues/2886>`_
     """
 
-    @classmethod
-    def setUp(cls):
-        """Sets up the repo before every test"""
-        cls.repo = cls.repo_api.create(gen_repo())
-
-    def test_pypi_json(self):
-        """Checks the basics 'pypi/{package_name}/json' endpoint
-        Steps:
-            1. Create Repo and Remote to only sync shelf-reader
-            2. Sync with immediate policy
-            3. Publish and Distribute new Repo
-            4. Access JSON endpoint and verify received JSON matches source
-        """
-        self.addCleanup(self.repo_api.delete, self.repo.pulp_href)
-        body = gen_python_remote(includes=["shelf-reader"], policy="immediate")
-        self.sync_to_remote(body, create=True)
-        self.addCleanup(self.remote_api.delete, self.remote.pulp_href)
-        distro = self.gen_pub_dist()
-        rel_url = "pypi/shelf-reader/json"
-        package_json = download_content_unit(cfg, distro.to_dict(), rel_url)
-        package = json.loads(package_json)
-        self.assertEqual(SHELF_PYTHON_JSON["last_serial"], package["last_serial"])
-        self.assertTrue(SHELF_PYTHON_JSON["info"].items() <= package["info"].items())
-        self.assertEqual(len(SHELF_PYTHON_JSON["urls"]), len(package["urls"]))
-        self.assert_download_info(SHELF_PYTHON_JSON["urls"], package["urls"],
-                                  "Failed to match URLS")
-        self.assertTrue(SHELF_PYTHON_JSON["releases"].keys() <= package["releases"].keys())
-        for version in SHELF_PYTHON_JSON["releases"].keys():
-            self.assert_download_info(SHELF_PYTHON_JSON["releases"][version],
-                                      package["releases"][version], "Failed to match version")
-
-    def assert_download_info(self, expected, received, message="Failed to match"):
-        """
-        Each version has a list of dists of that version, but the lists might
-        not be in the same order, so check each dist of the second list
-        """
-        for dist in expected:
-            dist = dict(dist)
-            matched = False
-            dist_items = dist.items()
-            for dist2 in received:
-                dist2 = dict(dist2)
-                dist2["digests"].pop("md5", "")
-                if dist_items <= dist2.items():
-                    matched = True
-                    break
-            self.assertTrue(matched, message)
-
-    def test_pypi_last_serial(self):
-        """
-        Checks that the endpoint has the header PYPI_LAST_SERIAL and is set
-        TODO when serial field is added to Repo's, check this header against that
-        """
-        self.addCleanup(self.repo_api.delete, self.repo.pulp_href)
-        body = gen_python_remote(includes=["shelf-reader"])
-        self.sync_to_remote(body, create=True)
-        distro = self.gen_pub_dist().to_dict()
-        rel_url = "pypi/shelf-reader/json"
-        url_fragments = [
-            cfg.get_content_host_base_url(),
-            "pulp/content",
-            distro["base_path"],
-            rel_url,
-        ]
-        unit_url = "/".join(url_fragments)
-        response = requests.get(unit_url)
-        self.assertIn(PYPI_LAST_SERIAL, response.headers)
-        self.assertEqual(response.headers[PYPI_LAST_SERIAL], str(PYPI_SERIAL_CONSTANT))
-
     @unittest.skip("Content can not be synced without https")
     def test_basic_pulp_to_pulp_sync(self):
         """
         This test checks that the JSON endpoint is setup correctly to allow one Pulp instance
         to perform a basic sync from another Pulp instance
         """
-        self.addCleanup(self.repo_api.delete, self.repo.pulp_href)
-        body = gen_python_remote(includes=PYTHON_LG_PROJECT_SPECIFIER, policy="on_demand",
-                                 prereleases=True)
-        self.sync_to_remote(body, create=True)
-        self.addCleanup(self.remote_api.delete, self.remote.pulp_href)
-        self.assertEqual(get_content_summary(self.repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
-        distro = self.gen_pub_dist().to_dict()
+        body = {"includes": PYTHON_LG_PROJECT_SPECIFIER, "prereleases": True}
+        remote = self._create_remote(**body)
+        repo = self._create_repo_and_sync_with_remote(remote)
+        pub = self._create_publication(repo)
+        distro = self._create_distribution_from_publication(pub)
         url_fragments = [
             cfg.get_content_host_base_url(),
             "pulp/content",
-            distro["base_path"],
+            distro.base_path,
             ""
         ]
         unit_url = "/".join(url_fragments)
 
-        repo2 = self.repo_api.create(gen_repo())
-        self.addCleanup(self.repo_api.delete, repo2.pulp_href)
-        body2 = gen_python_remote(url=unit_url, includes=PYTHON_LG_PROJECT_SPECIFIER,
-                                  policy="on_demand", prereleases=True)
-        self.repo = repo2
-        self.sync_to_remote(body2, create=True)
-        self.assertEqual(get_content_summary(self.repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
-        self.addCleanup(self.remote_api.delete, self.remote.pulp_href)
-
-    def sync_to_remote(self, body, create=False, mirror=False):
-        """Takes a body and creates/updates a remote object, then it performs a sync"""
-        if create:
-            self.remote = self.remote_api.create(body)
-        else:
-            remote_task = self.remote_api.partial_update(self.remote.pulp_href, body)
-            monitor_task(remote_task.task)
-            self.remote = self.remote_api.read(self.remote.pulp_href)
-
-        repository_sync_data = RepositorySyncURL(
-            remote=self.remote.pulp_href, mirror=mirror
-        )
-        sync_response = self.repo_api.sync(self.repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        self.repo = self.repo_api.read(self.repo.pulp_href)
-
-    def gen_pub_dist(self):
-        """Takes a repo and generates a publication and then distributes it"""
-        publication = publish(self.repo.to_dict())
-        self.addCleanup(self.publications_api.delete, publication["pulp_href"])
-
-        body = gen_distribution()
-        body["publication"] = publication["pulp_href"]
-        response = self.distributions_api.create(body)
-        distro = self.distributions_api.read(monitor_task(response.task).created_resources[0])
-        self.addCleanup(self.distributions_api.delete, distro.pulp_href)
-        return distro
+        body["url"] = unit_url
+        remote = self._create_remote(**body)
+        repo2 = self._create_repo_and_sync_with_remote(remote)
+        self.assertEqual(get_content_summary(repo2.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
