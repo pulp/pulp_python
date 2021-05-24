@@ -18,8 +18,7 @@ source sync.sh
 
 source publication.sh
 source distribution.sh
-# TODO: Test autoupdate when CLI PR is merged
-# source autoupdate.sh
+source autoupdate.sh
 source pip.sh
 
 source upload.sh
