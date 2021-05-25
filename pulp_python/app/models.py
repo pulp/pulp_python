@@ -200,13 +200,4 @@ class PythonRepository(Repository):
         from pulp_python.app import tasks
 
         if self.autopublish:
-            publication = tasks.publish(
-                repository_version_pk=version.pk,
-            )
-
-            distributions = self.distributions.all()
-
-            if publication and distributions:
-                for distribution in distributions:
-                    distribution.publication = publication
-                    distribution.save()
+            tasks.publish(repository_version_pk=version.pk)

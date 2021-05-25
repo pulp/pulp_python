@@ -4,7 +4,7 @@ import unittest
 
 from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, gen_distribution
+from pulp_smash.pulp3.utils import gen_repo, gen_distribution, download_content_unit
 
 from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -57,13 +57,11 @@ class AutoPublishDistributeTestCase(unittest.TestCase):
         repository_sync_data = RepositorySyncURL(remote=self.remote.pulp_href)
         sync_response = self.repo_api.sync(self.repo.pulp_href, repository_sync_data)
         task = monitor_task(sync_response.task)
-        self.distribution = self.distributions_api.read(self.distribution.pulp_href)
 
         # Check that all the appropriate resources were created
         self.assertGreater(len(task.created_resources), 1)
         self.assertEqual(self.publications_api.list().count, 1)
-        self.assertTrue(self.distribution.publication is not None)
-        self.assertTrue(self.distribution.publication in task.created_resources)
+        download_content_unit(self.cfg, self.distribution.to_dict(), "simple/")
 
         # Sync the repository again. Since there should be no new repository version, there
         # should be no new publications or distributions either.
@@ -78,16 +76,14 @@ class AutoPublishDistributeTestCase(unittest.TestCase):
         self.assertEqual(self.publications_api.list().count, 0)
         self.assertTrue(self.distribution.publication is None)
 
-        # Modify the repository by adding a coment unit
+        # Modify the repository by adding a content unit
         content = self.content_api.list().results[0].pulp_href
         modify_response = self.repo_api.modify(
             self.repo.pulp_href, {"add_content_units": [content]}
         )
         task = monitor_task(modify_response.task)
-        self.distribution = self.distributions_api.read(self.distribution.pulp_href)
 
         # Check that all the appropriate resources were created
         self.assertGreater(len(task.created_resources), 1)
         self.assertEqual(self.publications_api.list().count, 1)
-        self.assertTrue(self.distribution.publication is not None)
-        self.assertTrue(self.distribution.publication in task.created_resources)
+        download_content_unit(self.cfg, self.distribution.to_dict(), "simple/")
