@@ -13,6 +13,40 @@ Changelog
 
 .. towncrier release notes start
 
+3.3.0 (2021-05-27)
+==================
+
+
+Features
+--------
+
+- Add support for automatic publishing and distributing.
+  `#365 <https://github.com/pulp/pulp_python/issues/365>`_
+
+
+Bugfixes
+--------
+
+- Fixed publications publishing more content than was in the repository
+  `#362 <https://github.com/pulp/pulp_python/issues/362>`_
+
+
+Improved Documentation
+----------------------
+
+- Update syntax in doc for cli repository content add command
+  `#368 <https://github.com/pulp/pulp_python/issues/368>`_
+
+
+Misc
+----
+
+- `#347 <https://github.com/pulp/pulp_python/issues/347>`_, `#360 <https://github.com/pulp/pulp_python/issues/360>`_, `#371 <https://github.com/pulp/pulp_python/issues/371>`_
+
+
+----
+
+
 3.2.0 (2021-04-14)
 ==================
 
