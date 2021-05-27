@@ -1,10 +1,8 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
-import unittest
-
 from pulp_smash import cli
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, gen_distribution, delete_orphans
+from pulp_smash.pulp3.utils import delete_orphans, modify_repo
 
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURE_URL,
@@ -15,29 +13,19 @@ from pulp_python.tests.functional.constants import (
 )
 
 from pulp_python.tests.functional.utils import (
-    gen_artifact,
-    gen_python_client,
-    gen_python_content_attrs,
     cfg,
-    publish,
-    gen_python_remote,
+    gen_artifact,
+    gen_python_content_attrs,
+    TestCaseUsingBindings,
+    TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 from urllib.parse import urljoin, urlsplit
 
-from pulpcore.client.pulp_python import (
-    RepositoriesPythonApi,
-    RemotesPythonApi,
-    PublicationsPypiApi,
-    ContentPackagesApi,
-    DistributionsPypiApi,
-    RepositorySyncURL,
-)
-
 from pulp_smash.utils import http_get
 
 
-class PipInstallContentTestCase(unittest.TestCase):
+class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
     """
     Verify whether content served by Pulp can be consumed through pip install.
     Workflows tested are:
@@ -52,7 +40,7 @@ class PipInstallContentTestCase(unittest.TestCase):
         """
         Check if packages to install through tests are already installed
         """
-        cls.client = gen_python_client()
+        super().setUpClass()
         cls.cli_client = cli.Client(cfg)
         cls.PACKAGES = PYTHON_FIXTURES_PACKAGES
         cls.PACKAGES_URLS = [
@@ -67,36 +55,28 @@ class PipInstallContentTestCase(unittest.TestCase):
                 cls.check_install(cls.cli_client, pkg),
                 "{} is already installed".format(pkg),
             )
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
-        cls.content_api = ContentPackagesApi(cls.client)
-        cls.publications_api = PublicationsPypiApi(cls.client)
-        cls.distro_api = DistributionsPypiApi(cls.client)
 
     def test_workflow_01(self):
         """
         Verify workflow 1
         """
-        repo = self.repo_api.create(gen_repo())
-        self.addCleanup(self.repo_api.delete, repo.pulp_href)
-
-        artifacts = []
-        for pkg in self.PACKAGES_URLS:
-            artifacts.append(gen_artifact(pkg))
-
-        for filename, artifact in zip(PYTHON_FIXTURES_FILENAMES, artifacts):
+        created_contents = []
+        for pkg, filename in zip(self.PACKAGES_URLS, PYTHON_FIXTURES_FILENAMES):
             content_response = self.content_api.create(
-                **gen_python_content_attrs(artifact, filename)
+                **gen_python_content_attrs(gen_artifact(pkg), filename)
             )
-            created_resources = monitor_task(content_response.task).created_resources
-            self.repo_api.modify(
-                repo.pulp_href, {"add_content_units": created_resources}
-            )
+            created_contents.extend(monitor_task(content_response.task).created_resources)
+            created_contents = [self.content_api.read(href).to_dict() for href in created_contents]
+
+        repo = self._create_repository()
+        # Add content
+        modify_repo(cfg, repo.to_dict(), add_units=created_contents)
         repo = self.repo_api.read(repo.pulp_href)
-        distribution = self.gen_pub_dist(repo)
+        pub = self._create_publication(repo)
+        distro = self._create_distribution_from_publication(pub)
 
         self.addCleanup(delete_orphans, cfg)
-        self.check_consume(distribution.to_dict())
+        self.check_consume(distro.to_dict())
 
     def test_workflow_02(self):
         """
@@ -112,20 +92,11 @@ class PipInstallContentTestCase(unittest.TestCase):
         * `Pulp #4682 <https://pulp.plan.io/issues/4682>`_
         * `Pulp #4677 <https://pulp.plan.io/issues/4677>`_
         """
-        repo = self.repo_api.create(gen_repo())
-        self.addCleanup(self.repo_api.delete, repo.pulp_href)
-
-        body = gen_python_remote(includes=PYTHON_LIST_PROJECT_SPECIFIER)
-        remote = self.remote_api.create(body)
-        self.addCleanup(self.remote_api.delete, remote.pulp_href)
-
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = self.repo_api.read(repo.pulp_href)
-
-        distribution = self.gen_pub_dist(repo)
-        self.check_consume(distribution.to_dict())
+        remote = self._create_remote(includes=PYTHON_LIST_PROJECT_SPECIFIER)
+        repo = self._create_repo_and_sync_with_remote(remote)
+        pub = self._create_publication(repo)
+        distro = self._create_distribution_from_publication(pub)
+        self.check_consume(distro.to_dict())
 
     def check_consume(self, distribution):
         """Tests that pip packages hosted in a distribution can be consumed"""
@@ -137,18 +108,6 @@ class PipInstallContentTestCase(unittest.TestCase):
             out = self.install(self.cli_client, pkg, host=url)
             self.assertTrue(self.check_install(self.cli_client, pkg), out)
             self.addCleanup(self.uninstall, self.cli_client, pkg)
-
-    def gen_pub_dist(self, repo):
-        """Takes a repo and generates a publication and then distributes it"""
-        publication = publish(repo.to_dict())
-        self.addCleanup(self.publications_api.delete, publication["pulp_href"])
-
-        body = gen_distribution()
-        body["publication"] = publication["pulp_href"]
-        distro_response = self.distro_api.create(body)
-        distro = self.distro_api.read(monitor_task(distro_response.task).created_resources[0])
-        self.addCleanup(self.distro_api.delete, distro.pulp_href)
-        return distro
 
     @staticmethod
     def check_install(cli_client, package):

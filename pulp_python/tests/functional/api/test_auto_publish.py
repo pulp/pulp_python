@@ -1,52 +1,26 @@
 # coding=utf-8
 """Tests automatic updating of publications and distributions."""
-import unittest
-
-from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, gen_distribution, download_content_unit
+from pulp_smash.pulp3.utils import download_content_unit
 
-from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_python import (
-    RepositoriesPythonApi,
-    RemotesPythonApi,
-    PublicationsPypiApi,
-    ContentPackagesApi,
-    DistributionsPypiApi,
-    RepositorySyncURL,
+from pulp_python.tests.functional.utils import (
+    cfg,
+    gen_python_remote,
+    TestCaseUsingBindings,
+    TestHelpersMixin
 )
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulpcore.client.pulp_python import RepositorySyncURL
 
 
-class AutoPublishDistributeTestCase(unittest.TestCase):
+class AutoPublishDistributeTestCase(TestCaseUsingBindings, TestHelpersMixin):
     """Test auto-publish and auto-distribution"""
-
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.cfg = config.get_config()
-        cls.client = gen_python_client()
-
-        cls.content_api = ContentPackagesApi(cls.client)
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
-        cls.publications_api = PublicationsPypiApi(cls.client)
-        cls.distributions_api = DistributionsPypiApi(cls.client)
 
     def setUp(self):
         """Create remote, repo, publish settings, and distribution."""
         self.remote = self.remote_api.create(gen_python_remote(policy="immediate"))
-        self.repo = self.repo_api.create(gen_repo(autopublish=True))
-        response = self.distributions_api.create(gen_distribution(repository=self.repo.pulp_href))
-        distribution_href = monitor_task(response.task).created_resources[0]
-        self.distribution = self.distributions_api.read(distribution_href)
-
-    def tearDown(self):
-        """Clean up."""
-        self.repo_api.delete(self.repo.pulp_href)
-        self.remote_api.delete(self.remote.pulp_href)
-        self.distributions_api.delete(self.distribution.pulp_href)
+        self.addCleanup(self.remote_api.delete, self.remote.pulp_href)
+        self.repo, self.distribution = self._create_empty_repo_and_distribution(autopublish=True)
 
     def test_01_sync(self):
         """Assert that syncing the repository triggers auto-publish and auto-distribution."""
@@ -61,7 +35,7 @@ class AutoPublishDistributeTestCase(unittest.TestCase):
         # Check that all the appropriate resources were created
         self.assertGreater(len(task.created_resources), 1)
         self.assertEqual(self.publications_api.list().count, 1)
-        download_content_unit(self.cfg, self.distribution.to_dict(), "simple/")
+        download_content_unit(cfg, self.distribution.to_dict(), "simple/")
 
         # Sync the repository again. Since there should be no new repository version, there
         # should be no new publications or distributions either.
@@ -86,4 +60,4 @@ class AutoPublishDistributeTestCase(unittest.TestCase):
         # Check that all the appropriate resources were created
         self.assertGreater(len(task.created_resources), 1)
         self.assertEqual(self.publications_api.list().count, 1)
-        download_content_unit(self.cfg, self.distribution.to_dict(), "simple/")
+        download_content_unit(cfg, self.distribution.to_dict(), "simple/")
