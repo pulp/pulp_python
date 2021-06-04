@@ -63,7 +63,6 @@ def parse_project_metadata(project):
     package['maintainer'] = project.get('maintainer') or ""
     package['maintainer_email'] = project.get('maintainer_email') or ""
     package['license'] = project.get('license') or ""
-    package['requires_python'] = project.get('requires_python') or ""
     package['project_url'] = project.get('project_url') or ""
     package['platform'] = project.get('platform') or ""
     package['supported_platform'] = project.get('supported_platform') or ""
@@ -72,6 +71,8 @@ def parse_project_metadata(project):
     package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
     package['requires_external'] = json.dumps(project.get('requires_external', []))
     package['classifiers'] = json.dumps(project.get('classifiers', []))
+    package['project_urls'] = json.dumps(project.get('project_urls', {}))
+    package['description_content_type'] = project.get('description_content_type') or ""
 
     return package
 
@@ -100,6 +101,7 @@ def parse_metadata(project, version, distribution):
     package['url'] = distribution.get('url') or ""
     package['sha256'] = distribution.get('digests', {}).get('sha256') or ""
     package['python_version'] = distribution.get('python_version') or ""
+    package['requires_python'] = distribution.get('requires_python') or ""
 
     package.update(parse_project_metadata(project))
 
@@ -148,32 +150,38 @@ def latest_content_version(content_query, version):
     return latest_content
 
 
-def python_content_to_info(latest_content):
+def python_content_to_info(content):
     """
     Takes in a PythonPackageContent instance and returns a dictionary of the Info fields
     """
     return {
-        "name": latest_content.name,
-        "version": latest_content.version,
-        "summary": latest_content.summary or None,
-        "description": latest_content.description or None,
-        "keywords": latest_content.keywords or None,
-        "home_page": latest_content.home_page or None,
+        "name": content.name,
+        "version": content.version,
+        "summary": content.summary or "",
+        "keywords": content.keywords or "",
+        "description": content.description or "",
+        "description_content_type": content.description_content_type or "",
+        "bugtrack_url": None,  # These two are basically never used
+        "docs_url": None,
         "downloads": {"last_day": -1, "last_month": -1, "last_week": -1},
-        "download_url": latest_content.download_url or None,
-        "author": latest_content.author or None,
-        "author_email": latest_content.author_email or None,
-        "maintainer": latest_content.maintainer or None,
-        "maintainer_email": latest_content.maintainer_email or None,
-        "license": latest_content.license or None,
-        "requires_python": latest_content.requires_python or None,
-        "project_url": latest_content.project_url or None,
-        "platform": latest_content.platform or None,
-        "requires_dist": json.loads(latest_content.requires_dist) or None,
-        "classifiers": json.loads(latest_content.classifiers) or None,
+        "download_url": content.download_url or "",
+        "home_page": content.home_page or "",
+        "author": content.author or "",
+        "author_email": content.author_email or "",
+        "maintainer": content.maintainer or "",
+        "maintainer_email": content.maintainer_email or "",
+        "license": content.license or "",
+        "requires_python": content.requires_python or None,
+        "package_url": content.project_url or "",  # These two are usually identical
+        "project_url": content.project_url or "",  # They also usually point to PyPI
+        "release_url": f"{content.project_url}{content.version}/" if content.project_url else "",
+        "project_urls": json.loads(content.project_urls) or None,
+        "platform": content.platform or "",
+        "requires_dist": json.loads(content.requires_dist) or None,
+        "classifiers": json.loads(content.classifiers) or None,
+        "yanked": False,  # These are no longer used on PyPI, but are still present
+        "yanked_reason": None,
     }
-    # fields missing: bugtrack_url, description_content_type, docs_url, package_url,
-    # project_urls {Download, Homepage}, release_url, yanked, yanked_reason
 
 
 def python_content_to_releases(content_query, base_path):

@@ -118,6 +118,11 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, allow_blank=True,
         help_text=_('A longer description of the package that can run to several paragraphs.')
     )
+    description_content_type = serializers.CharField(
+        required=False, allow_blank=True,
+        help_text=_('A string stating the markup syntax (if any) used in the distribution’s'
+                    ' description, so that tools can intelligently render the description.')
+    )
     keywords = serializers.CharField(
         required=False, allow_blank=True,
         help_text=_('Additional keywords to be used to assist searching for the '
@@ -161,6 +166,10 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     project_url = serializers.CharField(
         required=False, allow_blank=True,
         help_text=_('A browsable URL for the project and a label for it, separated by a comma.')
+    )
+    project_urls = serializers.JSONField(
+        required=False, default=dict,
+        help_text=_('A dictionary of labels and URLs for the project.')
     )
     platform = serializers.CharField(
         required=False, allow_blank=True,
@@ -264,10 +273,10 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
             'filename', 'packagetype', 'name', 'version', 'sha256', 'metadata_version', 'summary',
-            'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
-            'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
-            'platform', 'supported_platform', 'requires_dist', 'provides_dist',
-            'obsoletes_dist', 'requires_external', 'classifiers'
+            'description', 'description_content_type', 'keywords', 'home_page', 'download_url',
+            'author', 'author_email', 'maintainer', 'maintainer_email', 'license',
+            'requires_python', 'project_url', 'project_urls', 'platform', 'supported_platform',
+            'requires_dist', 'provides_dist', 'obsoletes_dist', 'requires_external', 'classifiers'
         )
         model = python_models.PythonPackageContent
 
