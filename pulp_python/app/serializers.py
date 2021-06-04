@@ -45,6 +45,11 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         queryset=core_models.Publication.objects.exclude(complete=False),
         allow_null=True,
     )
+    base_url = serializers.SerializerMethodField(read_only=True)
+
+    def get_base_url(self, obj):
+        """Gets the base url."""
+        return f"/pypi/{obj.base_path}/"
 
     def validate(self, data):
         """

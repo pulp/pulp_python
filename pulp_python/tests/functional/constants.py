@@ -32,6 +32,7 @@ PULP_CONTENT_HOST_BASE_URL = config.get_config().get_content_host_base_url()
 
 PULP_CONTENT_BASE_URL = urljoin(PULP_CONTENT_HOST_BASE_URL, "pulp/content/")
 
+PULP_PYPI_BASE_URL = "/pypi/"
 
 # Specifier for testing empty syncs, or no excludes
 PYTHON_EMPTY_PROJECT_SPECIFIER = []
@@ -137,6 +138,7 @@ PYTHON_MD_PROJECT_SPECIFIER = [
 ]
 PYTHON_MD_PACKAGE_COUNT = 26
 PYTHON_MD_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_MD_PACKAGE_COUNT}
+PYTHON_MD_PYPI_SUMMARY = {"projects": 4, "releases": 17, "files": 26}
 
 PYTHON_LG_PROJECT_SPECIFIER = [
     "aiohttp",  # matches 7

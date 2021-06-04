@@ -30,7 +30,7 @@ Host a Publication (Create a Distribution)
 --------------------------------------------
 
 To host a publication, (which makes it consumable by ``pip``), users create a distribution which
-will serve the associated publication at ``/pulp/content/<distribution.base_path>``
+will serve the associated publication at ``/pypi/<distribution.base_path>/``
 
 .. literalinclude:: ../_scripts/distribution.sh
     :language: bash
@@ -41,7 +41,7 @@ Response::
       "pulp_href": "/pulp/api/v3/distributions/python/pypi/4839c056-6f2b-46b9-ac5f-88eb8a7739a5/",
       "pulp_created": "2021-03-09T04:36:48.289737Z",
       "base_path": "foo",
-      "base_url": "https://pulp3-source-fedora33.localhost.example.com/pulp/content/foo/",
+      "base_url": "/pypi/foo/",
       "content_guard": null,
       "pulp_labels": {},
       "name": "foo",
@@ -69,12 +69,12 @@ Use the newly created distribution
 
 The metadata and packages can now be retrieved from the distribution::
 
-$ http $CONTENT_ADDR/pulp/content/foo/simple/
-$ http $CONTENT_ADDR/pulp/content/foo/simple/shelf-reader/
+$ http $BASE_ADDR/pypi/foo/simple/
+$ http $BASE_ADDR/pypi/foo/simple/shelf-reader/
 
 The content is also pip installable::
 
-$ pip install --trusted-host localhost -i $CONTENT_ADDR/pulp/content/foo/simple/ shelf-reader
+$ pip install --trusted-host localhost -i $BASE_ADDR/pypi/foo/simple/ shelf-reader
 
 If you don't want to specify the distribution path every time, you can modify your ``pip.conf``
 file. See the `pip docs <https://pip.pypa.io/en/stable/user_guide/#configuration>`_ for more
@@ -85,7 +85,7 @@ $ cat pip.conf
 .. code::
 
   [global]
-  index-url = http://localhost:24816/pulp/content/foo/simple/
+  index-url = http://localhost:24817/pypi/foo/simple/
 
 The above configuration informs ``pip`` to install from ``pulp``::
 
