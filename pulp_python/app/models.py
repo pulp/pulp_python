@@ -116,6 +116,8 @@ class PythonPackageContent(Content):
     obsoletes_dist = JSONField(default=list)
     requires_external = JSONField(default=list)
     classifiers = JSONField(default=list)
+    project_urls = JSONField(default=dict)
+    description_content_type = models.TextField()
 
     def __str__(self):
         """
