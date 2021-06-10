@@ -103,8 +103,8 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         read_only=True,
     )
     sha256 = serializers.CharField(
+        default='', allow_blank=True,
         help_text=_('The SHA256 digest of this package.'),
-        read_only=True,
     )
     metadata_version = serializers.CharField(
         help_text=_('Version of the file format'),
@@ -224,11 +224,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         except KeyError:
             raise serializers.ValidationError(detail={"relative_path": _('This field is required')})
 
-        if python_models.PythonPackageContent.objects.filter(filename=filename):
-            raise serializers.ValidationError(detail={
-                "relative_path": _('This field must be unique')
-            })
-
         # iterate through extensions since splitext does not support things like .tar.gz
         for ext, packagetype in DIST_EXTENSIONS.items():
             if filename.endswith(ext):
@@ -247,26 +242,23 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                 "Extension on {} is not a valid python extension "
                 "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(filename)
             )
+        if data.get("sha256") and data["sha256"] != artifact.sha256:
+            raise serializers.ValidationError(
+                detail={"sha256": _(
+                    "The uploaded artifact's sha256 checksum does not match the one provided"
+                )}
+            )
+        sha256 = artifact.sha256
+        if sha256 and python_models.PythonPackageContent.objects.filter(sha256=sha256).exists():
+            raise serializers.ValidationError(detail={"sha256": _('This field must be unique')})
+
         _data = parse_project_metadata(vars(metadata))
         _data['packagetype'] = metadata.packagetype
         _data['version'] = metadata.version
         _data['filename'] = filename
+        _data['sha256'] = sha256
 
         data.update(_data)
-
-        new_content = python_models.PythonPackageContent.objects.filter(
-            filename=data['filename'],
-            packagetype=data['packagetype'],
-            name=data['name'],
-            version=data['version']
-        )
-
-        if new_content.exists():
-            raise serializers.ValidationError(
-                _(
-                    "There is already a python package with relative path '{path}'."
-                ).format(path=data["relative_path"])
-            )
 
         return data
 

@@ -14,6 +14,7 @@ from pulpcore.plugin.models import (
 
 from pathlib import PurePath
 from .utils import python_content_to_json, PYPI_LAST_SERIAL, PYPI_SERIAL_CONSTANT
+from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
 log = getLogger(__name__)
 
@@ -88,12 +89,13 @@ class PythonPackageContent(Content):
     """
 
     TYPE = 'python'
+    repo_key_fields = ("filename",)
     # Required metadata
-    filename = models.TextField(unique=True, db_index=True)
+    filename = models.TextField(db_index=True)
     packagetype = models.TextField(choices=PACKAGE_TYPES)
     name = models.TextField()
     version = models.TextField()
-    sha256 = models.CharField(max_length=64)
+    sha256 = models.CharField(unique=True, db_index=True, max_length=64)
     # Optional metadata
     python_version = models.TextField()
     metadata_version = models.TextField()
@@ -138,7 +140,7 @@ class PythonPackageContent(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ('filename',)
+        unique_together = ("sha256",)
 
 
 class PythonPublication(Publication):
@@ -203,3 +205,10 @@ class PythonRepository(Repository):
 
         if self.autopublish:
             tasks.publish(repository_version_pk=version.pk)
+
+    def finalize_new_version(self, new_version):
+        """
+        Remove duplicate packages that have the same filename.
+        """
+        remove_duplicates(new_version)
+        validate_repo_version(new_version)
