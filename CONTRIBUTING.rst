@@ -4,11 +4,11 @@ Community
 This plugin exists to serve the community. If we can do more for your use case, please let us know!
 Also, contributions are greatly appreciated in the form of:
 
-  1. `Redmine Issues <https://pulp.plan.io/projects/pulp_python/issues>`_
+  1. `Github Issues <https://github.com/pulp/pulp_python/issues>`_
   2. `Github Pull Requests <https://github.com/pulp/pulp_python>`_
-  3. `Helping other users <https://docs.pulpproject.org/en/3.0/nightly/#community>`_
+  3. `Helping other users <https://pulpproject.org/get_involved/>`_
 
-We can usually be found on freenode in `#pulp-dev`, `#pulp`, and `#pulp-python`.
+We can usually be found on Matrix in `#pulp-dev`, `#pulp`, and `#pulp-python`.
 
 Contributing
 ============

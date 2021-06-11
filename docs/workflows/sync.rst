@@ -28,7 +28,7 @@ Repository Create Response::
     }
 
 Reference (pulpcore): `Repository API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/repositories>`_
+<https://docs.pulpproject.org/pulpcore/restapi.html#tag/Repositories>`_
 
 .. _create-remote:
 
@@ -71,7 +71,7 @@ Remote Create Response::
     }
 
 
-Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
+Reference: `Python Remote Usage <../restapi.html#tag/Remotes:-Python>`_
 
 A More Complex Remote
 ---------------------
@@ -115,7 +115,7 @@ You can also filter packages by their type, platform and amount synced through t
         --exclude-platforms '["windows"]' # exclude any packages built for windows \
         --keep-latest-packages 5 # keep the five latest versions
 
-Reference: `Python Remote Usage <../restapi.html#tag/remotes>`_
+Reference: `Python Remote Usage <../restapi.html#tag/Remotes:-Python>`_
 
 .. _mirror-workflow:
 
@@ -173,7 +173,7 @@ Repository Version Show Response (when complete)::
 
 
 
-Reference: `Python Sync Usage <../restapi.html#operation/remotes_python_python_sync>`_
+Reference: `Python Sync Usage <../restapi.html#operation/repositories_python_python_sync>`_
 
 Reference (pulpcore): `Repository Version Creation API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#operation/repositories_versions_list>`_
+<https://docs.pulpproject.org/pulpcore/restapi.html#operation/repository_versions_list>`_
