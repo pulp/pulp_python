@@ -1,8 +1,4 @@
 from gettext import gettext as _
-import shutil
-import tempfile
-
-from django.core.files.storage import default_storage as storage
 from django.conf import settings
 from packaging.requirements import Requirement
 from rest_framework import serializers
@@ -11,8 +7,7 @@ from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
 
 from pulp_python.app import models as python_models
-from pulp_python.app.tasks.upload import DIST_EXTENSIONS, DIST_TYPES
-from pulp_python.app.utils import parse_project_metadata
+from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
 
 
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
@@ -51,6 +46,13 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         default=True,
         help_text=_("Allow packages to be uploaded to this index.")
     )
+    remote = core_serializers.DetailRelatedField(
+        required=False,
+        help_text=_('Remote that can be used to fetch content when using pull-through caching.'),
+        view_name_pattern=r"remotes(-.*/.*)?-detail",
+        queryset=core_models.Remote.objects.all(),
+        allow_null=True
+    )
 
     def get_base_url(self, obj):
         """Gets the base url."""
@@ -58,7 +60,7 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
 
     class Meta:
         fields = core_serializers.DistributionSerializer.Meta.fields + (
-            'publication', "allow_uploads"
+            'publication', "allow_uploads", "remote"
         )
         model = python_models.PythonDistribution
 
@@ -209,25 +211,15 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         except KeyError:
             raise serializers.ValidationError(detail={"relative_path": _('This field is required')})
 
-        # iterate through extensions since splitext does not support things like .tar.gz
-        for ext, packagetype in DIST_EXTENSIONS.items():
-            if filename.endswith(ext):
-                # Copy file to a temp directory under the user provided filename, we do this
-                # because pkginfo validates that the filename has a valid extension before
-                # reading it
-                with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
-                    artifact = data["artifact"]
-                    artifact_file = storage.open(artifact.file.name)
-                    shutil.copyfileobj(artifact_file, temp_file)
-                    temp_file.flush()
-                    metadata = DIST_TYPES[packagetype](temp_file.name)
-                    metadata.packagetype = packagetype
-                    break
-        else:
+        artifact = data["artifact"]
+        try:
+            metadata = get_project_metadata_from_artifact(filename, artifact)
+        except ValueError:
             raise serializers.ValidationError(_(
                 "Extension on {} is not a valid python extension "
                 "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(filename)
             )
+
         if data.get("sha256") and data["sha256"] != artifact.sha256:
             raise serializers.ValidationError(
                 detail={"sha256": _(

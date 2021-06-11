@@ -20,6 +20,7 @@ source sync.sh
 source publication.sh
 source distribution.sh
 source autoupdate.sh
+source pullthrough.sh
 source pip.sh
 
 source upload.sh

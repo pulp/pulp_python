@@ -35,7 +35,7 @@ How to use these docs
 =====================
 
 The documentation here should be considered the **primary documentation for managing Python related content.**
-All relevent workflows are covered here, with references to some pulpcore supplemental docs.
+All relevant workflows are covered here, with references to some pulpcore supplemental docs.
 Users may also find pulpcore’s conceptual docs useful.
 
 This documentation falls into two main categories:

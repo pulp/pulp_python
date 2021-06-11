@@ -137,6 +137,9 @@ the excludes field. Default Python remotes are created with syncing policy "on_d
 Python remotes involve syncing with PyPI which requires terabytes of disk space. This can be changed by
 modifying the "policy" field.
 
+Syncing all of PyPI can take a long time depending on your network and disk speeds. Check out
+:ref:`pull-through caching <pull-through-cache>` to learn about another way to mirror PyPI.
+
 Sync repository foo with remote
 -------------------------------
 

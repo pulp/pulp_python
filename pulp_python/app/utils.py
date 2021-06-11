@@ -1,9 +1,14 @@
+import pkginfo
+import shutil
+import tempfile
 import json
 from collections import defaultdict
+from django.core.files.storage import default_storage as storage
 from django.conf import settings
 from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.version import parse
+
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
@@ -37,6 +42,22 @@ simple_detail_template = """<!DOCTYPE html>
 </body>
 </html>
 """
+
+DIST_EXTENSIONS = {
+    ".whl": "bdist_wheel",
+    ".exe": "bdist_wininst",
+    ".egg": "bdist_egg",
+    ".tar.bz2": "sdist",
+    ".tar.gz": "sdist",
+    ".zip": "sdist",
+}
+
+DIST_TYPES = {
+    "bdist_wheel": pkginfo.Wheel,
+    "bdist_wininst": pkginfo.Distribution,
+    "bdist_egg": pkginfo.BDist,
+    "sdist": pkginfo.SDist,
+}
 
 
 def parse_project_metadata(project):
@@ -106,6 +127,29 @@ def parse_metadata(project, version, distribution):
     package.update(parse_project_metadata(project))
 
     return package
+
+
+def get_project_metadata_from_artifact(filename, artifact):
+    """
+    Gets the metadata of a Python Package.
+
+    Raises ValueError if filename has an unsupported extension
+    """
+    extensions = list(DIST_EXTENSIONS.keys())
+    # Iterate through extensions since splitext does not support things like .tar.gz
+    # If no supported extension is found, ValueError is raised here
+    pkg_type_index = [filename.endswith(ext) for ext in extensions].index(True)
+    packagetype = DIST_EXTENSIONS[extensions[pkg_type_index]]
+    # Copy file to a temp directory under the user provided filename, we do this
+    # because pkginfo validates that the filename has a valid extension before
+    # reading it
+    with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
+        artifact_file = storage.open(artifact.file.name)
+        shutil.copyfileobj(artifact_file, temp_file)
+        temp_file.flush()
+        metadata = DIST_TYPES[packagetype](temp_file.name)
+        metadata.packagetype = packagetype
+        return metadata
 
 
 def python_content_to_json(base_path, content_query, version=None):

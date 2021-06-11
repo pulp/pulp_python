@@ -2,7 +2,7 @@ import logging
 from gettext import gettext as _
 
 from rest_framework import serializers
-from pulp_python.app.tasks.upload import DIST_EXTENSIONS
+from pulp_python.app.utils import DIST_EXTENSIONS
 from pulpcore.plugin.models import Artifact
 from django.db.utils import IntegrityError
 

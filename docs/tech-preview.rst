@@ -8,3 +8,4 @@ The following features are currently being released as part of a tech preview
 * PyPI’s json API at content endpoint ‘/pypi/{package-name}/json’. Allows for basic Pulp-to-Pulp syncing.
 * Fully mirror Python repositories like PyPI.
 * ``Twine`` upload packages to indexes at endpoints '/simple` or '/legacy'.
+* Create pull-through caches of remote sources.

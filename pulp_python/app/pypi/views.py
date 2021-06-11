@@ -1,4 +1,5 @@
 import logging
+import requests
 
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
@@ -20,9 +21,10 @@ from django.http.response import (
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
 from itertools import chain
-from urllib.parse import urljoin
-from pathlib import PurePath
 from packaging.utils import canonicalize_name
+from urllib.parse import urljoin, urlparse, urlunsplit
+from pathlib import PurePath
+from pypi_simple.parse_stream import parse_links_stream_response
 
 from pulpcore.plugin.tasking import dispatch
 from pulp_python.app.models import (
@@ -70,7 +72,7 @@ class PyPIMixin:
     def get_distribution(path):
         """Finds the distribution associated with this base_path."""
         distro_qs = PythonDistribution.objects.select_related(
-            "repository", "publication", "publication__repository_version"
+            "repository", "publication", "publication__repository_version", "remote"
         )
         try:
             return distro_qs.get(base_path=path)
@@ -92,6 +94,8 @@ class PyPIMixin:
     def get_drvc(self, path):
         """Takes the base_path and returns the distribution, repository_version and content."""
         distro = self.get_distribution(path)
+        if distro.remote and not distro.repository and not distro.publication:
+            return distro, None, None
         repo_ver = self.get_repository_version(distro)
         content = self.get_content(repo_ver)
         return distro, repo_ver, content
@@ -186,12 +190,31 @@ class SimpleView(ViewSet, PackageUploadMixin):
         names = content.order_by('name').values_list('name', flat=True).distinct().iterator()
         return StreamingHttpResponse(write_simple_index(names, streamed=True))
 
+    def pull_through_package_simple(self, package, path, remote):
+        """Gets the package's simple page from remote."""
+        def parse_url(link):
+            parsed = urlparse(link.url)
+            digest, _, value = parsed.fragment.partition('=')
+            stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
+            redirect = f'{path}/{link.text}?redirect={stripped_url}'
+            d_url = urljoin(BASE_CONTENT_URL, redirect)
+            return link.text, d_url, value if digest == 'sha256' else ''
+
+        url = remote.get_remote_artifact_url(f'simple/{package}/')
+        response = requests.get(url, stream=True)
+        links = parse_links_stream_response(response)
+        packages = (parse_url(link) for link in links)
+        return StreamingHttpResponse(write_simple_detail(package, packages, streamed=True))
+
     @extend_schema(summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html page for a package."""
         distro, repo_ver, content = self.get_drvc(path)
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
+        if distro.remote:
+            if not repo_ver or not content.filter(name__normalize=normalized).exists():
+                return self.pull_through_package_simple(normalized, path, distro.remote)
         if self.should_redirect(distro, repo_version=repo_ver):
             return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/{normalized}/'))
         packages = (
