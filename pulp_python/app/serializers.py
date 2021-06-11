@@ -12,6 +12,7 @@ from pulpcore.plugin import serializers as core_serializers
 from pulp_python.app import models as python_models
 from pulp_python.app.tasks.upload import DIST_EXTENSIONS, DIST_TYPES
 from pulp_python.app.utils import parse_project_metadata
+from pulp_python.app.urls import PYPI_API_HOSTNAME
 
 
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
@@ -46,10 +47,14 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         allow_null=True,
     )
     base_url = serializers.SerializerMethodField(read_only=True)
+    allow_uploads = serializers.BooleanField(
+        default=True,
+        help_text=_("Allow packages to be uploaded to this index.")
+    )
 
     def get_base_url(self, obj):
         """Gets the base url."""
-        return f"/pypi/{obj.base_path}/"
+        return f"{PYPI_API_HOSTNAME}/pypi/{obj.base_path}/"
 
     def validate(self, data):
         """
@@ -74,7 +79,9 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         return data
 
     class Meta:
-        fields = core_serializers.DistributionSerializer.Meta.fields + ('publication', )
+        fields = core_serializers.DistributionSerializer.Meta.fields + (
+            'publication', "allow_uploads"
+        )
         model = python_models.PythonDistribution
 
 

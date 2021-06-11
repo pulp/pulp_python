@@ -24,6 +24,7 @@ Pulp CLI documentation on how to do that.
 .. toctree::
    :maxdepth: 2
 
+   pypi
    sync
    upload
    publish

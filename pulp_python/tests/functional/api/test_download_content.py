@@ -24,10 +24,6 @@ from pulp_python.tests.functional.utils import (
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
-PYPI_SERIAL_CONSTANT = 1000000000
-
-
 class DownloadContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
     """Verify whether content served by pulp can be downloaded."""
 

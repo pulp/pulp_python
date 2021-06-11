@@ -2,14 +2,27 @@ import logging
 
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
-from django.http.response import Http404, StreamingHttpResponse
+from datetime import datetime, timezone, timedelta
+
+from rest_framework.reverse import reverse
+from django.contrib.sessions.models import Session
+from django.db import transaction
+from django.db.utils import DatabaseError
+from django.http.response import (
+    Http404,
+    HttpResponseForbidden,
+    HttpResponseBadRequest,
+    StreamingHttpResponse
+)
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
 from urllib.parse import urljoin
 from pathlib import PurePath
 
+from pulpcore.plugin.tasking import dispatch
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
@@ -18,6 +31,8 @@ from pulp_python.app.models import (
 from pulp_python.app.pypi.serializers import (
     SummarySerializer,
     PackageMetadataSerializer,
+    PackageUploadSerializer,
+    PackageUploadTaskSerializer
 )
 from pulp_python.app.utils import (
     write_simple_index,
@@ -26,6 +41,8 @@ from pulp_python.app.utils import (
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
 )
+
+from pulp_python.app import tasks
 
 log = logging.getLogger(__name__)
 
@@ -78,11 +95,82 @@ class PyPIMixin:
         return distro, repo_ver, content
 
 
-class SimpleView(ViewSet, PyPIMixin):
+class PackageUploadMixin(PyPIMixin):
+    """A Mixin to provide package upload support."""
+
+    def upload(self, request, path):
+        """
+        Upload a package to the index.
+
+        0. Check if the index allows uploaded packages (live-api-enabled)
+        1. Check request is in correct format
+        2. Check if the package is in the repository already
+        3. If present then reject request
+        4. Spawn task to add content if no/old session present
+        5. Add uploads to current session to group into one task
+        """
+        distro = self.get_distribution(path)
+        if not distro.allow_uploads:
+            return HttpResponseForbidden(reason="Index is not allowing uploads")
+
+        repo = distro.repository
+        if not repo:
+            return HttpResponseBadRequest(reason="Index is not pointing to a repository")
+
+        serializer = PackageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        artifact, filename = serializer.validated_data["content"]
+        repo_content = self.get_content(self.get_repository_version(distro))
+        if repo_content.filter(filename=filename).exists():
+            return HttpResponseBadRequest(reason=f"Package {filename} already exists in index")
+
+        return self.upload_package(repo, artifact, filename, request.session)
+
+    def upload_package(self, repo, artifact, filename, session):
+        """Steps 4 & 5, spawns tasks to add packages to index."""
+        start_time = datetime.now(tz=timezone.utc) + timedelta(seconds=5)
+        task = "updated"
+        if not session.get("start"):
+            task = self.create_upload_task(session, repo, artifact, filename, start_time)
+        else:
+            sq = Session.objects.select_for_update(nowait=True).filter(pk=session.session_key)
+            with transaction.atomic():
+                try:
+                    sq.first()
+                    try:
+                        current_start = datetime.fromisoformat(session['start'])
+                    except AttributeError:
+                        from dateutil.parser import parse
+                        current_start = parse(session['start'])
+                    if current_start >= datetime.now(tz=timezone.utc):
+                        session['artifacts'].append((str(artifact.sha256), filename))
+                        session['start'] = str(start_time)
+                        session.modified = False
+                        session.save()
+                    else:
+                        raise DatabaseError
+                except DatabaseError:
+                    session.cycle_key()
+                    task = self.create_upload_task(session, repo, artifact, filename, start_time)
+        data = {"session": session.session_key, "task": task, "task_start_time": start_time}
+        return Response(data=data)
+
+    def create_upload_task(self, cur_session, repository, artifact, filename, start_time):
+        """Creates the actual task that adds the packages to the index."""
+        cur_session['start'] = str(start_time)
+        cur_session['artifacts'] = [(str(artifact.sha256), filename)]
+        cur_session.modified = False
+        cur_session.save()
+        result = dispatch(tasks.upload, [artifact, repository],
+                          kwargs={"session_pk": str(cur_session.session_key),
+                                  "repository_pk": str(repository.pk)})
+        return reverse('tasks-detail', args=[result.pk], request=None)
+
+
+class SimpleView(ViewSet, PackageUploadMixin):
     """View for the PyPI simple API."""
 
-    authentication_classes = []
-    permission_classes = []
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     @extend_schema(summary="Get index simple page")
     def list(self, request, path):
@@ -105,6 +193,18 @@ class SimpleView(ViewSet, PyPIMixin):
         return StreamingHttpResponse(
             write_simple_detail(package, detail_packages, streamed=True)
         )
+
+    @extend_schema(request=PackageUploadSerializer,
+                   responses={200: PackageUploadTaskSerializer},
+                   summary="Upload a package")
+    def create(self, request, path):
+        """
+        Upload package to the index.
+        This endpoint has the same functionality as the upload endpoint at the `/legacy` url of the
+        index. This is provided for convenience for users who want a single index url for all their
+        Python tools. (pip, twine, poetry, pipenv, ...)
+        """
+        return self.upload(request, path)
 
 
 class MetadataView(ViewSet, PyPIMixin):
@@ -157,3 +257,18 @@ class PyPIView(ViewSet, PyPIMixin):
         projects = content.distinct("name").count()
         data = {"projects": projects, "releases": releases, "files": files}
         return Response(data=data)
+
+
+class UploadView(ViewSet, PackageUploadMixin):
+    """View for the `/legacy` upload endpoint."""
+
+    @extend_schema(request=PackageUploadSerializer,
+                   responses={200: PackageUploadTaskSerializer},
+                   summary="Upload a package")
+    def create(self, request, path):
+        """
+        Upload package to the index.
+
+        This is the endpoint that tools like Twine and Poetry use for their upload commands.
+        """
+        return self.upload(request, path)
