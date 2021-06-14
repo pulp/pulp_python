@@ -208,7 +208,7 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
             capture_output=True,
             check=True,
         )
-        task = task_api.list(reserved_resources_record=repo.pulp_href).results[0]
+        task = task_api.list(reserved_resources_record=[repo.pulp_href]).results[0]
         monitor_task(task.pulp_href)
         content = get_added_content_summary(repo, f"{repo.versions_href}1/")
         self.assertDictEqual({PYTHON_CONTENT_NAME: 2}, content)
