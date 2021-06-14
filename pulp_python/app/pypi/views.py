@@ -134,24 +134,24 @@ class PackageUploadMixin(PyPIMixin):
             task = self.create_upload_task(session, repo, artifact, filename, start_time)
         else:
             sq = Session.objects.select_for_update(nowait=True).filter(pk=session.session_key)
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     sq.first()
-                    try:
-                        current_start = datetime.fromisoformat(session['start'])
-                    except AttributeError:
-                        from dateutil.parser import parse
-                        current_start = parse(session['start'])
-                    if current_start >= datetime.now(tz=timezone.utc):
-                        session['artifacts'].append((str(artifact.sha256), filename))
-                        session['start'] = str(start_time)
-                        session.modified = False
-                        session.save()
-                    else:
-                        raise DatabaseError
-                except DatabaseError:
-                    session.cycle_key()
-                    task = self.create_upload_task(session, repo, artifact, filename, start_time)
+                try:
+                    current_start = datetime.fromisoformat(session['start'])
+                except AttributeError:
+                    from dateutil.parser import parse
+                    current_start = parse(session['start'])
+                if current_start >= datetime.now(tz=timezone.utc):
+                    session['artifacts'].append((str(artifact.sha256), filename))
+                    session['start'] = str(start_time)
+                    session.modified = False
+                    session.save()
+                else:
+                    raise DatabaseError
+            except DatabaseError:
+                session.cycle_key()
+                task = self.create_upload_task(session, repo, artifact, filename, start_time)
         data = {"session": session.session_key, "task": task, "task_start_time": start_time}
         return Response(data=data)
 
