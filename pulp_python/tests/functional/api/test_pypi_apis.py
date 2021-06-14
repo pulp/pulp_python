@@ -123,31 +123,7 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
         )
 
     def test_package_upload_session(self):
-        """Tests that multiple packages can be uploaded in one session."""
-        repo, distro = self._create_empty_repo_and_distribution()
-        url = urljoin(PYPI_HOST, distro.base_path + "/legacy/")
-        session = requests.Session()
-        response = session.post(
-            url,
-            data={"sha256_digest": PYTHON_EGG_SHA256},
-            files={"content": open(self.egg, "rb")},
-        )
-        response2 = session.post(
-            url,
-            data={"sha256_digest": PYTHON_WHEEL_SHA256},
-            files={"content": open(self.wheel, "rb")},
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response2.status_code, 200)
-        response, response2 = response.json(), response2.json()
-        self.assertEqual(response["session"], response2["session"])
-        self.assertEqual(response2["task"], "updated")
-        monitor_task(response["task"])
-        content = get_added_content_summary(repo, f"{repo.versions_href}1/")
-        self.assertDictEqual({PYTHON_CONTENT_NAME: 2}, content)
-
-    def test_package_upload_session_long(self):
-        """Tests that long uploads will be broken up into multiple tasks."""
+        """Tests that multiple uploads will be broken up into multiple tasks."""
         repo, distro = self._create_empty_repo_and_distribution()
         url = urljoin(PYPI_HOST, distro.base_path + "/legacy/")
         session = requests.Session()
@@ -166,8 +142,6 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
         )
         self.assertEqual(response2.status_code, 200)
         response2 = response2.json()
-        self.assertNotEqual("updated", response2["task"])
-        self.assertNotEqual(response["session"], response2["session"])
         self.assertNotEqual(response["task"], response2["task"])
         monitor_task(response2["task"])
         content = get_content_summary(repo, f"{repo.versions_href}2/")
@@ -208,9 +182,11 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
             capture_output=True,
             check=True,
         )
-        task = task_api.list(reserved_resources_record=repo.pulp_href).results[0]
-        monitor_task(task.pulp_href)
-        content = get_added_content_summary(repo, f"{repo.versions_href}1/")
+        tasks = task_api.list(reserved_resources_record=[repo.pulp_href]).results
+        for task in reversed(tasks):
+            t = monitor_task(task.pulp_href)
+            repo_ver_href = t.created_resources[-1]
+        content = get_content_summary(repo, f"{repo_ver_href}")
         self.assertDictEqual({PYTHON_CONTENT_NAME: 2}, content)
 
         # Test re-uploading same packages gives error

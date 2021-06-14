@@ -124,18 +124,25 @@ class PackageUploadMixin(PyPIMixin):
         if repo_content.filter(filename=filename).exists():
             return HttpResponseBadRequest(reason=f"Package {filename} already exists in index")
 
-        return self.upload_package(repo, artifact, filename, request.session)
+        if settings.PYTHON_GROUP_UPLOADS:
+            return self.upload_package_group(repo, artifact, filename, request.session)
 
-    def upload_package(self, repo, artifact, filename, session):
+        result = dispatch(tasks.upload, [artifact, repo],
+                          kwargs={"artifact_sha256": artifact.sha256,
+                                  "filename": filename,
+                                  "repository_pk": str(repo.pk)})
+        return Response(data={"task": reverse('tasks-detail', args=[result.pk], request=None)})
+
+    def upload_package_group(self, repo, artifact, filename, session):
         """Steps 4 & 5, spawns tasks to add packages to index."""
         start_time = datetime.now(tz=timezone.utc) + timedelta(seconds=5)
         task = "updated"
         if not session.get("start"):
-            task = self.create_upload_task(session, repo, artifact, filename, start_time)
+            task = self.create_group_upload_task(session, repo, artifact, filename, start_time)
         else:
             sq = Session.objects.select_for_update(nowait=True).filter(pk=session.session_key)
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     sq.first()
                     try:
                         current_start = datetime.fromisoformat(session['start'])
@@ -149,19 +156,19 @@ class PackageUploadMixin(PyPIMixin):
                         session.save()
                     else:
                         raise DatabaseError
-                except DatabaseError:
-                    session.cycle_key()
-                    task = self.create_upload_task(session, repo, artifact, filename, start_time)
+            except DatabaseError:
+                session.cycle_key()
+                task = self.create_group_upload_task(session, repo, artifact, filename, start_time)
         data = {"session": session.session_key, "task": task, "task_start_time": start_time}
         return Response(data=data)
 
-    def create_upload_task(self, cur_session, repository, artifact, filename, start_time):
+    def create_group_upload_task(self, cur_session, repository, artifact, filename, start_time):
         """Creates the actual task that adds the packages to the index."""
         cur_session['start'] = str(start_time)
         cur_session['artifacts'] = [(str(artifact.sha256), filename)]
         cur_session.modified = False
         cur_session.save()
-        result = dispatch(tasks.upload, [artifact, repository],
+        result = dispatch(tasks.upload_group, [artifact, repository],
                           kwargs={"session_pk": str(cur_session.session_key),
                                   "repository_pk": str(repository.pk)})
         return reverse('tasks-detail', args=[result.pk], request=None)

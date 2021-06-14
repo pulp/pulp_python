@@ -30,7 +30,24 @@ DIST_TYPES = {
 }
 
 
-def upload(session_pk, repository_pk=None):
+def upload(artifact_sha256, filename, repository_pk=None):
+    """
+    Uploads a Python Package to Pulp
+
+    Args:
+        artifact_sha256: the sha256 of the artifact in Pulp to create a package from
+        filename: the full filename of the package to create
+        repository_pk: the optional pk of the repository to add the content to
+    """
+    pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256)
+    content_to_add = pre_check or create_content(artifact_sha256, filename)
+    if repository_pk:
+        repository = PythonRepository.objects.get(pk=repository_pk)
+        with repository.new_version() as new_version:
+            new_version.add_content(content_to_add)
+
+
+def upload_group(session_pk, repository_pk=None):
     """
     Uploads a Python Package to Pulp
 
