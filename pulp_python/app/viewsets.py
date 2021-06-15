@@ -20,7 +20,8 @@ from pulp_python.app import tasks
 
 class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryActionMixin):
     """
-    A ViewSet for PythonRepository.
+    PythonRepository represents a single Python repository, to which content can be
+    synced, added, or removed.
     """
 
     endpoint_name = 'python'
@@ -28,7 +29,6 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
     serializer_class = python_serializers.PythonRepositorySerializer
 
     @extend_schema(
-        description="Trigger an asynchronous task to sync Python content.",
         summary="Sync from remote",
         responses={202: AsyncOperationResponseSerializer}
     )
@@ -37,7 +37,7 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
         """
         <!-- User-facing documentation, rendered as html-->
         Trigger an asynchronous task to sync python content. The sync task will retrieve Python
-        content from the specified `Remote` and " update the specified `Respository`, creating a
+        content from the specified `Remote` and update the specified `Respository`, creating a
         new  `RepositoryVersion`.
         """
         repository = self.get_object()
@@ -72,11 +72,12 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
 class PythonDistributionViewSet(core_viewsets.DistributionViewSet):
     """
     <!-- User-facing documentation, rendered as html-->
-    Pulp Python Distributions are used to distribute
-    <a href="../restapi.html#tag/publications">Python Publications.</a> <b> Pulp Python
+    Pulp Python Distributions are used to distribute Python content from
+    <a href="./#tag/Repositories:-Python">Python Repositories</a> or
+    <a href="./#tag/Publications:-Pypi">Python Publications.</a> <b> Pulp Python
     Distributions should not be confused with "Python Distribution" as defined by the Python
-    community.</b> In Pulp usage, Python content is refered to as <a
-    href="../restapi.html#tag/content">Python Package Content.</a>
+    community.</b> In Pulp usage, Python content is referred to as <a
+    href="./#tag/Content:-Packages">Python Package Content.</a>
     """
 
     endpoint_name = 'pypi'
@@ -134,7 +135,6 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     serializer_class = python_serializers.PythonRemoteSerializer
 
     @extend_schema(
-        description="Create a remote from a Bandersnatch config",
         summary="Create from Bandersnatch",
         responses={201: python_serializers.PythonRemoteSerializer},
     )
@@ -143,8 +143,7 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     def from_bandersnatch(self, request):
         """
         <!-- User-facing documentation, rendered as html-->
-        Takes the fields specified in the Bandersnatch config and creates a Python Remote from
-        it.
+        Takes the fields specified in the Bandersnatch config and creates a Python Remote from it.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -196,7 +195,6 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
     serializer_class = python_serializers.PythonPublicationSerializer
 
     @extend_schema(
-        description="Trigger an asynchronous task to publish python content.",
         responses={202: AsyncOperationResponseSerializer}
     )
     def create(self, request):

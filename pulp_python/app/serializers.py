@@ -110,7 +110,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         read_only=True,
     )
     sha256 = serializers.CharField(
-        default='', allow_blank=True,
+        default='',
         help_text=_('The SHA256 digest of this package.'),
     )
     metadata_version = serializers.CharField(
@@ -328,7 +328,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     )
     policy = serializers.ChoiceField(
         help_text=_("The policy to use when downloading content. The possible values include: "
-                    "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
+                    "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."),
         choices=core_models.Remote.POLICY_CHOICES,
         default=core_models.Remote.ON_DEMAND
     )
@@ -400,7 +400,7 @@ class PythonBanderRemoteSerializer(serializers.Serializer):
 
     policy = serializers.ChoiceField(
         help_text=_("The policy to use when downloading content. The possible values include: "
-                    "'immediate', 'on_demand', and 'cache_only'. 'immediate' is the default."),
+                    "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."),
         choices=core_models.Remote.POLICY_CHOICES,
         default=core_models.Remote.ON_DEMAND
     )
