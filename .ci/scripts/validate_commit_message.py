@@ -6,20 +6,22 @@
 # For more info visit https://github.com/pulp/plugin_template
 
 import re
-
 import subprocess
 import sys
 from pathlib import Path
 
+
 from github import Github
 
-KEYWORDS = ["fixes", "closes"]
+
 NO_ISSUE = "[noissue]"
 CHANGELOG_EXTS = [".feature", ".bugfix", ".doc", ".removal", ".misc", ".deprecation"]
 
+
+KEYWORDS = ["fixes", "closes"]
+
 sha = sys.argv[1]
 message = subprocess.check_output(["git", "log", "--format=%B", "-n 1", sha]).decode("utf-8")
-
 g = Github()
 repo = g.get_repo("pulp/pulp_python")
 
