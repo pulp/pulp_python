@@ -51,6 +51,7 @@ cover/
 
 # Sphinx documentation
 docs/_build/
+docs/_static/api.json
 
 # PyBuilder
 target/

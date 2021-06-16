@@ -6,6 +6,7 @@ SPHINXOPTS    = -W -n
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
+STATIC_BUILD_DIR = _static
 PULP_URL      = "http://localhost:24817"
 
 # Internal variables.
@@ -43,6 +44,7 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
+	mkdir -p $(STATIC_BUILD_DIR)
 	curl --fail -o _static/api.json "$(PULP_URL)/pulp/api/v3/docs/api.json?plugin=pulp_python&include_html=1"
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
