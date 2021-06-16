@@ -1,0 +1,1 @@
+Fixed sync to use default concurrency (10) when download_concurrency was not specified

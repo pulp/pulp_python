@@ -166,6 +166,7 @@ class PythonRemote(Remote):
     """
 
     TYPE = 'python'
+    DEFAULT_DOWNLOAD_CONCURRENCY = 10
     prereleases = models.BooleanField(default=False)
     includes = JSONField(default=list)
     excludes = JSONField(default=list)
