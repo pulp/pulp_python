@@ -31,8 +31,8 @@ plugin_name: pulp_python
 plugin_snake: pulp_python
 publish_docs_to_pulpprojectdotorg: true
 pulp_settings: null
-pulpcore_branch: master
-pulpcore_pip_version_specifier: null
+pulpcore_branch: 3.13
+pulpcore_pip_version_specifier: ~=3.13.0
 pulpprojectdotorg_key_id: null
 pydocstyle: true
 pypi_username: pulp
