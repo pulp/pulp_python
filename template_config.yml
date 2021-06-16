@@ -2,10 +2,12 @@
 # were not present before running plugin-template have been added with their default values.
 
 additional_plugins: []
+additional_repos: []
 black: false
 check_commit_message: true
 check_gettext: true
 check_manifest: true
+check_openapi_schema: true
 check_stray_pulpcore_imports: true
 cherry_pick_automation: false
 coverage: false
@@ -27,7 +29,7 @@ plugin_dash_short: python
 plugin_default_branch: master
 plugin_name: pulp_python
 plugin_snake: pulp_python
-publish_docs_to_pulpprojectdotorg: false
+publish_docs_to_pulpprojectdotorg: true
 pulp_settings: null
 pulpcore_branch: master
 pulpcore_pip_version_specifier: null
@@ -35,6 +37,7 @@ pulpprojectdotorg_key_id: null
 pydocstyle: true
 pypi_username: pulp
 redmine_project: null
+release_user: pulpbot
 stable_branch: null
 test_bindings: false
 test_cli: false
@@ -45,4 +48,5 @@ test_s3: false
 travis_addtl_services: []
 travis_notifications: None
 update_redmine: false
+upgrade_range: []
 
