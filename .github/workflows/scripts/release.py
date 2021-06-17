@@ -21,6 +21,38 @@ from git import Repo
 from packaging.requirements import Requirement
 
 
+async def get_package_from_pypi(package_name, plugin_path):
+    """
+    Download a package from PyPI.
+
+    :param name: name of the package to download from PyPI
+    :return: String path to the package
+    """
+    config = BandersnatchConfig().config
+    config["mirror"]["master"] = "https://pypi.org"
+    config["mirror"]["workers"] = "1"
+    config["mirror"]["directory"] = plugin_path
+    if not config.has_section("plugins"):
+        config.add_section("plugins")
+    config["plugins"]["enabled"] = "blocklist_release\n"
+    if not config.has_section("allowlist"):
+        config.add_section("allowlist")
+    config["plugins"]["enabled"] += "allowlist_release\nallowlist_project\n"
+    config["allowlist"]["packages"] = "\n".join([package_name])
+    os.makedirs(os.path.join(plugin_path, "dist"), exist_ok=True)
+    async with Master("https://pypi.org/") as master:
+        mirror = BandersnatchMirror(homedir=plugin_path, master=master)
+        name = Requirement(package_name).name
+        result = await mirror.synchronize([name])
+    package_found = False
+
+    for package in result[name]:
+        current_path = os.path.join(plugin_path, package)
+        destination_path = os.path.join(plugin_path, "dist", os.path.basename(package))
+        shutil.move(current_path, destination_path)
+        package_found = True
+    return package_found
+
 
 def create_release_commits(repo, release_version, plugin_path):
     """Build changelog, set version, commit, bump to next dev version, commit."""
@@ -96,8 +128,11 @@ def create_tag_and_build_package(repo, desired_tag, commit_sha, plugin_path):
 
     # Check if Package is available on PyPI
     loop = asyncio.get_event_loop()  # noqa
-    package_found = asyncio.run(get_package_from_pypi("pulp-python=={tag.name}", plugin_path))
-
+    # fmt: off
+    package_found = asyncio.run(
+        get_package_from_pypi("pulp-python=={tag.name}", plugin_path)
+    )  # noqa
+    # fmt: on
     if not package_found:
         os.system("python3 setup.py sdist bdist_wheel --python-tag py3")
 
