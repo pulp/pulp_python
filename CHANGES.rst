@@ -13,6 +13,31 @@ Changelog
 
 .. towncrier release notes start
 
+3.4.0 (2021-06-17)
+
+Features
+--------
+
+- Added ``twine`` (and other similar Python tools) package upload support
+  `#342 <https://github.com/pulp/pulp_python/issues/342>`_
+- PyPI endpoints are now available at ``/pypi/{base_path}/``
+  `#376 <https://github.com/pulp/pulp_python/issues/376>`_
+- Changed the global uniqueness constraint for ``PythonPackageContent`` to its sha256 digest
+  `#380 <https://github.com/pulp/pulp_python/issues/380>`_
+
+
+Bugfixes
+--------
+
+- Added missing fields to PyPI live JSON API to be compliant with core metadata version 2.1
+  `#352 <https://github.com/pulp/pulp_python/issues/352>`_
+- Fixed sync to use default concurrency (10) when download_concurrency was not specified
+  `#391 <https://github.com/pulp/pulp_python/issues/391>`_
+
+
+----
+
+
 3.3.0 (2021-05-27)
 ==================
 
