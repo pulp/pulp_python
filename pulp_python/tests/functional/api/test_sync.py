@@ -2,9 +2,8 @@
 """Tests that sync python plugin repositories."""
 import unittest
 
-from pulp_smash import cli, config
+from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.constants import MEDIA_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_added_content_summary,
@@ -112,45 +111,7 @@ class BasicSyncTestCase(unittest.TestCase):
             get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
         )
 
-    def test_file_decriptors(self):
-        """Test whether file descriptors are closed properly.
 
-        This test targets the following issue:
-
-        `Pulp #4073 <https://pulp.plan.io/issues/4073>`_
-
-        Do the following:
-
-        1. Check if 'lsof' is installed. If it is not, skip this test.
-        2. Create and sync a repo.
-        3. Run the 'lsof' command to verify that files in the
-           path ``/var/lib/pulp/`` are closed after the sync.
-        4. Assert that issued command returns `0` opened files.
-        """
-        cli_client = cli.Client(self.cfg, cli.echo_handler)
-
-        # check if 'lsof' is available
-        if cli_client.run(("which", "lsof")).returncode != 0:
-            raise unittest.SkipTest("lsof package is not present")
-
-        repo_api = RepositoriesPythonApi(self.client)
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
-
-        remote_api = RemotesPythonApi(self.client)
-        remote = remote_api.create(gen_python_remote())
-        self.addCleanup(remote_api.delete, remote.pulp_href)
-
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-
-        cmd = "lsof -t +D {}".format(MEDIA_PATH).split()
-        response = cli_client.run(cmd).stdout
-        self.assertEqual(len(response), 0, response)
-
-
-# Implement sync support before enabling this test.
 class SyncInvalidTestCase(unittest.TestCase):
     """Sync a repository with a given url on the remote."""
 
