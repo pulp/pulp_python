@@ -1,4 +1,3 @@
-import os
 import pkginfo
 import shutil
 import tempfile
@@ -7,6 +6,7 @@ import time
 from datetime import datetime, timezone
 from django.db import transaction
 from django.contrib.sessions.models import Session
+from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
@@ -99,11 +99,12 @@ def create_content(artifact_sha256, filename):
     # Copy file to a temp directory under the user provided filename, we do this
     # because pkginfo validates that the filename has a valid extension before
     # reading it
-    with tempfile.TemporaryDirectory() as td:
-        temp_path = os.path.join(td, filename)
-        artifact = Artifact.objects.get(sha256=artifact_sha256)
-        shutil.copy2(artifact.file.path, temp_path)
-        metadata = DIST_TYPES[packagetype](temp_path)
+    artifact = Artifact.objects.get(sha256=artifact_sha256)
+    artifact_file = storage.open(artifact.file.name)
+    with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
+        shutil.copyfileobj(artifact_file, temp_file)
+        temp_file.flush()
+        metadata = DIST_TYPES[packagetype](temp_file.name)
         metadata.packagetype = packagetype
 
     data = parse_project_metadata(vars(metadata))

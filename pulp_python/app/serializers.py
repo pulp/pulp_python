@@ -1,8 +1,8 @@
 from gettext import gettext as _
-import os
 import shutil
 import tempfile
 
+from django.core.files.storage import default_storage as storage
 from packaging.requirements import Requirement
 from rest_framework import serializers
 
@@ -237,11 +237,12 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                 # Copy file to a temp directory under the user provided filename, we do this
                 # because pkginfo validates that the filename has a valid extension before
                 # reading it
-                with tempfile.TemporaryDirectory() as td:
-                    temp_path = os.path.join(td, filename)
+                with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
                     artifact = data["artifact"]
-                    shutil.copy2(artifact.file.path, temp_path)
-                    metadata = DIST_TYPES[packagetype](temp_path)
+                    artifact_file = storage.open(artifact.file.name)
+                    shutil.copyfileobj(artifact_file, temp_file)
+                    temp_file.flush()
+                    metadata = DIST_TYPES[packagetype](temp_file.name)
                     metadata.packagetype = packagetype
                     break
         else:
