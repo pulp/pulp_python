@@ -1,7 +1,6 @@
 from gettext import gettext as _
 import logging
 import os
-import tempfile
 
 from django.core.files import File
 from packaging.utils import canonicalize_name
@@ -30,12 +29,11 @@ def publish(repository_version_pk):
         version=repository_version.number,
     ))
 
-    with tempfile.TemporaryDirectory("."):
-        with python_models.PythonPublication.create(repository_version, pass_through=True) as pub:
-            write_simple_api(pub)
+    with python_models.PythonPublication.create(repository_version, pass_through=True) as pub:
+        write_simple_api(pub)
 
-        log.info(_('Publication: {pk} created').format(pk=pub.pk))
-        return pub
+    log.info(_('Publication: {pk} created').format(pk=pub.pk))
+    return pub
 
 
 def write_simple_api(publication):
