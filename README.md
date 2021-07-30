@@ -6,5 +6,5 @@
 
 A Pulp plugin to support hosting your own pip compatible Python packages.
 
-For more information, please see the [documentation](https://pulp-python.readthedocs.io/en/latest/) or the 
+For more information, please see the [documentation](https://docs.pulpproject.org/pulp_python/) or the
 [Pulp project page](https://pulpproject.org).
