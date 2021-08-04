@@ -144,11 +144,7 @@ class PackageUploadMixin(PyPIMixin):
             try:
                 with transaction.atomic():
                     sq.first()
-                    try:
-                        current_start = datetime.fromisoformat(session['start'])
-                    except AttributeError:
-                        from dateutil.parser import parse
-                        current_start = parse(session['start'])
+                    current_start = datetime.fromisoformat(session['start'])
                     if current_start >= datetime.now(tz=timezone.utc):
                         session['artifacts'].append((str(artifact.sha256), filename))
                         session['start'] = str(start_time)

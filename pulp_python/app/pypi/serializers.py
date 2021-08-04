@@ -77,6 +77,7 @@ class PackageUploadSerializer(serializers.Serializer):
             artifact.save()
         except IntegrityError:
             artifact = Artifact.objects.get(sha256=artifact.sha256)
+            artifact.touch()
             log.info(f"Artifact for {file.name} already existed in database")
         data["content"] = (artifact, file.name)
         return data
