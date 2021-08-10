@@ -2,7 +2,10 @@ from logging import getLogger
 
 from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField, JSONField
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from dynaconf import settings
+from yarl import URL
 
 from pulpcore.plugin.models import (
     Content,
@@ -63,6 +66,34 @@ class PythonDistribution(Distribution):
             name = path.parts[1]
         elif path.match("pypi/*/json"):
             name = path.parts[1]
+        elif len(path.parts) and path.parts[0] == "simple":
+            # Temporary fix for PublishedMetadata not being properly served from remote storage
+            if settings.DEFAULT_FILE_STORAGE != "pulpcore.app.models.storage.FileSystem":
+                publication = self.publication or Publication.objects.filter(
+                    repository_version=self.repository.latest_version())
+                rel_path = f"{path}/index.html"
+                try:
+                    ca = publication.published_artifact.select_related(
+                        "content_artifact",
+                        "content_artifact__artifact",
+                    ).get(relative_path=rel_path).content_artifact
+                except ObjectDoesNotExist:
+                    return None
+                file = ca.artifact.file
+                content_disposition = f"attachment;filename={ca.relative_path}"
+                parameters = {
+                    "ResponseContentDisposition": content_disposition,
+                    "ResponseContentType": "text/html"
+                }
+                url = URL(file.storage.url(file.name, parameters=parameters), encoded=True)
+                # Trick the content app to stream the metadata from the remote storage
+                remote = PythonRemote(name="Redirect", url=str(url), policy="streamed")
+                remote.get_remote_artifact_url = lambda x: str(url)
+                setattr(self, "publication", None)
+                setattr(self, "repository", None)
+                setattr(self, "remote", remote)
+                return None
+
         if name:
             package_content = PythonPackageContent.objects.filter(
                 pk__in=self.publication.repository_version.content,
