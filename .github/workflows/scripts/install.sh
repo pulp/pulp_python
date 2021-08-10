@@ -69,7 +69,7 @@ VARSYAML
 fi
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: null
+pulp_settings: {"orphan_protection_time": 0}
 pulp_scheme: https
 
 pulp_container_tag: https

@@ -70,7 +70,7 @@ class PythonDistribution(Distribution):
             # Temporary fix for PublishedMetadata not being properly served from remote storage
             if settings.DEFAULT_FILE_STORAGE != "pulpcore.app.models.storage.FileSystem":
                 publication = self.publication or Publication.objects.filter(
-                    repository_version=self.repository.latest_version())
+                    repository_version=self.repository.latest_version()).latest("pulp_created")
                 rel_path = f"{path}/index.html"
                 try:
                     ca = publication.published_artifact.select_related(

@@ -1,8 +1,8 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
 from pulp_smash import cli
-from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import delete_orphans, modify_repo
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+from pulp_smash.pulp3.utils import modify_repo
 
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURE_URL,
@@ -75,7 +75,7 @@ class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
         pub = self._create_publication(repo)
         distro = self._create_distribution_from_publication(pub)
 
-        self.addCleanup(delete_orphans, cfg)
+        self.addCleanup(delete_orphans)
         self.check_consume(distro.to_dict())
 
     def test_workflow_02(self):
