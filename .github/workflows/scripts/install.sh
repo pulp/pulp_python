@@ -69,11 +69,45 @@ VARSYAML
 fi
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: null
+pulp_settings: {"orphan_protection_time": 0}
+pulp_scheme: https
+
+pulp_container_tag: https
+
 VARSYAML
+
+if [ "$TEST" = "s3" ]; then
+  export MINIO_ACCESS_KEY=AKIAIT2Z5TDYPX3ARJBA
+  export MINIO_SECRET_KEY=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
+  sed -i -e '/^services:/a \
+  - name: minio\
+    image: minio/minio\
+    env:\
+      MINIO_ACCESS_KEY: "'$MINIO_ACCESS_KEY'"\
+      MINIO_SECRET_KEY: "'$MINIO_SECRET_KEY'"\
+    command: "server /data"' vars/main.yaml
+  sed -i -e '$a s3_test: true\
+minio_access_key: "'$MINIO_ACCESS_KEY'"\
+minio_secret_key: "'$MINIO_SECRET_KEY'"' vars/main.yaml
+fi
 
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
+echo ::group::SSL
+# Copy pulp CA
+sudo docker cp pulp:/etc/pulp/certs/pulp_webserver.crt /usr/local/share/ca-certificates/pulp_webserver.crt
+
+# Hack: adding pulp CA to certifi.where()
+CERTIFI=$(python -c 'import certifi; print(certifi.where())')
+cat /usr/local/share/ca-certificates/pulp_webserver.crt | sudo tee -a $CERTIFI
+
+# Hack: adding pulp CA to default CA file
+CERT=$(python -c 'import ssl; print(ssl.get_default_verify_paths().openssl_cafile)')
+cat $CERTIFI | sudo tee -a $CERT
+
+# Updating certs
+sudo update-ca-certificates
+echo ::endgroup::
 
 echo ::group::PIP_LIST
 cmd_prefix bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
