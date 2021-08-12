@@ -4,7 +4,7 @@ from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from dynaconf import settings
+from django.conf import settings
 from yarl import URL
 
 from pulpcore.plugin.models import (

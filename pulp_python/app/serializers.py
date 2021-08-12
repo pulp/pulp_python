@@ -3,6 +3,7 @@ import shutil
 import tempfile
 
 from django.core.files.storage import default_storage as storage
+from django.conf import settings
 from packaging.requirements import Requirement
 from rest_framework import serializers
 
@@ -12,7 +13,6 @@ from pulpcore.plugin import serializers as core_serializers
 from pulp_python.app import models as python_models
 from pulp_python.app.tasks.upload import DIST_EXTENSIONS, DIST_TYPES
 from pulp_python.app.utils import parse_project_metadata
-from pulp_python.app.urls import PYPI_API_HOSTNAME
 
 
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
@@ -54,7 +54,7 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
 
     def get_base_url(self, obj):
         """Gets the base url."""
-        return f"{PYPI_API_HOSTNAME}/pypi/{obj.base_path}/"
+        return f"{settings.PYPI_API_HOSTNAME}/pypi/{obj.base_path}/"
 
     def validate(self, data):
         """

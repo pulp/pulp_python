@@ -1,10 +1,8 @@
-import socket
 from django.urls import path
 
 from pulp_python.app.pypi.views import SimpleView, MetadataView, PyPIView, UploadView
 
 PYPI_API_URL = 'pypi/<path:path>/'
-PYPI_API_HOSTNAME = 'https://' + socket.getfqdn()
 # TODO: Implement remaining PyPI endpoints
 # path("project/", PackageProject.as_view()), # Endpoints to nicely see contents of index
 # path("search/", PackageSearch.as_view()),
