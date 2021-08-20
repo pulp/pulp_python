@@ -1,0 +1,1 @@
+Fixed improper metadata serving when using publications with S3 storage
