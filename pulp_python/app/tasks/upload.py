@@ -41,6 +41,7 @@ def upload(artifact_sha256, filename, repository_pk=None):
     """
     pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256)
     content_to_add = pre_check or create_content(artifact_sha256, filename)
+    content_to_add.get().touch()
     if repository_pk:
         repository = PythonRepository.objects.get(pk=repository_pk)
         with repository.new_version() as new_version:
@@ -60,17 +61,14 @@ def upload_group(session_pk, repository_pk=None):
         with transaction.atomic():
             session_data = s_query.first().get_decoded()
             now = datetime.now(tz=timezone.utc)
-            try:
-                start_time = datetime.fromisoformat(session_data['start'])
-            except AttributeError:
-                # TODO: Remove this once Python 3.7+ project
-                from dateutil.parser import parse
-                start_time = parse(session_data['start'])
+            start_time = datetime.fromisoformat(session_data['start'])
             if now >= start_time:
                 content_to_add = PythonPackageContent.objects.none()
                 for artifact_sha256, filename in session_data['artifacts']:
                     pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256)
-                    content_to_add |= pre_check or create_content(artifact_sha256, filename)
+                    content = pre_check or create_content(artifact_sha256, filename)
+                    content.get().touch()
+                    content_to_add |= content
 
                 if repository_pk:
                     repository = PythonRepository.objects.get(pk=repository_pk)
