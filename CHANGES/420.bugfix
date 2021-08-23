@@ -1,0 +1,2 @@
+Fixed twine upload failing when using remote storage backends
+(backported from #400)
