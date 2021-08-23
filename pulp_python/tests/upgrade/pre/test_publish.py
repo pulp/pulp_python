@@ -117,7 +117,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
             self.publications.create(body)
 
         # Step 8
-        url = self.cfg.get_content_host_base_url() + "/pypi/pulp_pre_upgrade_test/"
+        url = self.cfg.get_content_host_base_url() + "/pulp/content/pulp_pre_upgrade_test/"
         self.assertEqual(url, distribution.base_url, url)
 
     def create_publication(self, publish_data):
