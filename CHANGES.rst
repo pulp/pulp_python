@@ -13,6 +13,32 @@ Changelog
 
 .. towncrier release notes start
 
+3.4.1 (2021-08-24)
+==================
+
+
+Features
+--------
+
+- Python package content can now be filtered by their sha256
+  (backported from #404)
+  `#419 <https://github.com/pulp/pulp_python/issues/419>`_
+
+
+Bugfixes
+--------
+
+- Fixed improper metadata serving when using publications with S3 storage
+  (backported from #413)
+  `#418 <https://github.com/pulp/pulp_python/issues/418>`_
+- Fixed twine upload failing when using remote storage backends
+  (backported from #400)
+  `#420 <https://github.com/pulp/pulp_python/issues/420>`_
+
+
+----
+
+
 3.4.0 (2021-06-17)
 
 Features
