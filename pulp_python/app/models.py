@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from aiohttp.web import json_response
-from django.contrib.postgres.fields import ArrayField, JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
@@ -150,12 +150,12 @@ class PythonPackageContent(Content):
     project_url = models.TextField()
     platform = models.TextField()
     supported_platform = models.TextField()
-    requires_dist = JSONField(default=list)
-    provides_dist = JSONField(default=list)
-    obsoletes_dist = JSONField(default=list)
-    requires_external = JSONField(default=list)
-    classifiers = JSONField(default=list)
-    project_urls = JSONField(default=dict)
+    requires_dist = models.JSONField(default=list)
+    provides_dist = models.JSONField(default=list)
+    obsoletes_dist = models.JSONField(default=list)
+    requires_external = models.JSONField(default=list)
+    classifiers = models.JSONField(default=list)
+    project_urls = models.JSONField(default=dict)
     description_content_type = models.TextField()
 
     def __str__(self):
@@ -203,8 +203,8 @@ class PythonRemote(Remote):
     TYPE = 'python'
     DEFAULT_DOWNLOAD_CONCURRENCY = 10
     prereleases = models.BooleanField(default=False)
-    includes = JSONField(default=list)
-    excludes = JSONField(default=list)
+    includes = models.JSONField(default=list)
+    excludes = models.JSONField(default=list)
     package_types = ArrayField(models.CharField(max_length=15, blank=True),
                                choices=PACKAGE_TYPES, default=list)
     keep_latest_packages = models.IntegerField(default=0)
