@@ -17,10 +17,13 @@ if [ -z "$(pip freeze | grep pulp-cli)" ]; then
 fi
 
 # Set up CLI config file
-mkdir ~/.config/pulp
-cat > ~/.config/pulp/settings.toml << EOF
+if [ ! -f ~/.config/pulp/settings.toml ]; then
+  echo "Configuring pulp-cli"
+  mkdir -p ~/.config/pulp
+  cat > ~/.config/pulp/cli.toml << EOF
 [cli]
-base_url = "$BASE_ADDR" # common to be localhost
+base_url = "$BASE_ADDR"
 verify_ssl = false
 format = "json"
 EOF
+fi
