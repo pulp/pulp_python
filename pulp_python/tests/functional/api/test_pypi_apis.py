@@ -179,7 +179,6 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
                 "-p",
                 password,
             ),
-            capture_output=True,
             check=True,
         )
         tasks = task_api.list(reserved_resources_record=repo.pulp_href).results
@@ -203,7 +202,6 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
                     "-p",
                     password,
                 ),
-                capture_output=True,
                 check=True,
             )
 
@@ -221,9 +219,9 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
                 password,
                 "--skip-existing",
             ),
-            capture_output=True,
+            stdout=subprocess.PIPE,
             check=True,
-            text=True
+            universal_newlines=True
         )
         self.assertEqual(output.stdout.count("Skipping"), 2)
 

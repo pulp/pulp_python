@@ -41,7 +41,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore
+    source: pulpcore~=3.13.0
   - name: pulp_python
     source:  "${PLUGIN_NAME}"
 services:
@@ -70,6 +70,10 @@ fi
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: null
+pulp_scheme: http
+
+pulp_container_tag: python36
+
 VARSYAML
 
 ansible-playbook build_container.yaml

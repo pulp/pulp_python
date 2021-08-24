@@ -99,6 +99,7 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
             'requires_python': ['exact', 'in', "contains"],
             'filename': ['exact', 'in', 'contains'],
             'keywords': ['in', 'contains'],
+            'sha256': ['exact', 'in'],
         }
 
 
