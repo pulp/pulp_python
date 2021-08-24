@@ -61,5 +61,7 @@ test_s3: true
 travis_addtl_services: []
 travis_notifications: None
 update_redmine: false
-upgrade_range: []
+upgrade_range:
+- pulp_python_branch: 3.2
+  pulpcore_branch: 3.11
 

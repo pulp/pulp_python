@@ -31,6 +31,7 @@ COMMIT_MSG=$(git log --format=%B --no-merges -1)
 export COMMIT_MSG
 
 if [[ "$TEST" == "upgrade" ]]; then
+  pip install -r functest_requirements.txt
   git checkout -b ci_upgrade_test
   cp -R .github /tmp/.github
   cp -R .ci /tmp/.ci
@@ -103,6 +104,21 @@ if [ -n "$PULP_OPENAPI_GENERATOR_PR_NUMBER" ]; then
 fi
 
 
+git clone --depth=1 https://github.com/pulp/pulp-cli.git
+if [ -n "$PULP_CLI_PR_NUMBER" ]; then
+  cd pulp-cli
+  git fetch origin pull/$PULP_CLI_PR_NUMBER/head:$PULP_CLI_PR_NUMBER
+  git checkout $PULP_CLI_PR_NUMBER
+  cd ..
+fi
+
+cd pulp-cli
+pip install -e .
+pulp config create --base-url https://pulp --location tests/cli.toml
+mkdir ~/.config/pulp
+cp tests/cli.toml ~/.config/pulp/cli.toml
+cd ..
+
 
 git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
 
@@ -114,6 +130,14 @@ fi
 cd ..
 
 
+
+if [[ "$TEST" == "upgrade" ]]; then
+  cd pulpcore
+  git checkout -b ci_upgrade_test
+  git fetch --depth=1 origin heads/$FROM_PULPCORE_BRANCH:$FROM_PULPCORE_BRANCH
+  git checkout $FROM_PULPCORE_BRANCH
+  cd ..
+fi
 
 
 # Intall requirements for ansible playbooks

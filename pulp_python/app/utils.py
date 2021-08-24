@@ -150,6 +150,23 @@ def latest_content_version(content_query, version):
     return latest_content
 
 
+def json_to_dict(data):
+    """
+    Converts a JSON string into a Python dictionary.
+
+    Args:
+        data (string): JSON string
+
+    Returns:
+        dictionary: of JSON string
+
+    """
+    if isinstance(data, dict):
+        return data
+
+    return json.loads(data)
+
+
 def python_content_to_info(content):
     """
     Takes in a PythonPackageContent instance and returns a dictionary of the Info fields
@@ -175,10 +192,10 @@ def python_content_to_info(content):
         "package_url": content.project_url or "",  # These two are usually identical
         "project_url": content.project_url or "",  # They also usually point to PyPI
         "release_url": f"{content.project_url}{content.version}/" if content.project_url else "",
-        "project_urls": json.loads(content.project_urls) or None,
+        "project_urls": json_to_dict(content.project_urls) or None,
         "platform": content.platform or "",
-        "requires_dist": json.loads(content.requires_dist) or None,
-        "classifiers": json.loads(content.classifiers) or None,
+        "requires_dist": json_to_dict(content.requires_dist) or None,
+        "classifiers": json_to_dict(content.classifiers) or None,
         "yanked": False,  # These are no longer used on PyPI, but are still present
         "yanked_reason": None,
     }
