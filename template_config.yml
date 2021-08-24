@@ -38,7 +38,7 @@ plugin_snake: pulp_python
 post_job_template: null
 pre_job_template: null
 publish_docs_to_pulpprojectdotorg: true
-pulp_scheme: https
+pulp_scheme: http
 pulp_settings: null
 pulpcore_branch: 3.13
 pulpcore_pip_version_specifier: ~=3.13.0
