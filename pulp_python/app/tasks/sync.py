@@ -116,7 +116,7 @@ class PythonBanderStage(Stage):
                 environ.pop('http_proxy')
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
-            with ProgressReport(
+            async with ProgressReport(
                 message="Fetching Project Metadata", code="sync.fetching.project"
             ) as p:
                 pmirror = PulpMirror(
@@ -198,7 +198,7 @@ class PulpMirror(Mirror):
     async def process_package(self, package):
         """Filters the package and creates content from it"""
         # Don't save anything if our metadata filters all fail.
-        self.progress_report.increment()
+        await self.progress_report.aincrement()
         if not package.filter_metadata(self.filters.filter_metadata_plugins()):
             return None
 
