@@ -125,6 +125,8 @@ class PythonPackageContent(Content):
     https://www.python.org/dev/peps/pep-0345/
     """
 
+    PROTECTED_FROM_RECLAIM = False
+
     TYPE = 'python'
     repo_key_fields = ("filename",)
     # Required metadata
