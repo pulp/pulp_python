@@ -1,1 +1,0 @@
-Updated ``ProgressReport`` to use new async API in sync task for pulpcore 3.15

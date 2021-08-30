@@ -13,6 +13,46 @@ Changelog
 
 .. towncrier release notes start
 
+3.5.0 (2021-08-30)
+==================
+
+
+Features
+--------
+
+- Python package content can now be filtered by their sha256
+  `#404 <https://github.com/pulp/pulp_python/issues/404>`_
+- Added new setting ``PYPI_API_HOSTNAME`` that is used to form a distribution's ``base_url``. Defaults to the machine's FQDN.
+  `#412 <https://github.com/pulp/pulp_python/issues/412>`_
+- Enabled reclaim disk feature provided by pulpcore 3.15+.
+  `#425 <https://github.com/pulp/pulp_python/issues/425>`_
+
+
+Bugfixes
+--------
+
+- Fixed twine upload failing when using remote storage backends
+  `#400 <https://github.com/pulp/pulp_python/issues/400>`_
+- Fixed improper metadata serving when using publications with S3 storage
+  `#413 <https://github.com/pulp/pulp_python/issues/413>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Dropped support for Python < 3.8.
+  `#402 <https://github.com/pulp/pulp_python/issues/402>`_
+
+
+Misc
+----
+
+- `#408 <https://github.com/pulp/pulp_python/issues/408>`_, `#427 <https://github.com/pulp/pulp_python/issues/427>`_
+
+
+----
+
+
 3.4.1 (2021-08-24)
 ==================
 
