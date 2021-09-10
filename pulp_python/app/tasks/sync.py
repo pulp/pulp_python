@@ -112,8 +112,6 @@ class PythonBanderStage(Stage):
             environ['http_proxy'] = self.remote.proxy_url
         # local & global timeouts defaults to 10secs and 5 hours
         async with Master(self.remote.url) as master:
-            if self.remote.proxy_url:
-                environ.pop('http_proxy')
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
