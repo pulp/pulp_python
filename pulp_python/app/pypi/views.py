@@ -127,7 +127,7 @@ class PackageUploadMixin(PyPIMixin):
         if settings.PYTHON_GROUP_UPLOADS:
             return self.upload_package_group(repo, artifact, filename, request.session)
 
-        result = dispatch(tasks.upload, [artifact, repo],
+        result = dispatch(tasks.upload, exclusive_resources=[artifact, repo],
                           kwargs={"artifact_sha256": artifact.sha256,
                                   "filename": filename,
                                   "repository_pk": str(repo.pk)})
@@ -164,7 +164,7 @@ class PackageUploadMixin(PyPIMixin):
         cur_session['artifacts'] = [(str(artifact.sha256), filename)]
         cur_session.modified = False
         cur_session.save()
-        result = dispatch(tasks.upload_group, [artifact, repository],
+        result = dispatch(tasks.upload_group, exclusive_resources=[artifact, repository],
                           kwargs={"session_pk": str(cur_session.session_key),
                                   "repository_pk": str(repository.pk)})
         return reverse('tasks-detail', args=[result.pk], request=None)
