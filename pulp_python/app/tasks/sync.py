@@ -110,6 +110,7 @@ class PythonBanderStage(Stage):
         # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
         if self.remote.proxy_url:
             environ['http_proxy'] = self.remote.proxy_url
+            environ['https_proxy'] = self.remote.proxy_url
         # local & global timeouts defaults to 10secs and 5 hours
         async with Master(self.remote.url) as master:
             deferred_download = self.remote.policy != Remote.IMMEDIATE
