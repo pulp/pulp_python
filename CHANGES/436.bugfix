@@ -1,2 +1,0 @@
-Fixed proxy url not being passed during sync
-(backported from #445)
