@@ -13,6 +13,24 @@ Changelog
 
 .. towncrier release notes start
 
+3.5.2 (2021-10-05)
+==================
+
+
+Bugfixes
+--------
+
+- Fixed proxy url not being passed during sync
+  (backported from #445)
+  `#436 <https://github.com/pulp/pulp_python/issues/436>`_
+- Changed the use of ``dispatch`` to match the signature from pulpcore>=3.15.
+  (backported from #443)
+  `#446 <https://github.com/pulp/pulp_python/issues/446>`_
+
+
+----
+
+
 3.5.1 (2021-09-10)
 ==================
 
