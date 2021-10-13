@@ -1,0 +1,123 @@
+name: Pulp Python 101
+
+on:
+  schedule:
+    - cron: '30 2 * * 0'
+
+env:
+  COLORTERM: 'yes'
+  PY_COLORS: '1'
+  TERM: 'xterm-256color'
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: Starting Pulp server
+        run: |
+            mkdir settings pulp_storage pgsql containers
+            echo "CONTENT_ORIGIN='https://pulp.example.com'" >> settings/settings.py
+            docker run --detach \
+                      --name pulp \
+                      --publish 443:443 \
+                      --volume "/$(pwd)/settings:/etc/pulp:Z" \
+                      --volume "/$(pwd)/pulp_storage":/var/lib/pulp:Z \
+                      --volume "/$(pwd)/pgsql":/var/lib/pgsql:Z \
+                      --volume "/$(pwd)/containers":/var/lib/containers:Z \
+                      --device /dev/fuse \
+                      pulp/pulp:https
+
+            # Wait server to be up
+            sleep 10
+            for _ in $(seq 20)
+            do
+              sleep 2
+              if curl --insecure --fail https://localhost/pulp/api/v3/status/ > /dev/null 2>&1
+              then
+                break
+              fi
+            done
+
+            # Edit /etc/hosts
+            echo 127.0.0.1 pulp.example.com | sudo tee -a /etc/hosts
+
+            # Hack: adding pulp CA to certifi.where()
+            sudo docker cp pulp:/etc/pulp/certs/pulp_webserver.crt /usr/local/share/ca-certificates/pulp_webserver.crt
+            pip install certifi
+            CERTIFI=$(python -c 'import certifi; print(certifi.where())')
+            cat /usr/local/share/ca-certificates/pulp_webserver.crt | tee -a $CERTIFI
+
+            # Hack: adding pulp CA to default CA file
+            CERT=$(python -c 'import ssl; print(ssl.get_default_verify_paths().openssl_cafile)')
+            cat $CERTIFI | sudo tee -a $CERT
+            pip config set global.cert $CERT
+
+            # Updating certs
+            sudo update-ca-certificates
+
+            # Setting the password for admin
+            docker exec pulp bash -c 'pulpcore-manager reset-admin-password --password ci_password'
+
+      - name: Setting Pulp CLI
+        run: |
+          pip install pulp-cli[pygments]
+          pulp config create --username admin --base-url https://pulp.example.com --password ci_password
+          pulp status
+
+      - name: Creating Pulp remotes
+        run: |
+          pulp python remote create --name "dev" --url "https://pypi.org/" --includes '["shelf-reader"]'
+          pulp python remote create --name "prod" --url "https://pulp.example.com/pypi/dev/"
+          pulp python remote list
+
+      - name: Creating Pulp repositories
+        run: |
+          pulp python repository create --name "dev" --description "Dev repository" --remote "dev"
+          pulp python repository create --name "prod" --description "Prod repository" --remote "prod"
+          pulp python repository list
+
+      - name: Sync packages from remote sources e.g PyPI
+        run: |
+          pulp python content list
+          pulp python repository sync --name "dev" --remote "dev"
+          pulp python content list
+
+      - name: Publish "dev" packages
+        run: |
+          PUBLICATION_HREF=$(pulp python publication create --repository "dev" | jq -r .pulp_href)
+          echo "PUBLICATION_HREF=$PUBLICATION_HREF" >> $GITHUB_ENV
+
+      - name: Distribute "dev" packages
+        run: |
+          pulp python distribution create --name "dev" --base-path "dev" --publication $PUBLICATION_HREF
+
+      - name: Publish & Distribute "prod" packages
+        run: |
+          PROD_PUBLICATION_HREF=$(pulp python publication create --repository "prod" | jq -r .pulp_href)
+          pulp python distribution create --name "prod" --base-path "prod" --publication $PROD_PUBLICATION_HREF
+
+      - name: Install package from pulp "dev" repository
+        run: |
+          pip install -vvv --trusted-host pulp -i https://pulp.example.com/pypi/dev/simple/ shelf-reader
+
+      - name: Sync packages from "dev" to "prod"
+        run: |
+          pulp python repository sync --name "prod" --remote "prod"
+
+      - name: Install package from pulp "prod" repository
+        run: |
+          pip install -vvv --force-reinstall --trusted-host pulp -i https://pulp.example.com/pypi/prod/simple/ shelf-reader
+
+      - name: After failure
+        if: failure()
+        run: |
+          echo "Need to debug? Please check: https://github.com/marketplace/actions/debugging-with-tmate"
+          http --timeout 30 --check-status --pretty format --print hb https://pulp.example.com/pulp/api/v3/status/ || true
+          docker images || true
+          docker ps -a || true
+          docker logs pulp || true
+          docker exec pulp pip3 list
