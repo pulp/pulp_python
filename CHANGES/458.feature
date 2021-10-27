@@ -1,0 +1,1 @@
+Enable Azure support

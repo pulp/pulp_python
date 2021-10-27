@@ -85,10 +85,19 @@ class PythonDistribution(Distribution):
                     return None
                 file = ca.artifact.file
                 content_disposition = f"attachment;filename={ca.relative_path}"
-                parameters = {
-                    "ResponseContentDisposition": content_disposition,
-                    "ResponseContentType": "text/html"
-                }
+                if settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
+                    parameters = {
+                        "content_disposition": content_disposition,
+                        "content_type": "text/html"
+                    }
+                elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+                    parameters = {
+                        "ResponseContentDisposition": content_disposition,
+                        "ResponseContentType": "text/html"
+                    }
+                else:
+                    raise NotImplementedError()
+
                 url = URL(file.storage.url(file.name, parameters=parameters), encoded=True)
                 # Trick the content app to stream the metadata from the remote storage
                 remote = PythonRemote(name="Redirect", url=str(url), policy="streamed")
