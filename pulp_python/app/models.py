@@ -3,8 +3,9 @@ from logging import getLogger
 from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
+from django_lifecycle import hook, BEFORE_UPDATE
 from yarl import URL
 
 from pulpcore.plugin.models import (
@@ -216,6 +217,30 @@ class PythonRemote(Remote):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
+    @hook(
+        BEFORE_UPDATE,
+        when_any=[
+            "excludes",
+            "prereleases",
+            "package_types",
+            "keep_latest_packages",
+            "exclude_platforms",
+            "url",
+            "policy"
+        ],
+        has_changed=True
+    )
+    def clear_last_serial(self):
+        """
+        Clear `last_serial` for any repository with this remote.
+        """
+        with transaction.atomic():
+            repos = PythonRepository.objects.filter(remote_id=self.pk, last_serial__gt=0)
+            if repos:
+                for repo in repos:
+                    repo.last_serial = 0
+                PythonRepository.objects.bulk_update(repos, ["last_serial"])
+
 
 class PythonRepository(Repository):
     """
@@ -227,6 +252,7 @@ class PythonRepository(Repository):
     REMOTE_TYPES = [PythonRemote]
 
     autopublish = models.BooleanField(default=False)
+    last_serial = models.IntegerField(default=0)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -252,3 +278,10 @@ class PythonRepository(Repository):
         """
         remove_duplicates(new_version)
         validate_repo_version(new_version)
+
+    @hook(BEFORE_UPDATE, when="remote", has_changed=True)
+    def clear_last_serial(self):
+        """
+        Reset `last_serial` when remote on repository changes.
+        """
+        self.last_serial = 0

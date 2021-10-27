@@ -5,7 +5,7 @@ from os import environ
 
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
+from pulpcore.plugin.models import Artifact, ProgressReport, Remote
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -16,6 +16,7 @@ from pulpcore.plugin.stages import (
 from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
+    PythonRepository,
 )
 from pulp_python.app.utils import parse_metadata
 
@@ -43,15 +44,21 @@ def sync(remote_pk, repository_pk, mirror):
 
     """
     remote = PythonRemote.objects.get(pk=remote_pk)
-    repository = Repository.objects.get(pk=repository_pk)
+    repository = PythonRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
         raise serializers.ValidationError(
             detail=_("A remote must have a url attribute to sync.")
         )
 
-    first_stage = PythonBanderStage(remote)
-    DeclarativeVersion(first_stage, repository, mirror).create()
+    same_remote = getattr(repository.remote, "pk", None) == remote_pk
+    serial = repository.last_serial if same_remote else 0
+    first_stage = PythonBanderStage(remote, mirror, serial)
+    version = DeclarativeVersion(first_stage, repository, mirror).create()
+    if version is not None and same_remote:
+        if first_stage.next_serial and first_stage.next_serial != repository.last_serial:
+            repository.last_serial = first_stage.next_serial
+            repository.save()
 
 
 def create_bandersnatch_config(remote):
@@ -97,10 +104,13 @@ class PythonBanderStage(Stage):
     Python Package Syncing Stage using Bandersnatch
     """
 
-    def __init__(self, remote):
+    def __init__(self, remote, mirror, last_serial):
         """Initialize the stage and Bandersnatch config"""
         super().__init__()
         self.remote = remote
+        # If mirror=True, then sync everything, don't use serial
+        self.serial = last_serial if not mirror else 0
+        self.next_serial = None
         create_bandersnatch_config(remote)
 
     async def run(self):
@@ -119,7 +129,7 @@ class PythonBanderStage(Stage):
                 message="Fetching Project Metadata", code="sync.fetching.project"
             ) as p:
                 pmirror = PulpMirror(
-                    serial=0,  # Serial currently isn't supported by Pulp
+                    serial=self.serial,
                     master=master,
                     workers=workers,
                     deferred_download=deferred_download,
@@ -132,6 +142,7 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
+                self.next_serial = pmirror.target_serial
 
 
 class PulpMirror(Mirror):

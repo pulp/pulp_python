@@ -11,7 +11,7 @@ from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
 )
-from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.tasking import dispatch, general_update
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
@@ -134,6 +134,26 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
+
+    @extend_schema(
+        description="Trigger an asynchronous update task",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def update(self, request, pk, **kwargs):
+        """Update remote."""
+        partial = kwargs.pop("partial", False)
+        lock = [self.get_object()]
+        serializer = self.get_serializer(lock[0], data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        repos = python_models.PythonRepository.objects.filter(remote_id=pk, last_serial__gt=0)
+        lock.extend(repos)
+        async_result = dispatch(
+            general_update,
+            exclusive_resources=lock,
+            args=(pk, lock[1:]),
+            kwargs={"data": request.data, "partial": partial},
+        )
+        return core_viewsets.OperationPostponedResponse(async_result, request)
 
     @extend_schema(
         summary="Create from Bandersnatch",

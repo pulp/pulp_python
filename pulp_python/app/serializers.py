@@ -28,9 +28,17 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
         default=False,
         required=False,
     )
+    last_serial = serializers.IntegerField(
+        help_text=_(
+            "The serial number from the last successful sync. Used in the sync process to "
+            "optimize the sync based on changes from previous sync. Use mirror=True to bypass"
+            "this optimization."
+        ),
+        read_only=True,
+    )
 
     class Meta:
-        fields = core_serializers.RepositorySerializer.Meta.fields + ("autopublish",)
+        fields = core_serializers.RepositorySerializer.Meta.fields + ("autopublish", "last_serial")
         model = python_models.PythonRepository
 
 
