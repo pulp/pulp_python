@@ -56,7 +56,7 @@ single_commit_check: true
 stable_branch: null
 sync_ci: true
 tasking_allow_async_unsafe: false
-test_azure: false
+test_azure: true
 test_bindings: false
 test_cli: false
 test_fips_nightly: false

@@ -124,6 +124,8 @@ class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
                 "--no-deps",
                 "--trusted-host",
                 urlsplit(host).hostname,
+                "--trusted-host",
+                "ci-azurite",
                 "-i",
                 host,
                 package,
