@@ -43,10 +43,11 @@ jobs:
           echo ::group::HTTPIE
           pip install httpie
           echo ::endgroup::
-          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.ci/assets/httpie/" >> $GITHUB_ENV
-          echo "FROM_PULP_PYTHON_BRANCH=${{ matrix.FROM_PULP_PYTHON_BRANCH }}" >> $GITHUB_ENV
-          echo "FROM_PULPCORE_BRANCH=${{ matrix.FROM_PULPCORE_BRANCH }}" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
         
@@ -186,10 +187,11 @@ jobs:
           echo ::group::HTTPIE
           pip install httpie
           echo ::endgroup::
-          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.ci/assets/httpie/" >> $GITHUB_ENV
-          echo "FROM_PULP_PYTHON_BRANCH=${{ matrix.FROM_PULP_PYTHON_BRANCH }}" >> $GITHUB_ENV
-          echo "FROM_PULPCORE_BRANCH=${{ matrix.FROM_PULPCORE_BRANCH }}" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Install python dependencies
         run: |
