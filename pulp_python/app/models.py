@@ -101,7 +101,7 @@ class PythonDistribution(Distribution):
                 url = URL(file.storage.url(file.name, parameters=parameters), encoded=True)
                 # Trick the content app to stream the metadata from the remote storage
                 remote = PythonRemote(name="Redirect", url=str(url), policy="streamed")
-                remote.get_remote_artifact_url = lambda x: str(url)
+                remote.get_remote_artifact_url = lambda *args, **kwargs: str(url)
                 setattr(self, "publication", None)
                 setattr(self, "repository", None)
                 setattr(self, "remote", remote)
