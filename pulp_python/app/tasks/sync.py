@@ -1,5 +1,7 @@
 import logging
 
+from aiohttp import ClientResponseError, ClientError
+from lxml.etree import LxmlError
 from gettext import gettext as _
 from os import environ
 
@@ -17,12 +19,14 @@ from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
 )
-from pulp_python.app.utils import parse_metadata
+from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
+from pypi_simple import parse_repo_index_page
 
 from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
 from bandersnatch.configuration import BandersnatchConfig
 from packaging.requirements import Requirement
+from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +115,10 @@ class PythonBanderStage(Stage):
         if self.remote.proxy_url:
             environ['http_proxy'] = self.remote.proxy_url
             environ['https_proxy'] = self.remote.proxy_url
+        # Bandersnatch includes leading slash when forming API urls
+        url = self.remote.url.rstrip("/")
         # local & global timeouts defaults to 10secs and 5 hours
-        async with Master(self.remote.url) as master:
+        async with Master(url) as master:
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
@@ -179,20 +185,25 @@ class PulpMirror(Mirror):
                     self.target_serial = max(
                         [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
                     )
-                self._filter_packages()
-                logger.info(f"Trying to reach serial: {self.target_serial}")
-                pkg_count = len(self.packages_to_sync)
-                logger.info(f"{pkg_count} packages to sync.")
-                return
-            except Exception as e:
-                """Handle different exceptions if it is XMLRPC error or Mirror error"""
-                logger.info("Encountered an error in Master {}".format(e))
-                pass
-        """
-        If we reach here, then the Mirror most likely doesn't support XMLRPC.
-        Could raise an exception or try to manually find all the packages from the index page,
-        Or just keep packages_to_sync empty and have the sync do no work
-        """
+                break
+            except (ClientError, ClientResponseError, LxmlError):
+                # Retry if XMLRPC endpoint failed, server might not support it.
+                continue
+        else:
+            logger.info("Failed to get package list using XMLRPC, trying parse simple page.")
+            url = urljoin(self.python_stage.remote.url, "simple/")
+            downloader = self.python_stage.remote.get_downloader(url=url)
+            result = await downloader.run()
+            with open(result.path) as f:
+                index = parse_repo_index_page(f.read())
+                self.packages_to_sync.update({p: 0 for p in index.projects})
+                self.target_serial = result.headers.get(PYPI_LAST_SERIAL, 0)
+
+        self._filter_packages()
+        if self.target_serial:
+            logger.info(f"Trying to reach serial: {self.target_serial}")
+        pkg_count = len(self.packages_to_sync)
+        logger.info(f"{pkg_count} packages to sync.")
 
     async def process_package(self, package):
         """Filters the package and creates content from it"""
