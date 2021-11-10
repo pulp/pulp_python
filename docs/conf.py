@@ -147,7 +147,8 @@ html_additional_pages = {'restapi': 'restapi.html'}
 
 html_static_path = ['_static']
 
-html_js_files = ['survey_banner.js']
+# Re-enable this when new survey is created.
+# html_js_files = ['survey_banner.js']
 
 # If false, no module index is generated.
 #html_domain_indices = True
