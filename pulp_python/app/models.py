@@ -124,6 +124,14 @@ class PythonDistribution(Distribution):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
+class NormalizeName(models.Transform):
+    """A transform field to normalize package names according to PEP426."""
+
+    function = "REGEXP_REPLACE"
+    template = "LOWER(%(function)s(%(expressions)s, '(\.|_|-)', '-', 'ig'))"  # noqa:W605
+    lookup_name = "normalize"
+
+
 class PythonPackageContent(Content):
     """
     A Content Type representing Python's Distribution Package.
@@ -142,6 +150,7 @@ class PythonPackageContent(Content):
     filename = models.TextField(db_index=True)
     packagetype = models.TextField(choices=PACKAGE_TYPES)
     name = models.TextField()
+    name.register_lookup(NormalizeName)
     version = models.TextField()
     sha256 = models.CharField(unique=True, db_index=True, max_length=64)
     # Optional metadata

@@ -19,8 +19,10 @@ from django.http.response import (
 )
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
+from itertools import chain
 from urllib.parse import urljoin
 from pathlib import PurePath
+from packaging.utils import canonicalize_name
 
 from pulpcore.plugin.tasking import dispatch
 from pulp_python.app.models import (
@@ -188,14 +190,24 @@ class SimpleView(ViewSet, PackageUploadMixin):
     def retrieve(self, request, path, package):
         """Retrieves the simple api html page for a package."""
         distro, repo_ver, content = self.get_drvc(path)
+        # Should I redirect if the normalized name is different?
+        normalized = canonicalize_name(package)
         if self.should_redirect(distro, repo_version=repo_ver):
-            # Maybe this name needs to be normalized?
-            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/{package}/'))
-        packages = content.filter(name__iexact=package).values_list('filename', 'sha256').iterator()
-        detail_packages = ((f, urljoin(BASE_CONTENT_URL, f'{path}/{f}'), d) for f, d in packages)
-        return StreamingHttpResponse(
-            write_simple_detail(package, detail_packages, streamed=True)
+            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/{normalized}/'))
+        packages = (
+            content.filter(name__normalize=normalized)
+            .values_list('filename', 'sha256', 'name')
+            .iterator()
         )
+        try:
+            present = next(packages)
+        except StopIteration:
+            raise Http404(f"{normalized} does not exist.")
+        else:
+            packages = chain([present], packages)
+            name = present[2]
+        releases = ((f, urljoin(BASE_CONTENT_URL, f'{path}/{f}'), d) for f, d, _ in packages)
+        return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
 
     @extend_schema(request=PackageUploadSerializer,
                    responses={200: PackageUploadTaskSerializer},
