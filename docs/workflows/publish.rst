@@ -62,6 +62,23 @@ updated automatically when new repository versions are created.
     Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
     is not guaranteed.
 
+.. _pull-through-cache:
+
+Enable Pull-Through Caching:
+----------------------------
+
+Only packages present in your repository will be available from your index, but adding a remote source to
+your distribution will enable the pull-through cache feature. This feature allows you to install any package
+from the remote source and have Pulp store that package as orphaned content.
+
+.. literalinclude:: ../_scripts/pullthrough.sh
+    :language: bash
+
+.. warning::
+    Support for pull-through caching is provided as a tech preview in Pulp 3.
+    Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
+    is not guaranteed.
+
 .. _using-distributions:
 
 Use the newly created distribution

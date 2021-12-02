@@ -2,3 +2,4 @@ pulpcore>=3.17.0.dev
 pkginfo
 packaging
 bandersnatch>=5.0.0
+pypi-simple

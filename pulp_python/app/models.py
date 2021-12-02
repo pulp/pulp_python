@@ -16,7 +16,13 @@ from pulpcore.plugin.models import (
 )
 
 from pathlib import PurePath
-from .utils import python_content_to_json, PYPI_LAST_SERIAL, PYPI_SERIAL_CONSTANT
+from .utils import (
+    get_project_metadata_from_artifact,
+    parse_project_metadata,
+    python_content_to_json,
+    PYPI_LAST_SERIAL,
+    PYPI_SERIAL_CONSTANT
+)
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
 log = getLogger(__name__)
@@ -178,6 +184,18 @@ class PythonPackageContent(Content):
     project_urls = models.JSONField(default=dict)
     description_content_type = models.TextField()
 
+    @staticmethod
+    def init_from_artifact_and_relative_path(artifact, relative_path):
+        """Used when downloading package from pull-through cache."""
+        path = PurePath(relative_path)
+        metadata = get_project_metadata_from_artifact(path.name, artifact)
+        data = parse_project_metadata(vars(metadata))
+        data['packagetype'] = metadata.packagetype
+        data['version'] = metadata.version
+        data['filename'] = path.name
+        data["sha256"] = artifact.sha256
+        return PythonPackageContent(**data)
+
     def __str__(self):
         """
         Provide more useful repr information.
@@ -230,6 +248,17 @@ class PythonRemote(Remote):
     keep_latest_packages = models.IntegerField(default=0)
     exclude_platforms = ArrayField(models.CharField(max_length=10, blank=True),
                                    choices=PLATFORMS, default=list)
+
+    def get_remote_artifact_url(self, relative_path=None, request=None):
+        """Get url for remote_artifact"""
+        if request and (url := request.query.get("redirect")):
+            # This is a special case for pull-through caching
+            return url
+        return super().get_remote_artifact_url(relative_path, request=request)
+
+    def get_remote_artifact_content_type(self, relative_path=None):
+        """Return PythonPackageContent."""
+        return PythonPackageContent
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

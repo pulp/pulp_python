@@ -1,33 +1,12 @@
-import pkginfo
-import shutil
-import tempfile
 import time
 
 from datetime import datetime, timezone
 from django.db import transaction
 from django.contrib.sessions.models import Session
-from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
-from pulp_python.app.utils import parse_project_metadata
-
-
-DIST_EXTENSIONS = {
-    ".whl": "bdist_wheel",
-    ".exe": "bdist_wininst",
-    ".egg": "bdist_egg",
-    ".tar.bz2": "sdist",
-    ".tar.gz": "sdist",
-    ".zip": "sdist",
-}
-
-DIST_TYPES = {
-    "bdist_wheel": pkginfo.Wheel,
-    "bdist_wininst": pkginfo.Distribution,
-    "bdist_egg": pkginfo.BDist,
-    "sdist": pkginfo.SDist,
-}
+from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
 
 
 def upload(artifact_sha256, filename, repository_pk=None):
@@ -90,20 +69,8 @@ def create_content(artifact_sha256, filename):
     Returns:
         queryset of the new created content
     """
-    # iterate through extensions since splitext does not support things like .tar.gz
-    extensions = list(DIST_EXTENSIONS.keys())
-    pkg_type_index = [filename.endswith(ext) for ext in extensions].index(True)
-    packagetype = DIST_EXTENSIONS[extensions[pkg_type_index]]
-    # Copy file to a temp directory under the user provided filename, we do this
-    # because pkginfo validates that the filename has a valid extension before
-    # reading it
     artifact = Artifact.objects.get(sha256=artifact_sha256)
-    artifact_file = storage.open(artifact.file.name)
-    with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
-        shutil.copyfileobj(artifact_file, temp_file)
-        temp_file.flush()
-        metadata = DIST_TYPES[packagetype](temp_file.name)
-        metadata.packagetype = packagetype
+    metadata = get_project_metadata_from_artifact(filename, artifact)
 
     data = parse_project_metadata(vars(metadata))
     data['packagetype'] = metadata.packagetype
