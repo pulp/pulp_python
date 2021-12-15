@@ -13,6 +13,33 @@ Changelog
 
 .. towncrier release notes start
 
+3.6.0 (2021-12-15)
+==================
+
+
+Features
+--------
+
+- ``pulp_python`` now supports pull-through caching. Add a remote to a distribution to enable this feature.
+  `#381 <https://github.com/pulp/pulp_python/issues/381>`_
+- Enable Azure support
+  `#458 <https://github.com/pulp/pulp_python/issues/458>`_
+
+
+Bugfixes
+--------
+
+- Fixed proxy url not being passed during sync
+  `#433 <https://github.com/pulp/pulp_python/issues/433>`_
+- Changed the use of ``dispatch`` to match the signature from pulpcore>=3.15.
+  `#443 <https://github.com/pulp/pulp_python/issues/443>`_
+- Fixed package name normalization issue preventing installing packages with "." or "_" in their names.
+  `#467 <https://github.com/pulp/pulp_python/issues/467>`_
+
+
+----
+
+
 3.5.2 (2021-10-05)
 ==================
 
