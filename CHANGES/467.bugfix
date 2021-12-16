@@ -1,1 +1,0 @@
-Fixed package name normalization issue preventing installing packages with "." or "_" in their names.
