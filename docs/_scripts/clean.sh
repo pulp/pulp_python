@@ -14,5 +14,5 @@ if [ -n "$(pulp python distribution list | grep foo)" ]; then
   pulp python distribution destroy --name foo
 fi
 
-pulp orphans delete
+pulp orphan cleanup --protection-time 0
 pip uninstall -y shelf-reader

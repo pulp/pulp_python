@@ -3,8 +3,8 @@
 import unittest
 
 from pulp_smash import config, cli
-from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, get_content_summary, delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+from pulp_smash.pulp3.utils import gen_repo, get_content_summary
 
 from pulp_python.tests.functional.constants import (
     PULP_CONTENT_BASE_URL,

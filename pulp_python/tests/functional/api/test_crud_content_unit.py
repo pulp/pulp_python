@@ -1,7 +1,6 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.utils import delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
 
 from pulp_python.tests.functional.utils import (
     gen_artifact,
