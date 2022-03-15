@@ -4,7 +4,7 @@ filename = "CHANGES.rst"
 directory = "CHANGES/"
 title_format = "{version} ({project_date})"
 template = "CHANGES/.TEMPLATE.rst"
-issue_format = "`#{issue} <https://github.com/pulp/pulp_python/issues/{issue}>`_"
+issue_format = "`#{issue} <https://github.com/pulp/pulp_python/issues/{issue}>`__"
 
 [tool.check-manifest]
 ignore = [
