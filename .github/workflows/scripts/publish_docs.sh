@@ -37,7 +37,13 @@ if [[ "$GITHUB_WORKFLOW" == "Python changelog update" ]]; then
   exit
 fi
 
-cd ../pulp-openapi-generator/pulp_python-client
+# Building python bindings
+export PULP_URL="${PULP_URL:-https://pulp}"
+VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin python --arg legacy_plugin pulp_python -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+cd ../pulp-openapi-generator
+rm -rf pulp_python-client
+./generate.sh pulp_python python $VERSION
+cd pulp_python-client
 
 # Adding mkdocs
 cp README.md docs/index.md
