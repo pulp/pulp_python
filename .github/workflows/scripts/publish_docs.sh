@@ -37,19 +37,11 @@ if [[ "$GITHUB_WORKFLOW" == "Python changelog update" ]]; then
   exit
 fi
 
-# Building python bindings
-export PULP_URL="${PULP_URL:-https://pulp}"
-VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin python --arg legacy_plugin pulp_python -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
-cd ../pulp-openapi-generator
-rm -rf pulp_python-client
-./generate.sh pulp_python python $VERSION
-cd pulp_python-client
+pip install mkdocs pymdown-extensions
 
-# Adding mkdocs
-find ./docs/* -exec sed -i 's/README//g' {} \;
-cp README.md docs/index.md
-sed -i 's/docs\///g' docs/index.md
-find ./docs/* -exec sed -i 's/\.md//g' {} \;
+mkdir -p ../bindings
+tar -xvf python-client-docs.tar --directory ../bindings
+cd ../bindings
 cat >> mkdocs.yml << DOCSYAML
 ---
 site_name: PulpPython Client
@@ -60,8 +52,6 @@ repo_name: pulp/pulp_python
 repo_url: https://github.com/pulp/pulp_python
 theme: readthedocs
 DOCSYAML
-
-pip install mkdocs pymdown-extensions
 
 # Building the bindings docs
 mkdocs build
