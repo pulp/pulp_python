@@ -143,7 +143,7 @@ def get_project_metadata_from_artifact(filename, artifact):
     # Copy file to a temp directory under the user provided filename, we do this
     # because pkginfo validates that the filename has a valid extension before
     # reading it
-    with tempfile.NamedTemporaryFile('wb', suffix=filename) as temp_file:
+    with tempfile.NamedTemporaryFile('wb', dir=".", suffix=filename) as temp_file:
         artifact_file = storage.open(artifact.file.name)
         shutil.copyfileobj(artifact_file, temp_file)
         temp_file.flush()
