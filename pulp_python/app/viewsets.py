@@ -51,7 +51,8 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
 
         result = dispatch(
             tasks.sync,
-            exclusive_resources=[repository, remote],
+            exclusive_resources=[repository],
+            shared_resources=[remote],
             kwargs={
                 'remote_pk': str(remote.pk),
                 'repository_pk': str(repository.pk),
@@ -214,7 +215,7 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
 
         result = dispatch(
             tasks.publish,
-            exclusive_resources=[repository_version.repository],
+            shared_resources=[repository_version.repository],
             kwargs={
                 'repository_version_pk': str(repository_version.pk)
             }
