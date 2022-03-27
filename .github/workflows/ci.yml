@@ -65,6 +65,9 @@ jobs:
       - name: Run flake8
         run: flake8 --config flake8.cfg
 
+      - name: Run extra lint checks
+        run: "[ ! -x .ci/scripts/extra_linting.sh ] || .ci/scripts/extra_linting.sh"
+
       # check for any files unintentionally left out of MANIFEST.in
       - name: Check manifest
         run: check-manifest
@@ -86,6 +89,9 @@ jobs:
           - TEST: pulp
           - TEST: docs
           - TEST: s3
+    outputs:
+      deprecations-pulp: ${{ steps.deprecations.outputs.deprecations-pulp }}
+      deprecations-s3: ${{ steps.deprecations.outputs.deprecations-s3 }}
 
     steps:
       - uses: actions/checkout@v2
@@ -101,13 +107,13 @@ jobs:
       - name: Install httpie
         run: |
           echo ::group::HTTPIE
-          sudo apt-get update -yq
-          sudo -E apt-get -yq --no-install-suggests --no-install-recommends install httpie
+          pip install httpie
           echo ::endgroup::
-          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.ci/assets/httpie/" >> $GITHUB_ENV
-          echo "FROM_PULP_PYTHON_BRANCH=${{ matrix.FROM_PULP_PYTHON_BRANCH }}" >> $GITHUB_ENV
-          echo "FROM_PULPCORE_BRANCH=${{ matrix.FROM_PULPCORE_BRANCH }}" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
         
@@ -160,6 +166,7 @@ jobs:
           GITHUB_REPO_SLUG: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
+          REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
         if: github.event_name != 'pull_request'
@@ -181,8 +188,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
-      - name: After failure
-        if: failure()
+      - name: Extract Deprecations from Logs
+        id: deprecations
+        run: echo "::set-output name=deprecations-${{ matrix.env.TEST }}::$(docker logs pulp 2>&1 | grep -i pulpcore.deprecation | base64 -w 0)"
+
+      - name: Logs
+        if: always()
         run: |
           echo "Need to debug? Please check: https://github.com/marketplace/actions/debugging-with-tmate"
           http --timeout 30 --check-status --pretty format --print hb https://pulp/pulp/api/v3/status/ || true
@@ -196,14 +207,16 @@ jobs:
   upgrade:
     runs-on: ubuntu-latest
     needs: lint
+
     strategy:
       fail-fast: false
       matrix:
         env:
           - TEST: upgrade
-        include:
-          - FROM_PULPCORE_BRANCH: "3.11"
+            FROM_PULPCORE_BRANCH: "3.11"
             FROM_PULP_PYTHON_BRANCH: "3.2"
+    outputs:
+      deprecations-upgrade: ${{ steps.deprecations.outputs.deprecations-upgrade }}
 
     steps:
       - uses: actions/checkout@v2
@@ -219,13 +232,15 @@ jobs:
       - name: Install httpie
         run: |
           echo ::group::HTTPIE
-          sudo apt-get update -yq
-          sudo -E apt-get -yq --no-install-suggests --no-install-recommends install httpie
+          pip install httpie
           echo ::endgroup::
-          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.ci/assets/httpie/" >> $GITHUB_ENV
-          echo "FROM_PULP_PYTHON_BRANCH=${{ matrix.FROM_PULP_PYTHON_BRANCH }}" >> $GITHUB_ENV
-          echo "FROM_PULPCORE_BRANCH=${{ matrix.FROM_PULPCORE_BRANCH }}" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
+          echo "FROM_PULP_PYTHON_BRANCH=${{ matrix.env.FROM_PULP_PYTHON_BRANCH }}" >> $GITHUB_ENV
+          echo "FROM_PULPCORE_BRANCH=${{ matrix.env.FROM_PULPCORE_BRANCH }}" >> $GITHUB_ENV
 
       - name: Install python dependencies
         run: |
@@ -279,6 +294,7 @@ jobs:
           GITHUB_REPO_SLUG: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
+          REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
         
@@ -300,8 +316,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
-      - name: After failure
-        if: failure()
+      - name: Extract Deprecations from Logs
+        id: deprecations
+        run: echo "::set-output name=deprecations-${{ matrix.env.TEST }}::$(docker logs pulp 2>&1 | grep -i pulpcore.deprecation | base64 -w 0)"
+
+      - name: Logs
+        if: always()
         run: |
           echo "Need to debug? Please check: https://github.com/marketplace/actions/debugging-with-tmate"
           http --timeout 30 --check-status --pretty format --print hb https://pulp/pulp/api/v3/status/ || true
@@ -311,6 +331,21 @@ jobs:
           docker exec pulp ls -latr /etc/yum.repos.d/ || true
           docker exec pulp cat /etc/yum.repos.d/* || true
           docker exec pulp pip3 list
-
+  deprecations:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: test
+    steps:
+      - name: Fail on deprecations
+        run: |
+          test -z "${{ needs.test.outputs.deprecations-pulp }}"
+          test -z "${{ needs.test.outputs.deprecations-s3 }}"
+          test -z "${{ needs.test.outputs.deprecations-upgrade }}"
+      - name: Print deprecations
+        if: failure()
+        run: |
+          echo "${{ needs.test.outputs.deprecations-pulp }}" | base64 -d
+          echo "${{ needs.test.outputs.deprecations-s3 }}" | base64 -d
+          echo "${{ needs.test.outputs.deprecations-upgrade }}" | base64 -d
 
 
