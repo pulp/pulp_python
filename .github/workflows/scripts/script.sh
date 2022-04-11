@@ -46,7 +46,9 @@ if [[ "$TEST" = "docs" ]]; then
 fi
 
 if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin python --arg legacy_plugin pulp_python -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  STATUS_ENDPOINT="${PULP_URL}/pulp/api/v3/status/"
+  echo $STATUS_ENDPOINT
+  REPORTED_VERSION=$(http $STATUS_ENDPOINT | jq --arg plugin python --arg legacy_plugin pulp_python -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
   response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-python/$REPORTED_VERSION/)
   if [ "$response" == "200" ];
   then
@@ -162,7 +164,15 @@ fi
 if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
 else
-    pytest -v -r sx --color=yes --pyargs pulp_python.tests.functional
+
+    if [[ "$GITHUB_WORKFLOW" == "Python Nightly CI/CD" ]]; then
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_python.tests.functional -m parallel -n 8
+        pytest -v -r sx --color=yes --pyargs pulp_python.tests.functional -m "not parallel"
+    else
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_python.tests.functional -m "parallel and not nightly" -n 8
+        pytest -v -r sx --color=yes --pyargs pulp_python.tests.functional -m "not parallel and not nightly"
+    fi
+
 fi
 
 if [ -f $POST_SCRIPT ]; then
