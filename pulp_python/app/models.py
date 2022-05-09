@@ -90,7 +90,7 @@ class PythonDistribution(Distribution):
                 except ObjectDoesNotExist:
                     return None
                 file = ca.artifact.file
-                content_disposition = f"attachment;filename={ca.relative_path}"
+                content_disposition = f"attachment%3Bfilename={ca.relative_path}"
                 if settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
                     parameters = {
                         "content_disposition": content_disposition,
