@@ -219,10 +219,10 @@ class PulpMirror(Mirror):
                 package = PythonPackageContent(**entry)
 
                 da = DeclarativeArtifact(
-                    artifact,
-                    url,
-                    entry["filename"],
-                    self.python_stage.remote,
+                    artifact=artifact,
+                    url=url,
+                    relative_path=entry["filename"],
+                    remote=self.python_stage.remote,
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])
