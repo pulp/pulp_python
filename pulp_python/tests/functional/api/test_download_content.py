@@ -1,7 +1,6 @@
 # coding=utf-8
 """Tests that verify download of content served by Pulp."""
 import hashlib
-import unittest
 from random import choice
 from urllib.parse import urljoin
 
@@ -12,6 +11,8 @@ from pulp_smash.pulp3.utils import (
 )
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURE_URL,
+    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_LG_FIXTURE_SUMMARY,
     PYTHON_LG_PROJECT_SPECIFIER,
 )
@@ -79,8 +80,8 @@ class DownloadContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
         self.assertEqual(fixtures_hashes, pulp_hashes)
 
 
-class PublishPyPiJSON(TestCaseUsingBindings, TestHelpersMixin):
-    """Test whether a distributed Python repository has a PyPi json endpoint
+class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
+    """Test whether a distributed Python repository has a PyPI json endpoint
     a.k.a Can be consumed by another Pulp instance
 
     Test targets the following issue:
@@ -88,7 +89,6 @@ class PublishPyPiJSON(TestCaseUsingBindings, TestHelpersMixin):
     * `Pulp #2886 <https://pulp.plan.io/issues/2886>`_
     """
 
-    @unittest.skip("Content can not be synced without https")
     def test_basic_pulp_to_pulp_sync(self):
         """
         This test checks that the JSON endpoint is setup correctly to allow one Pulp instance
@@ -107,7 +107,45 @@ class PublishPyPiJSON(TestCaseUsingBindings, TestHelpersMixin):
         ]
         unit_url = "/".join(url_fragments)
 
+        # Sync using old Pulp content api
         body["url"] = unit_url
         remote = self._create_remote(**body)
         repo2 = self._create_repo_and_sync_with_remote(remote)
         self.assertEqual(get_content_summary(repo2.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
+
+        # Sync using new PyPI endpoints
+        body["url"] = distro.base_url
+        remote = self._create_remote(**body)
+        repo3 = self._create_repo_and_sync_with_remote(remote)
+        self.assertEqual(get_content_summary(repo3.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
+
+    def test_full_fixtures_to_pulp_sync(self):
+        """
+        This test checks that Pulp can fully sync another Python Package repository that is not
+        PyPI. This reads the repository's simple page if XMLRPC isn't supported.
+        """
+        remote = self._create_remote(includes="", prereleases=True)
+        repo = self._create_repo_and_sync_with_remote(remote)
+        self.assertEqual(get_content_summary(repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
+
+    def test_full_pulp_to_pulp_sync(self):
+        """
+        This test checks that Pulp can fully sync all packages from another Pulp instance
+        without having to specify the includes field.
+        """
+        remote = self._create_remote(includes=PYTHON_MD_PROJECT_SPECIFIER)
+        repo = self._create_repo_and_sync_with_remote(remote)
+        # Test using live generated simple pages
+        distro = self._create_distribution_from_repo(repo)
+
+        remote = self._create_remote(includes="", url=distro.base_url)
+        repo2 = self._create_repo_and_sync_with_remote(remote)
+        self.assertEqual(get_content_summary(repo2.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)
+
+        # Now test using publication simple pages
+        pub = self._create_publication(repo)
+        distro2 = self._create_distribution_from_publication(pub)
+        remote = self._create_remote(includes="", url=distro2.base_url, prereleases=True)
+
+        repo3 = self._create_repo_and_sync_with_remote(remote)
+        self.assertEqual(get_content_summary(repo3.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)

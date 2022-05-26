@@ -71,7 +71,7 @@ services:
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: {"orphan_protection_time": 0}
+pulp_settings: {"orphan_protection_time": 0, "pypi_api_hostname": "https://pulp:443"}
 pulp_scheme: https
 
 pulp_container_tag: https

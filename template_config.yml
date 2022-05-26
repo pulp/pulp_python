@@ -49,6 +49,7 @@ publish_docs_to_pulpprojectdotorg: true
 pulp_scheme: https
 pulp_settings:
   orphan_protection_time: 0
+  pypi_api_hostname: https://pulp:443
 pulpcore_branch: main
 pulpcore_pip_version_specifier: null
 pulpcore_revision: null
