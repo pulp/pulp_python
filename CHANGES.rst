@@ -13,6 +13,33 @@ Changelog
 
 .. towncrier release notes start
 
+3.7.0 (2022-06-22)
+==================
+
+
+Features
+--------
+
+- Added ability to fully sync repositories that don't support the PyPI XMLRPC endpoints. Full Pulp-to-Pulp syncing is now available.
+  `#462 <https://github.com/pulp/pulp_python/issues/462>`__
+
+
+Bugfixes
+--------
+
+- Ensured temporary package uploads are written to worker's directory instead of /tmp.
+  `#505 <https://github.com/pulp/pulp_python/issues/505>`__
+
+
+Misc
+----
+
+- `#503 <https://github.com/pulp/pulp_python/issues/503>`__
+
+
+----
+
+
 3.6.0 (2021-12-15)
 ==================
 
