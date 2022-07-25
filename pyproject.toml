@@ -16,11 +16,12 @@ ignore = [
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
-    "flake8.cfg",
     "template_config.yml",
     ".travis/**",
     ".travis.yml",
     "shelf_reader-0.1-py2-none-any.whl",
     ".github/**",
     ".ci/**",
+    "lint_requirements.txt",
+    ".flake8",
 ]
