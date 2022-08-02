@@ -229,7 +229,7 @@ class PulpMirror(Mirror):
 
                 await self.python_stage.put(dc)
 
-    def finalize_sync(self):
+    def finalize_sync(self, *args, **kwargs):
         """No work to be done currently"""
         pass
 
