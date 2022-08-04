@@ -4,7 +4,6 @@ django
 djangorestframework
 django-filter
 drf-nested-routers
-mistune<2.0.0
 plantuml
 pyyaml
 sphinx
