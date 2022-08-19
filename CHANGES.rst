@@ -13,6 +13,20 @@ Changelog
 
 .. towncrier release notes start
 
+3.6.1 (2022-08-19)
+==================
+
+
+Bugfixes
+--------
+
+- Fixed syncing failing when using bandersnatch 5.3.0
+  `#554 <https://github.com/pulp/pulp_python/issues/554>`__
+
+
+----
+
+
 3.6.0 (2021-12-15)
 ==================
 
