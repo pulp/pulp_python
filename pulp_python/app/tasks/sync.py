@@ -118,7 +118,7 @@ class PythonBanderStage(Stage):
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
         # local & global timeouts defaults to 10secs and 5 hours
-        async with Master(url) as master:
+        async with PulpMaster(url) as master:
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
@@ -138,6 +138,18 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
+
+
+class PulpMaster(Master):
+    """
+    Temporary subclass of bandersnatch.Master until features are in bandersnatch.
+    """
+
+    async def __aenter__(self) -> "Master":
+        """Ensure Pulp does not try to read the .netrc file."""
+        await super().__aenter__()
+        self.session._trust_env = False
+        return self
 
 
 class PulpMirror(Mirror):
