@@ -13,6 +13,20 @@ Changelog
 
 .. towncrier release notes start
 
+3.7.3 (2022-10-06)
+==================
+
+
+Bugfixes
+--------
+
+- Prevent .netrc file from being read on syncs.
+  `#566 <https://github.com/pulp/pulp_python/issues/566>`__
+
+
+----
+
+
 3.7.2 (2022-08-04)
 ==================
 
