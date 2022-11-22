@@ -51,6 +51,7 @@ Table of Contents
    :maxdepth: 1
 
    installation
+   settings
    workflows/index
    changes
    contributing
