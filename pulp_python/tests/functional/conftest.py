@@ -1,6 +1,7 @@
 import pytest
+import uuid
 
-from pulp_smash.pulp3.utils import gen_distribution, gen_repo
+from pulp_smash.pulp3.utils import gen_distribution
 from pulp_python.tests.functional.utils import gen_python_remote
 
 from pulpcore.client.pulp_python import (
@@ -9,6 +10,7 @@ from pulpcore.client.pulp_python import (
     DistributionsPypiApi,
     PublicationsPypiApi,
     RepositoriesPythonApi,
+    RepositoriesPythonVersionsApi,
     RemotesPythonApi,
 )
 
@@ -27,6 +29,12 @@ def python_bindings_client(cid, bindings_cfg):
 def python_repo_api_client(python_bindings_client):
     """Provides the Python Repository API client object."""
     return RepositoriesPythonApi(python_bindings_client)
+
+
+@pytest.fixture
+def python_repo_version_api_client(python_bindings_client):
+    """Provides the Python Repository Version API client object."""
+    return RepositoriesPythonVersionsApi(python_bindings_client)
 
 
 @pytest.fixture
@@ -56,9 +64,19 @@ def python_publication_api_client(python_bindings_client):
 # Object Generation Fixtures
 
 @pytest.fixture
-def python_repo(python_repo_api_client, gen_object_with_cleanup):
+def python_repo_factory(python_repo_api_client, gen_object_with_cleanup):
+    """A factory to generate a Python Repository with auto-cleanup."""
+    def _gen_python_repo(**kwargs):
+        kwargs.setdefault("name", str(uuid.uuid4()))
+        return gen_object_with_cleanup(python_repo_api_client, kwargs)
+
+    return _gen_python_repo
+
+
+@pytest.fixture
+def python_repo(python_repo_factory):
     """Creates a Python Repository and deletes it at test cleanup time."""
-    return gen_object_with_cleanup(python_repo_api_client, gen_repo())
+    return python_repo_factory()
 
 
 @pytest.fixture

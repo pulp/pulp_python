@@ -55,6 +55,8 @@ pulp_scheme: https
 pulp_settings:
   orphan_protection_time: 0
   pypi_api_hostname: https://pulp:443
+  allowed_export_paths: /tmp
+  allowed_import_paths: /tmp
 pulp_settings_azure: null
 pulp_settings_gcp: null
 pulp_settings_s3: null
