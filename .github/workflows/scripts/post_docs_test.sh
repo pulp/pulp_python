@@ -3,7 +3,8 @@
 export BASE_ADDR=https://pulp
 export CONTENT_ADDR=https://pulp
 
-pip install -r doc_requirements.txt
+cmd_prefix bash -c "dnf install jq -y"
 
-cd docs/_scripts/
-bash ./quickstart.sh
+cmd_user_prefix bash -c "cd pulp_python/ && pip install -r doc_requirements.txt"
+
+cmd_user_prefix bash -c "cd pulp_python/docs/_scripts/ && source ./quickstart.sh"

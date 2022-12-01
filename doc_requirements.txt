@@ -11,3 +11,4 @@ sphinx
 sphinx-rtd-theme
 sphinxcontrib-openapi
 towncrier
+twine
