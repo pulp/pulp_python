@@ -93,6 +93,21 @@ if [ -n "$PULP_OPENAPI_GENERATOR_PR_NUMBER" ]; then
 fi
 
 
+git clone --depth=1 https://github.com/pulp/pulp-cli.git
+if [ -n "$PULP_CLI_PR_NUMBER" ]; then
+  cd pulp-cli
+  git fetch origin pull/$PULP_CLI_PR_NUMBER/head:$PULP_CLI_PR_NUMBER
+  git checkout $PULP_CLI_PR_NUMBER
+  cd ..
+fi
+
+cd pulp-cli
+pip install .
+pulp config create --base-url https://pulp  --location tests/cli.toml
+mkdir ~/.config/pulp
+cp tests/cli.toml ~/.config/pulp/cli.toml
+cd ..
+
 
 git clone --depth=1 https://github.com/pulp/pulpcore.git --branch main
 
@@ -117,11 +132,13 @@ then
   echo "Failed to install amazon.aws"
   exit $s
 fi
-# Patch DJANGO_ALLOW_ASYNC_UNSAFE out of the pulpcore tasking_system
-# Don't let it fail. Be opportunistic.
-sed -i -e '/DJANGO_ALLOW_ASYNC_UNSAFE/d' pulpcore/pulpcore/tasking/entrypoint.py || true
 
 cd pulp_python
+
+if [[ "$TEST" = "lowerbounds" ]]; then
+  python3 .ci/scripts/calc_deps_lowerbounds.py > lowerbounds_requirements.txt
+  mv lowerbounds_requirements.txt requirements.txt
+fi
 
 if [ -f $POST_BEFORE_INSTALL ]; then
   source $POST_BEFORE_INSTALL
