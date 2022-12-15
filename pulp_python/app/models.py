@@ -5,15 +5,14 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
-from yarl import URL
-
 from pulpcore.plugin.models import (
     Content,
     Publication,
     Distribution,
     Remote,
-    Repository
+    Repository,
 )
+from pulpcore.plugin.responses import ArtifactResponse
 
 from pathlib import PurePath
 from .utils import (
@@ -21,7 +20,7 @@ from .utils import (
     parse_project_metadata,
     python_content_to_json,
     PYPI_LAST_SERIAL,
-    PYPI_SERIAL_CONSTANT
+    PYPI_SERIAL_CONSTANT,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
@@ -39,10 +38,12 @@ PACKAGE_TYPES = (
     ("sdist", "sdist"),
 )
 
-PLATFORMS = (("windows", "windows"),
-             ("macos", "macos"),
-             ("freebsd", "freebsd"),
-             ("linux", "linux"))
+PLATFORMS = (
+    ("windows", "windows"),
+    ("macos", "macos"),
+    ("freebsd", "freebsd"),
+    ("linux", "linux"),
+)
 
 
 class PythonDistribution(Distribution):
@@ -50,7 +51,7 @@ class PythonDistribution(Distribution):
     Distribution for 'Python' Content.
     """
 
-    TYPE = 'python'
+    TYPE = "python"
 
     allow_uploads = models.BooleanField(default=True)
 
@@ -76,47 +77,31 @@ class PythonDistribution(Distribution):
             # Temporary fix for PublishedMetadata not being properly served from remote storage
             # https://github.com/pulp/pulp_python/issues/413
             if settings.DEFAULT_FILE_STORAGE != "pulpcore.app.models.storage.FileSystem":
-                try:
-                    publication = self.publication or Publication.objects.filter(
-                        repository_version=self.repository.latest_version()).latest("pulp_created")
-                except ObjectDoesNotExist:
-                    return None
-                rel_path = f"{path}/index.html"
-                try:
-                    ca = publication.published_artifact.select_related(
-                        "content_artifact",
-                        "content_artifact__artifact",
-                    ).get(relative_path=rel_path).content_artifact
-                except ObjectDoesNotExist:
-                    return None
-                file = ca.artifact.file
-                content_disposition = f"attachment%3Bfilename={ca.relative_path}"
-                if settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
-                    parameters = {
-                        "content_disposition": content_disposition,
-                        "content_type": "text/html"
-                    }
-                elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
-                    parameters = {
-                        "ResponseContentDisposition": content_disposition,
-                        "ResponseContentType": "text/html"
-                    }
-                else:
-                    raise NotImplementedError()
-
-                url = URL(file.storage.url(file.name, parameters=parameters), encoded=True)
-                # Trick the content app to stream the metadata from the remote storage
-                remote = PythonRemote(name="Redirect", url=str(url), policy="streamed")
-                remote.get_remote_artifact_url = lambda *args, **kwargs: str(url)
-                setattr(self, "publication", None)
-                setattr(self, "repository", None)
-                setattr(self, "remote", remote)
-                return None
+                if self.publication or self.repository:
+                    try:
+                        publication = self.publication or Publication.objects.filter(
+                            repository_version=self.repository.latest_version()
+                        ).latest("pulp_created")
+                    except ObjectDoesNotExist:
+                        return None
+                    rel_path = f"{path}/index.html"
+                    try:
+                        ca = (
+                            publication.published_artifact.select_related(
+                                "content_artifact",
+                                "content_artifact__artifact",
+                            )
+                            .get(relative_path=rel_path)
+                            .content_artifact
+                        )
+                    except ObjectDoesNotExist:
+                        return None
+                    headers = {"Content-Type": "text/html"}
+                    return ArtifactResponse(ca.artifact, headers=headers)
 
         if name:
             package_content = PythonPackageContent.objects.filter(
-                pk__in=self.publication.repository_version.content,
-                name__iexact=name
+                pk__in=self.publication.repository_version.content, name__iexact=name
             )
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
@@ -150,7 +135,7 @@ class PythonPackageContent(Content):
 
     PROTECTED_FROM_RECLAIM = False
 
-    TYPE = 'python'
+    TYPE = "python"
     repo_key_fields = ("filename",)
     # Required metadata
     filename = models.TextField(db_index=True)
@@ -190,9 +175,9 @@ class PythonPackageContent(Content):
         path = PurePath(relative_path)
         metadata = get_project_metadata_from_artifact(path.name, artifact)
         data = parse_project_metadata(vars(metadata))
-        data['packagetype'] = metadata.packagetype
-        data['version'] = metadata.version
-        data['filename'] = path.name
+        data["packagetype"] = metadata.packagetype
+        data["version"] = metadata.version
+        data["filename"] = path.name
         data["sha256"] = artifact.sha256
         return PythonPackageContent(**data)
 
@@ -206,11 +191,11 @@ class PythonPackageContent(Content):
         e.g. <PythonPackageContent: shelf-reader [version] (whl)>
 
         """
-        return '<{obj_name}: {name} [{version}] ({type})>'.format(
+        return "<{obj_name}: {name} [{version}] ({type})>".format(
             obj_name=self._meta.object_name,
             name=self.name,
             version=self.version,
-            type=self.packagetype
+            type=self.packagetype,
         )
 
     class Meta:
@@ -223,7 +208,7 @@ class PythonPublication(Publication):
     A Publication for PythonContent.
     """
 
-    TYPE = 'python'
+    TYPE = "python"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -238,16 +223,18 @@ class PythonRemote(Remote):
         prereleases (models.BooleanField): Whether to sync pre-release versions of packages.
     """
 
-    TYPE = 'python'
+    TYPE = "python"
     DEFAULT_DOWNLOAD_CONCURRENCY = 10
     prereleases = models.BooleanField(default=False)
     includes = models.JSONField(default=list)
     excludes = models.JSONField(default=list)
-    package_types = ArrayField(models.CharField(max_length=15, blank=True),
-                               choices=PACKAGE_TYPES, default=list)
+    package_types = ArrayField(
+        models.CharField(max_length=15, blank=True), choices=PACKAGE_TYPES, default=list
+    )
     keep_latest_packages = models.IntegerField(default=0)
-    exclude_platforms = ArrayField(models.CharField(max_length=10, blank=True),
-                                   choices=PLATFORMS, default=list)
+    exclude_platforms = ArrayField(
+        models.CharField(max_length=10, blank=True), choices=PLATFORMS, default=list
+    )
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
         """Get url for remote_artifact"""
