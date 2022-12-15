@@ -3,7 +3,7 @@
 import unittest
 
 from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError, delete_orphans
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_added_content_summary,
@@ -582,6 +582,9 @@ class PlatformExcludeTestCase(unittest.TestCase):
         """Destroy class-wide variables per test"""
         cls.remote_api.delete(cls.remote.pulp_href)
         cls.repo_api.delete(cls.repo.pulp_href)
+        # This is the last test case to be ran, delete orphans
+        # TODO: Move this to pytest hook when converting to pytest style
+        delete_orphans()
 
     def test_no_windows_sync(self):
         """Tests that no windows packages are synced"""
