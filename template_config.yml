@@ -63,7 +63,6 @@ pulpprojectdotorg_key_id: null
 pydocstyle: true
 pypi_username: pulp
 python_version: '3.8'
-redmine_project: null
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
 run_pulpcore_tests_for_plugins: true
@@ -88,7 +87,6 @@ test_stream: false
 travis_addtl_services: []
 travis_notifications: None
 update_github: true
-update_redmine: false
 upgrade_range:
 - pulp_python_branch: 3.2
   pulpcore_branch: 3.11
