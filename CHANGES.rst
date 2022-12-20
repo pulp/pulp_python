@@ -13,6 +13,31 @@ Changelog
 
 .. towncrier release notes start
 
+3.8.0 (2022-12-19)
+==================
+
+
+Bugfixes
+--------
+
+- Fixed syncing failing when using bandersnatch 5.3.0
+  `#554 <https://github.com/pulp/pulp_python/issues/554>`__
+- Prevent .netrc file from being read on syncs.
+  `#566 <https://github.com/pulp/pulp_python/issues/566>`__
+- Fix 500 error when pip installing using object storage.
+  `#572 <https://github.com/pulp/pulp_python/issues/572>`__
+
+
+Improved Documentation
+----------------------
+
+- Documented ``pulp_python`` specific settings.
+  `#571 <https://github.com/pulp/pulp_python/issues/571>`__
+
+
+----
+
+
 3.7.3 (2022-10-06)
 ==================
 
