@@ -201,7 +201,15 @@ class SimpleView(ViewSet, PackageUploadMixin):
             return link.text, d_url, value if digest == 'sha256' else ''
 
         url = remote.get_remote_artifact_url(f'simple/{package}/')
-        response = requests.get(url, stream=True)
+        kwargs = {}
+        if proxy_url := remote.proxy_url:
+            if remote.proxy_username or remote.proxy_password:
+                parsed_proxy = urlparse(proxy_url)
+                netloc = f"{remote.proxy_username}:{remote.proxy_password}@{parsed_proxy.netloc}"
+                proxy_url = urlunsplit((parsed_proxy.scheme, netloc, "", "", ""))
+            kwargs["proxies"] = {"http": proxy_url, "https": proxy_url}
+
+        response = requests.get(url, stream=True, **kwargs)
         links = parse_links_stream_response(response)
         packages = (parse_url(link) for link in links)
         return StreamingHttpResponse(write_simple_detail(package, packages, streamed=True))
