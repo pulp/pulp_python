@@ -3,7 +3,7 @@ import logging
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
 from gettext import gettext as _
-from os import environ
+from os import environ, path
 
 from rest_framework import serializers
 
@@ -26,7 +26,7 @@ from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
 from bandersnatch.configuration import BandersnatchConfig
 from packaging.requirements import Requirement
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
 
@@ -111,14 +111,22 @@ class PythonBanderStage(Stage):
         """
         If includes is specified, then only sync those,else try to sync all other packages
         """
+        # Prevent bandersnatch from reading actual .netrc file, set to nonexistent file
+        # See discussion on https://github.com/pulp/pulp_python/issues/581
+        environ["NETRC"] = f"{path.curdir}/.fake-netrc"
         # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
-        if self.remote.proxy_url:
-            environ['http_proxy'] = self.remote.proxy_url
-            environ['https_proxy'] = self.remote.proxy_url
+        if proxy_url := self.remote.proxy_url:
+            if self.remote.proxy_username or self.remote.proxy_password:
+                parsed_proxy = urlsplit(proxy_url)
+                creds = f"{self.remote.proxy_username}:{self.remote.proxy_password}"
+                netloc = f"{creds}@{parsed_proxy.netloc}"
+                proxy_url = urlunsplit((parsed_proxy.scheme, netloc, "", "", ""))
+            environ['http_proxy'] = proxy_url
+            environ['https_proxy'] = proxy_url
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
         # local & global timeouts defaults to 10secs and 5 hours
-        async with PulpMaster(url) as master:
+        async with Master(url) as master:
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
@@ -138,18 +146,6 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
-
-
-class PulpMaster(Master):
-    """
-    Temporary subclass of bandersnatch.Master until features are in bandersnatch.
-    """
-
-    async def __aenter__(self) -> "Master":
-        """Ensure Pulp does not try to read the .netrc file."""
-        await super().__aenter__()
-        self.session._trust_env = False
-        return self
 
 
 class PulpMirror(Mirror):
