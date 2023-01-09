@@ -146,7 +146,7 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         """
         1) upload file
         2) upload the same file again
-        3) this should fail/send an error
+        3) this should return first unit
         """
         delete_orphans()
         response = self.do_upload()
@@ -154,12 +154,8 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         content_unit = self.content_api.read(created_resources[0])
         self.check_package_data(content_unit.to_dict())
 
-        with self.assertRaises(PulpTaskError) as cm:
-            monitor_task(self.do_upload().task)
-        task_report = cm.exception.task.to_dict()
-        msg = "This field must be unique"
-        self.assertTrue("sha256" in task_report["error"]["description"])
-        self.assertTrue(msg in task_report["error"]["description"])
+        created_resources = monitor_task(self.do_upload().task).created_resources
+        self.assertEqual(content_unit.pulp_href, created_resources[0])
 
     def test_08_upload_same_filename_different_artifact(self):
         """
