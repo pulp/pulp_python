@@ -226,19 +226,20 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                     "The uploaded artifact's sha256 checksum does not match the one provided"
                 )}
             )
-        sha256 = artifact.sha256
-        if sha256 and python_models.PythonPackageContent.objects.filter(sha256=sha256).exists():
-            raise serializers.ValidationError(detail={"sha256": _('This field must be unique')})
 
         _data = parse_project_metadata(vars(metadata))
         _data['packagetype'] = metadata.packagetype
         _data['version'] = metadata.version
         _data['filename'] = filename
-        _data['sha256'] = sha256
+        _data['sha256'] = artifact.sha256
 
         data.update(_data)
 
         return data
+
+    def retrieve(self, validated_data):
+        content = python_models.PythonPackageContent.objects.filter(sha256=validated_data["sha256"])
+        return content.first()
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
