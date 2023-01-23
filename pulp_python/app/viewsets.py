@@ -101,6 +101,7 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
             'filename': ['exact', 'in', 'contains'],
             'keywords': ['in', 'contains'],
             'sha256': ['exact', 'in'],
+            'version': ['exact', 'gt', 'lt', 'gte', 'lte']
         }
 
 
