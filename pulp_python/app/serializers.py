@@ -279,20 +279,21 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     A Serializer for PythonRemote.
     """
 
-    includes = serializers.JSONField(
+    includes = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
         required=False,
-        default=list,
+        allow_empty=True,
         help_text=_(
-            "A JSON list containing project specifiers for Python packages to include."
+            "A list containing project specifiers for Python packages to include."
         ),
     )
-    excludes = serializers.JSONField(
+    excludes = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
         required=False,
-        default=list,
+        allow_empty=True,
         help_text=_(
-            "A JSON list containing project specifiers for Python packages to exclude."
+            "A list containing project specifiers for Python packages to exclude."
         ),
-
     )
     prereleases = serializers.BooleanField(
         required=False,
