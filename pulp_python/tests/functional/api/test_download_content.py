@@ -124,7 +124,7 @@ class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
         This test checks that Pulp can fully sync another Python Package repository that is not
         PyPI. This reads the repository's simple page if XMLRPC isn't supported.
         """
-        remote = self._create_remote(includes="", prereleases=True)
+        remote = self._create_remote(includes=[], prereleases=True)
         repo = self._create_repo_and_sync_with_remote(remote)
         self.assertEqual(get_content_summary(repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
 
@@ -138,14 +138,14 @@ class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
         # Test using live generated simple pages
         distro = self._create_distribution_from_repo(repo)
 
-        remote = self._create_remote(includes="", url=distro.base_url)
+        remote = self._create_remote(includes=[], url=distro.base_url)
         repo2 = self._create_repo_and_sync_with_remote(remote)
         self.assertEqual(get_content_summary(repo2.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)
 
         # Now test using publication simple pages
         pub = self._create_publication(repo)
         distro2 = self._create_distribution_from_publication(pub)
-        remote = self._create_remote(includes="", url=distro2.base_url, prereleases=True)
+        remote = self._create_remote(includes=[], url=distro2.base_url, prereleases=True)
 
         repo3 = self._create_repo_and_sync_with_remote(remote)
         self.assertEqual(get_content_summary(repo3.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)

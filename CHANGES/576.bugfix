@@ -1,0 +1,1 @@
+Changed includes and excludes openapi schema to report as array of strings instead of object.
