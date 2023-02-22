@@ -214,7 +214,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
         packages = (parse_url(link) for link in links)
         return StreamingHttpResponse(write_simple_detail(package, packages, streamed=True))
 
-    @extend_schema(summary="Get package simple page")
+    @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html page for a package."""
         distro, repo_ver, content = self.get_drvc(path)
