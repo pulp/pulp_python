@@ -1,9 +1,10 @@
 # coding=utf-8
 """Tests that sync python plugin repositories."""
+import pytest
 import unittest
 
 from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError, delete_orphans
+from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_added_content_summary,
@@ -582,9 +583,6 @@ class PlatformExcludeTestCase(unittest.TestCase):
         """Destroy class-wide variables per test"""
         cls.remote_api.delete(cls.remote.pulp_href)
         cls.repo_api.delete(cls.repo.pulp_href)
-        # This is the last test case to be ran, delete orphans
-        # TODO: Move this to pytest hook when converting to pytest style
-        delete_orphans()
 
     def test_no_windows_sync(self):
         """Tests that no windows packages are synced"""
@@ -641,6 +639,52 @@ class PlatformExcludeTestCase(unittest.TestCase):
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
             SCIPY_COUNTS["no_os"]
         )
+
+
+@pytest.mark.parallel
+def test_proxy_sync(
+    python_repo,
+    python_repo_api_client,
+    python_remote_factory,
+    python_content_api_client,
+    http_proxy,
+):
+    """Test syncing with a proxy."""
+    body = gen_python_remote(proxy_url=http_proxy.proxy_url)
+    remote = python_remote_factory(**body)
+    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
+    monitor_task(sync_resp.task)
+
+    repo = python_repo_api_client.read(python_repo.pulp_href)
+    assert repo.latest_version_href[-2] == "1"
+
+    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
+    assert content_resp.count == 2
+
+
+@pytest.mark.parallel
+def test_proxy_auth_sync(
+    python_repo,
+    python_repo_api_client,
+    python_remote_factory,
+    python_content_api_client,
+    http_proxy_with_auth,
+):
+    """Test syncing with a proxy with auth."""
+    body = gen_python_remote(
+        proxy_url=http_proxy_with_auth.proxy_url,
+        proxy_username=http_proxy_with_auth.username,
+        proxy_password=http_proxy_with_auth.password,
+    )
+    remote = python_remote_factory(**body)
+    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
+    monitor_task(sync_resp.task)
+
+    repo = python_repo_api_client.read(python_repo.pulp_href)
+    assert repo.latest_version_href[-2] == "1"
+
+    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
+    assert content_resp.count == 2
 
 
 def sync_to_remote(self, body, create=False, mirror=False):
