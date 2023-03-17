@@ -13,6 +13,35 @@ Changelog
 
 .. towncrier release notes start
 
+3.9.0 (2023-03-17)
+==================
+
+
+Features
+--------
+
+- Added version filter to package list endpoint.
+  `#577 <https://github.com/pulp/pulp_python/issues/577>`__
+- Allow duplicate uploads to return existing packages instead of erring.
+  `#590 <https://github.com/pulp/pulp_python/issues/590>`__
+
+
+Bugfixes
+--------
+
+- Fixed pull-through caching ignoring remote proxy settings.
+  `#553 <https://github.com/pulp/pulp_python/issues/553>`__
+- Changed includes and excludes openapi schema to report as array of strings instead of object.
+  `#576 <https://github.com/pulp/pulp_python/issues/576>`__
+- Fixed syncing ignoring remote proxy.
+  `#581 <https://github.com/pulp/pulp_python/issues/581>`__
+- Fixed duplicate operationID for generated PyPI simple endpoints schema.
+  `#594 <https://github.com/pulp/pulp_python/issues/594>`__
+
+
+----
+
+
 3.8.0 (2022-12-19)
 ==================
 
