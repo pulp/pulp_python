@@ -3,3 +3,5 @@ pytest
 lxml
 twine
 pypi-simple
+pulpcore-client
+pulp-python-client==3.10.0.dev
