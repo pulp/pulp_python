@@ -1,9 +1,13 @@
 import logging
+import tempfile
+from typing import Dict, Set
 
 from aiohttp import ClientResponseError, ClientError
+from collections import defaultdict
+from itertools import chain
 from lxml.etree import LxmlError
 from gettext import gettext as _
-from os import environ, path
+from os import environ
 
 from rest_framework import serializers
 
@@ -19,13 +23,14 @@ from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
+from pulp_python.app.utils import parse_json, parse_metadata, PYPI_LAST_SERIAL
 from pypi_simple import parse_repo_index_page
 
 from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
 from bandersnatch.configuration import BandersnatchConfig
 from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
@@ -113,7 +118,8 @@ class PythonBanderStage(Stage):
         """
         # Prevent bandersnatch from reading actual .netrc file, set to nonexistent file
         # See discussion on https://github.com/pulp/pulp_python/issues/581
-        environ["NETRC"] = f"{path.curdir}/.fake-netrc"
+        fake_netrc = tempfile.NamedTemporaryFile(dir=".", delete=False)
+        environ["NETRC"] = fake_netrc.name
         # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
         if proxy_url := self.remote.proxy_url:
             if self.remote.proxy_username or self.remote.proxy_password:
@@ -146,6 +152,23 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
+                if pmirror.sync_dependencies:
+                    depth = 1
+                    while pmirror.dependencies_to_sync and depth <= 25:  # ensure no circular loops
+                        logger.info(_("Syncing dependencies: depth {}").format(depth))
+                        depth += 1
+                        packages_to_sync = list(pmirror.dependencies_to_sync.keys())
+                        pmirror.allow_filter.allowlist_release_requirements = list(
+                            chain(*pmirror.dependencies_to_sync.values())
+                        )
+                        logger.info(
+                            f"Re-initialized release plugin {pmirror.allow_filter.name}, filtering "
+                            + f"{pmirror.allow_filter.allowlist_release_requirements}"
+                        )
+                        pmirror.dependencies_to_sync.clear()
+                        await pmirror.synchronize(packages_to_sync)
+                    if pmirror.dependencies_to_sync:
+                        logger.warning(_("Reached dependency sync depth limit! Breaking out"))
 
 
 class PulpMirror(Mirror):
@@ -160,8 +183,18 @@ class PulpMirror(Mirror):
         super().__init__(master=master, workers=workers)
         self.synced_serial = serial
         self.python_stage = python_stage
+        self.remote = self.python_stage.remote
         self.progress_report = progress_report
         self.deferred_download = deferred_download
+        self.sync_dependencies = self.remote.includes and self.remote.sync_dependencies
+        if self.sync_dependencies:
+            # Find the allowlist_filter, so we can update it when syncing dependencies
+            for fil in self.filters.filter_release_plugins():
+                if fil.name == "allowlist_release":
+                    self.allow_filter = fil
+                    break
+            self.already_synced: Dict[str, Set[str]] = defaultdict(set)
+            self.dependencies_to_sync: Dict[str, Set[Requirement]] = defaultdict(set)
 
     async def determine_packages_to_sync(self):
         """
@@ -230,6 +263,28 @@ class PulpMirror(Mirror):
         create a Content Unit to put into the pipeline
         """
         for version, dists in pkg.releases.items():
+            if self.sync_dependencies:
+                if version in self.already_synced[pkg.name]:
+                    continue
+                self.already_synced[pkg.name].add(version)
+
+                for req_spec in await self.get_required_dists(pkg, version):
+                    req = Requirement(req_spec)
+                    req.name = canonicalize_name(req.name)
+                    req.specifier.prereleases = True
+                    if req.marker:
+                        if "extra == " in str(req.marker):
+                            # Only sync the required dependency if we specified the correct 'extra'
+                            extras = set()
+                            for cur_allow_pkg in self.allow_filter.allowlist_release_requirements:
+                                if cur_allow_pkg.name == pkg.name:
+                                    extras |= cur_allow_pkg.extras
+                            extra = str(req.marker).rpartition("extra == ")[2].strip("'\"")
+                            if extra not in extras:
+                                continue
+
+                    self.dependencies_to_sync[req.name].add(req)
+
             for package in dists:
                 entry = parse_metadata(pkg.info, version, package)
                 url = entry.pop("url")
@@ -258,3 +313,15 @@ class PulpMirror(Mirror):
         This should have some error checking
         """
         pass
+
+    async def get_required_dists(self, pkg, version):
+        """Returns a list of required dists from given package version."""
+        # TODO: Can this logic live in Bandersnatch?
+        url = urljoin(self.remote.url, f"pypi/{pkg.name}/{version}/json")
+        downloader = self.remote.get_downloader(url=url)
+        try:
+            result = await downloader.run()
+        except ClientResponseError:
+            return []
+        else:
+            return parse_json(result).get("info", {}).get("requires_dist", []) or []

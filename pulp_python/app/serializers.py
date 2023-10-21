@@ -325,6 +325,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         choices=python_models.PLATFORMS,
         default=list
     )
+    sync_dependencies = serializers.BooleanField(
+        required=False,
+        help_text=_("Whether to sync dependencies specified by package metadata. (Tech Preview)"),
+        default=False,
+    )
 
     def validate_includes(self, value):
         """Validates the includes"""
@@ -351,7 +356,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     class Meta:
         fields = core_serializers.RemoteSerializer.Meta.fields + (
             "includes", "excludes", "prereleases", "package_types", "keep_latest_packages",
-            "exclude_platforms",
+            "exclude_platforms", "sync_dependencies"
         )
         model = python_models.PythonRemote
 

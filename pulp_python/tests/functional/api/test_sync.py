@@ -34,6 +34,8 @@ from pulp_python.tests.functional.constants import (
     PYTHON_LG_FIXTURE_SUMMARY,
     PYTHON_LG_FIXTURE_COUNTS,
     DJANGO_LATEST_3,
+    DJANGO_PLUS_PYTZ,
+    DJANGO_PLUS_PYTZ_BCRYPT,
     SCIPY_COUNTS,
 )
 from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
@@ -685,6 +687,68 @@ def test_proxy_auth_sync(
 
     content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
     assert content_resp.count == 2
+
+
+@pytest.mark.parallel
+def test_sync_dependency(
+    python_repo, python_repo_api_client, python_content_api_client, python_remote_factory
+):
+    """Test syncing dependencies."""
+    # The only required dependency for Django in our fixtures is pytz
+    body = gen_python_remote(includes=["Django"], sync_dependencies=True, prereleases=True)
+    remote = python_remote_factory(**body)
+    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
+    monitor_task(sync_resp.task)
+
+    repo = python_repo_api_client.read(python_repo.pulp_href)
+    assert repo.latest_version_href[-2] == "1"
+
+    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
+    assert content_resp.count == DJANGO_PLUS_PYTZ
+
+    content_resp = python_content_api_client.list(
+        repository_version=repo.latest_version_href, name="pytz"
+    )
+    assert content_resp.count > 0
+
+
+@pytest.mark.parallel
+def test_sync_dependency_extras(
+    python_repo, python_repo_api_client, python_content_api_client, python_remote_factory
+):
+    """Test syncing dependencies w/ extras"""
+    body = gen_python_remote(includes=["Django[bcrypt]"], sync_dependencies=True, prereleases=True)
+    remote = python_remote_factory(**body)
+    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
+    monitor_task(sync_resp.task)
+
+    repo = python_repo_api_client.read(python_repo.pulp_href)
+    assert repo.latest_version_href[-2] == "1"
+
+    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
+    assert content_resp.count == DJANGO_PLUS_PYTZ_BCRYPT
+
+    content_resp = python_content_api_client.list(
+        repository_version=repo.latest_version_href, name="bcrypt"
+    )
+    assert content_resp.count > 0
+
+
+@pytest.mark.parallel
+def test_sync_dependency_not_present(
+    python_repo, python_repo_api_client, python_content_api_client, python_remote_factory
+):
+    """Test syncing dependencies that are not present in the upstream doesn't fail the sync."""
+    body = gen_python_remote(includes=["scipy"], sync_dependencies=True)
+    remote = python_remote_factory(**body)
+    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
+    monitor_task(sync_resp.task)
+
+    repo = python_repo_api_client.read(python_repo.pulp_href)
+    assert repo.latest_version_href[-2] == "1"
+
+    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
+    assert content_resp.count == SCIPY_COUNTS["total"]
 
 
 def sync_to_remote(self, body, create=False, mirror=False):

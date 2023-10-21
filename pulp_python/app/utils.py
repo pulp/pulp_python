@@ -312,3 +312,9 @@ def write_simple_detail(project_name, project_packages, streamed=False):
     detail = Template(simple_detail_template)
     context = {"project_name": project_name, "project_packages": project_packages}
     return detail.stream(**context) if streamed else detail.render(**context)
+
+
+def parse_json(download_result):
+    """Parses JSON file."""
+    with open(download_result.path) as fd:
+        return json.load(fd)

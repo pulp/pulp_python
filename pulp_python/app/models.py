@@ -235,6 +235,7 @@ class PythonRemote(Remote):
     exclude_platforms = ArrayField(
         models.CharField(max_length=10, blank=True), choices=PLATFORMS, default=list
     )
+    sync_dependencies = models.BooleanField(default=False)
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
         """Get url for remote_artifact"""

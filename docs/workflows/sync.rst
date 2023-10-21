@@ -68,6 +68,11 @@ Remote Create Response::
       ],
       "excludes": [],
       "prereleases": true,
+      "package_types": [],
+      "keep_latest_packages": 0,
+      "exclude_platforms": [],
+      "sync_dependencies": false
+
     }
 
 
@@ -118,6 +123,30 @@ You can also filter packages by their type, platform and amount synced through t
 Reference: `Python Remote Usage <../restapi.html#tag/Remotes:-Python>`_
 
 .. _mirror-workflow:
+
+Syncing Dependencies
+--------------------
+
+When specifying included packages to sync, Pulp can also sync the dependencies of those packages::
+
+    $ pulp python remote create \
+        --name 'packages-with-dependencies' \
+        --url 'https://pypi.org/' \
+        --sync-dependencies # Enable syncing dependencies for included packages \
+        --includes '[
+            "django>=4.0", # Sync the dependencies for each django version >=4.0
+            "pulpcore[s3]", # Sync the dependencies for all pulpcore versions + extra dependencies for s3
+        ]'
+
+Turning on dependency syncing will only sync the necessary dependencies to install the package for the
+given versions declared in the includes list. You can sync the extra dependencies of a package by
+using the `extras notation <https://peps.python.org/pep-0508/#extras>`_. Synced dependencies are also
+filtered through the other filters defined on the remote. Note that many packages have unrestricted
+dependencies which can cause syncs to become significantly larger than normal. It is recommended
+to use extra filters to trim any unwanted packages.
+
+.. warning:: This feature is provided as a tech preview and could change in backwards incompatible
+  ways in the future.
 
 Creating a remote to sync all of PyPI
 _____________________________________

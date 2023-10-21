@@ -158,6 +158,8 @@ PYTHON_LG_FIXTURE_COUNTS = {
 }
 
 DJANGO_LATEST_3 = 4  # latest version has 2 dists, each other has 1
+DJANGO_PLUS_PYTZ = 37
+DJANGO_PLUS_PYTZ_BCRYPT = 45
 SCIPY_COUNTS = {
     "total": 23,  # scipy has 23 different release files for the same release
     "windows": 8,
