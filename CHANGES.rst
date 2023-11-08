@@ -13,6 +13,22 @@ Changelog
 
 .. towncrier release notes start
 
+3.11.0 (2023-11-08)
+===================
+
+
+Features
+--------
+
+- Added pulpcore 3.40 compatibility.
+  `#40 <https://github.com/pulp/pulp_python/issues/40>`__
+- Added import export support of python content.
+  `#579 <https://github.com/pulp/pulp_python/issues/579>`__
+
+
+----
+
+
 3.10.0 (2023-05-17)
 ===================
 
