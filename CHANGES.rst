@@ -21,7 +21,6 @@ Features
 --------
 
 - Added pulpcore 3.40 compatibility.
-  `#40 <https://github.com/pulp/pulp_python/issues/40>`__
 - Added import export support of python content.
   `#579 <https://github.com/pulp/pulp_python/issues/579>`__
 
