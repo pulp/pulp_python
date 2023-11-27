@@ -7,37 +7,26 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
-set -euv
+set -mveuo pipefail
 
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 
+source .github/workflows/scripts/utils.sh
+
 export PULP_URL="${PULP_URL:-https://pulp}"
 
-export REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin python --arg legacy_plugin pulp_python -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
-export DESCRIPTION="$(git describe --all --exact-match `git rev-parse HEAD`)"
-if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
-  export VERSION=${REPORTED_VERSION}
-else
-  export EPOCH="$(date +%s)"
-  export VERSION=${REPORTED_VERSION}${EPOCH}
-fi
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://rubygems.org/gems/pulp_python_client/versions/$VERSION)
+REPORTED_STATUS="$(pulp status)"
+REPORTED_VERSION="$(echo "$REPORTED_STATUS" | jq --arg plugin "python" -r '.versions[] | select(.component == $plugin) | .version')"
+VERSION="$(echo "$REPORTED_VERSION" | python -c 'from packaging.version import Version; print(Version(input()))')"
 
-if [ "$response" == "200" ];
-then
-  echo "pulp_python client $VERSION has already been released. Installing from RubyGems.org."
-  gem install pulp_python_client -v $VERSION
-  touch pulp_python_client-$VERSION.gem
-  tar cvf ruby-client.tar ./pulp_python_client-$VERSION.gem
-  exit
-fi
-
-cd ../pulp-openapi-generator
+pushd ../pulp-openapi-generator
 rm -rf pulp_python-client
-./generate.sh pulp_python ruby $VERSION
-cd pulp_python-client
+./generate.sh pulp_python ruby "$VERSION"
+pushd pulp_python-client
 gem build pulp_python_client
-gem install --both ./pulp_python_client-$VERSION.gem
-tar cvf ../../pulp_python/ruby-client.tar ./pulp_python_client-$VERSION.gem
+gem install --both "./pulp_python_client-$VERSION.gem"
+tar cvf ../../pulp_python/python-ruby-client.tar "./pulp_python_client-$VERSION.gem"
+popd
+popd
