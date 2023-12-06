@@ -16,8 +16,6 @@ source .github/workflows/scripts/utils.sh
 
 export PULP_URL="${PULP_URL:-https://pulp}"
 
-pip install twine wheel
-
 REPORTED_STATUS="$(pulp status)"
 REPORTED_VERSION="$(echo "$REPORTED_STATUS" | jq --arg plugin "python" -r '.versions[] | select(.component == $plugin) | .version')"
 VERSION="$(echo "$REPORTED_VERSION" | python -c 'from packaging.version import Version; print(Version(input()))')"
@@ -28,8 +26,8 @@ rm -rf pulp_python-client
 pushd pulp_python-client
 python setup.py sdist bdist_wheel --python-tag py3
 
-twine check "dist/pulp_python_client-$VERSION-py3-none-any.whl" || exit 1
-twine check "dist/pulp_python-client-$VERSION.tar.gz" || exit 1
+twine check "dist/pulp_python_client-$VERSION-py3-none-any.whl"
+twine check "dist/pulp_python-client-$VERSION.tar.gz"
 
 cmd_prefix pip3 install "/root/pulp-openapi-generator/pulp_python-client/dist/pulp_python_client-${VERSION}-py3-none-any.whl"
 tar cvf ../../pulp_python/python-python-client.tar ./dist
@@ -39,6 +37,22 @@ find ./docs/* -exec sed -i 's/README//g' {} \;
 cp README.md docs/index.md
 sed -i 's/docs\///g' docs/index.md
 find ./docs/* -exec sed -i 's/\.md//g' {} \;
-tar cvf ../../pulp_python/python-python-client-docs.tar ./docs
+
+cat >> mkdocs.yml << DOCSYAML
+---
+site_name: PulpPython Client
+site_description: Python bindings
+site_author: Pulp Team
+site_url: https://docs.pulpproject.org/pulp_python_client/
+repo_name: pulp/pulp_python
+repo_url: https://github.com/pulp/pulp_python
+theme: readthedocs
+DOCSYAML
+
+# Building the bindings docs
+mkdocs build
+
+# Pack the built site.
+tar cvf ../../pulp_python/python-python-client-docs.tar ./site
 popd
 popd
