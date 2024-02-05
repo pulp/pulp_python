@@ -1,5 +1,5 @@
 git+https://github.com/pulp/pulp-smash.git#egg=pulp-smash
-pytest
+pytest<8
 lxml
 twine
 pypi-simple
