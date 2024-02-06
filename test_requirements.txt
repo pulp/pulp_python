@@ -7,4 +7,4 @@ flake8-quotes
 mock
 git+https://github.com/pulp/pulp-smash.git#egg=pulp-smash
 pydocstyle<4
-pytest
+pytest<8
