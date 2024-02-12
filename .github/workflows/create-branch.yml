@@ -33,7 +33,7 @@ jobs:
       - name: "Install python dependencies"
         run: |
           echo ::group::PYDEPS
-          pip install bump2version jinja2 pyyaml
+          pip install bump2version jinja2 pyyaml packaging
           echo ::endgroup::
 
       - name: "Setting secrets"
@@ -70,6 +70,19 @@ jobs:
         working-directory: pulp_python
         run: |
           find CHANGES -type f -regex ".*\.\(bugfix\|doc\|feature\|misc\|deprecation\|removal\)" -exec git rm {} +
+
+      - name: Checkout plugin template
+        uses: actions/checkout@v3
+        with:
+          repository: pulp/plugin_template
+          path: plugin_template
+          fetch-depth: 0
+
+      - name: Update CI branches in template_config
+        working-directory: plugin_template
+        run: |
+          python3 ./plugin-template pulp_python --github --latest-release-branch "${NEW_BRANCH}"
+          git add -A
 
       - name: Make a PR with version bump and without CHANGES/*
         uses: peter-evans/create-pull-request@v4
