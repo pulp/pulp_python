@@ -82,7 +82,7 @@ cat >> vars/main.yaml << VARSYAML
 pulp_env: {}
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "orphan_protection_time": 0, "pypi_api_hostname": "https://pulp:443"}
 pulp_scheme: https
-pulp_default_container: ghcr.io/pulp/pulp-ci-centos:latest
+pulp_default_container: ghcr.io/pulp/pulp-ci-centos9:latest
 VARSYAML
 
 if [ "$TEST" = "s3" ]; then
@@ -166,8 +166,9 @@ echo ::endgroup::
 
 if [[ "$TEST" = "azure" ]]; then
   AZCERTIFI=$(/opt/az/bin/python3 -c 'import certifi; print(certifi.where())')
+  PULPCERTIFI=$(cmd_prefix python3 -c 'import certifi; print(certifi.where())')
   cat /usr/local/share/ca-certificates/azcert.crt >> $AZCERTIFI
-  cat /usr/local/share/ca-certificates/azcert.crt | cmd_stdin_prefix tee -a /usr/local/lib/python3.8/site-packages/certifi/cacert.pem > /dev/null
+  cat /usr/local/share/ca-certificates/azcert.crt | cmd_stdin_prefix tee -a "$PULPCERTIFI" > /dev/null
   cat /usr/local/share/ca-certificates/azcert.crt | cmd_stdin_prefix tee -a /etc/pki/tls/cert.pem > /dev/null
   AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://ci-azurite:10000/devstoreaccount1;'
   az storage container create --name pulp-test --connection-string $AZURE_STORAGE_CONNECTION_STRING

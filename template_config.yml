@@ -9,7 +9,7 @@ check_commit_message: true
 check_gettext: true
 check_manifest: true
 check_stray_pulpcore_imports: true
-ci_base_image: ghcr.io/pulp/pulp-ci-centos
+ci_base_image: ghcr.io/pulp/pulp-ci-centos9
 ci_env: {}
 ci_trigger: '{pull_request: {branches: [''*'']}}'
 ci_update_docs: false
@@ -57,7 +57,7 @@ pulp_settings_gcp: null
 pulp_settings_s3: null
 pulpprojectdotorg_key_id: null
 pydocstyle: true
-python_version: '3.8'
+python_version: '3.9'
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
 stalebot: true
