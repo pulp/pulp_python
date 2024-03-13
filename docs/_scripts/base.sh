@@ -22,6 +22,8 @@ if [ ! -f ~/.config/pulp/settings.toml ]; then
   mkdir -p ~/.config/pulp
   cat > ~/.config/pulp/cli.toml << EOF
 [cli]
+username = "admin"
+password = "password"
 base_url = "$BASE_ADDR"
 verify_ssl = false
 format = "json"
