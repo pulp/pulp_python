@@ -1,9 +1,10 @@
 import logging
+import tempfile
 
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
 from gettext import gettext as _
-from os import environ, path
+from os import environ
 
 from rest_framework import serializers
 
@@ -111,9 +112,10 @@ class PythonBanderStage(Stage):
         """
         If includes is specified, then only sync those,else try to sync all other packages
         """
-        # Prevent bandersnatch from reading actual .netrc file, set to nonexistent file
+        # Prevent bandersnatch from reading actual .netrc file, set to empty file
         # See discussion on https://github.com/pulp/pulp_python/issues/581
-        environ["NETRC"] = f"{path.curdir}/.fake-netrc"
+        fake_netrc = tempfile.NamedTemporaryFile(dir=".", delete=False)
+        environ["NETRC"] = fake_netrc.name
         # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
         if proxy_url := self.remote.proxy_url:
             if self.remote.proxy_username or self.remote.proxy_password:
