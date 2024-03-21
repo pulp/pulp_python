@@ -52,6 +52,7 @@ class PythonDistribution(Distribution):
     """
 
     TYPE = "python"
+    SERVE_FROM_PUBLICATION = True
 
     allow_uploads = models.BooleanField(default=True)
 
