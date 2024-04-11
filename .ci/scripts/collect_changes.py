@@ -11,7 +11,7 @@ import re
 
 import toml
 from git import GitCommandError, Repo
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 # Read Towncrier settings
 tc_settings = toml.load("pyproject.toml")["tool"]["towncrier"]
@@ -19,15 +19,21 @@ tc_settings = toml.load("pyproject.toml")["tool"]["towncrier"]
 CHANGELOG_FILE = tc_settings.get("filename", "NEWS.rst")
 START_STRING = tc_settings.get(
     "start_string",
-    "<!-- towncrier release notes start -->\n"
-    if CHANGELOG_FILE.endswith(".md")
-    else ".. towncrier release notes start\n",
+    (
+        "<!-- towncrier release notes start -->\n"
+        if CHANGELOG_FILE.endswith(".md")
+        else ".. towncrier release notes start\n"
+    ),
 )
 TITLE_FORMAT = tc_settings.get("title_format", "{name} {version} ({project_date})")
 
 
+# Build a regex to find the header of a changelog section.
+# It must have a single capture group to single out the version.
+# see help(re.split) for more info.
 NAME_REGEX = r".*"
-VERSION_REGEX = r"([0-9]+\.[0-9]+\.[0-9][0-9ab]*)"
+VERSION_REGEX = r"[0-9]+\.[0-9]+\.[0-9][0-9ab]*"
+VERSION_CAPTURE_REGEX = rf"({VERSION_REGEX})"
 DATE_REGEX = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
 TITLE_REGEX = (
     "("
@@ -35,6 +41,7 @@ TITLE_REGEX = (
         TITLE_FORMAT.format(name="NAME_REGEX", version="VERSION_REGEX", project_date="DATE_REGEX")
     )
     .replace("NAME_REGEX", NAME_REGEX)
+    .replace("VERSION_REGEX", VERSION_CAPTURE_REGEX, 1)
     .replace("VERSION_REGEX", VERSION_REGEX)
     .replace("DATE_REGEX", DATE_REGEX)
     + ")"
