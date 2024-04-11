@@ -21,26 +21,27 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: "actions/checkout@v4"
         with:
           fetch-depth: 0
-          path: pulp_python
+          path: "pulp_python"
 
-      - uses: actions/setup-python@v4
+      - uses: "actions/setup-python@v4"
         with:
-          python-version: "3.8"
+          python-version: "3.11"
 
-      - name: Install python dependencies
+      - name: "Install python dependencies"
         run: |
           echo ::group::PYDEPS
-          pip install bump2version jinja2 pyyaml
+          pip install bump2version jinja2 pyyaml packaging
           echo ::endgroup::
 
-      - name: Setting secrets
-        working-directory: pulp_python
-        run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
+      - name: "Setting secrets"
+        working-directory: "pulp_python"
+        run: |
+          python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
-          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+          SECRETS_CONTEXT: "${{ toJson(secrets) }}"
 
       - name: Determine new branch name
         working-directory: pulp_python
@@ -70,8 +71,21 @@ jobs:
         run: |
           find CHANGES -type f -regex ".*\.\(bugfix\|doc\|feature\|misc\|deprecation\|removal\)" -exec git rm {} +
 
+      - name: Checkout plugin template
+        uses: actions/checkout@v4
+        with:
+          repository: pulp/plugin_template
+          path: plugin_template
+          fetch-depth: 0
+
+      - name: Update CI branches in template_config
+        working-directory: plugin_template
+        run: |
+          python3 ./plugin-template pulp_python --github --latest-release-branch "${NEW_BRANCH}"
+          git add -A
+
       - name: Make a PR with version bump and without CHANGES/*
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v6
         with:
           path: pulp_python
           token: ${{ secrets.RELEASE_TOKEN }}

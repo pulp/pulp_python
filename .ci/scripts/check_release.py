@@ -29,7 +29,7 @@ def main():
         "--branches",
         default="supported",
         help="A comma separated list of branches to check for releases. Can also use keyword: "
-        "'supported'. Defaults to 'supported', see `ci_update_branches` in "
+        "'supported'. Defaults to 'supported', see `supported_release_branches` in "
         "`plugin_template.yml`.",
     )
     opts = parser.parse_args()
@@ -46,12 +46,15 @@ def main():
         if branches == "supported":
             with open(f"{d}/template_config.yml", mode="r") as f:
                 tc = yaml.safe_load(f)
-                branches = tc["ci_update_branches"]
-            branches.append(DEFAULT_BRANCH)
+                branches = set(tc["supported_release_branches"])
+            latest_release_branch = tc["latest_release_branch"]
+            if latest_release_branch is not None:
+                branches.add(latest_release_branch)
+            branches.add(DEFAULT_BRANCH)
         else:
-            branches = branches.split(",")
+            branches = set(branches.split(","))
 
-        if diff := set(branches) - set(available_branches):
+        if diff := branches - set(available_branches):
             print(f"Supplied branches contains non-existent branches! {diff}")
             exit(1)
 
@@ -62,7 +65,7 @@ def main():
             if branch != DEFAULT_BRANCH:
                 # Check if a Z release is needed
                 changes = repo.git.ls_tree("-r", "--name-only", f"origin/{branch}", "CHANGES/")
-                z_release = False
+                z_changelog = False
                 for change in changes.split("\n"):
                     # Check each changelog file to make sure everything checks out
                     _, ext = os.path.splitext(change)
@@ -72,18 +75,48 @@ def main():
                             f"{branch} release branch!"
                         )
                     elif ext in Z_CHANGELOG_EXTS:
-                        z_release = True
-                if z_release:
+                        z_changelog = True
+
+                last_tag = repo.git.describe("--tags", "--abbrev=0", f"origin/{branch}")
+                req_txt_diff = repo.git.diff(
+                    f"{last_tag}", f"origin/{branch}", "--name-only", "--", "requirements.txt"
+                )
+                if z_changelog or req_txt_diff:
                     # Blobless clone does not have file contents for Z branches,
                     # check commit message for last Z bump
                     git_branch = f"origin/{branch}"
-                    next_version = repo.git.log(
-                        "--oneline", "--grep=Bump to", "-n 1", git_branch, "--", ".bumpversion.cfg"
-                    ).split("to")[-1]
+                    next_version = None
+                    bump_commit = repo.git.log(
+                        "--oneline",
+                        "--grep=Bump version",
+                        "-n 1",
+                        git_branch,
+                        "--",
+                        ".bumpversion.cfg",
+                    )
+                    if bump_commit:
+                        next_version = bump_commit.split("→ ")[-1]
+                    # If not found - try old-commit-msg
+                    if not next_version:
+                        bump_commit = repo.git.log(
+                            "--oneline",
+                            "--grep=Bump to",
+                            "-n 1",
+                            git_branch,
+                            "--",
+                            ".bumpversion.cfg",
+                        )
+                        next_version = bump_commit.split("to ")[-1] if bump_commit else None
+
+                    # You could, theoretically, be next_vers==None here - but that's always
+                    # been true for this script.
                     next_version = Version(next_version)
+                    reason = "CHANGES" if z_changelog else "requirements.txt"
                     print(
                         f"A Z-release is needed for {branch}, "
-                        f"New Version: {next_version.base_version}"
+                        f"Prev: {last_tag}, "
+                        f"Next: {next_version.base_version}, "
+                        f"Reason: {reason}"
                     )
                     releases.append(next_version)
             else:
