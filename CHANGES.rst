@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+3.11.1 (2024-04-11)
+===================
+
+Bugfixes
+--------
+
+- Fixed tls_validation not being disabled when set to false on the remote.
+  `#653 <https://github.com/pulp/pulp_python/issues/653>`__
+
+
+----
+
+
 3.11.0 (2023-11-08)
 ===================
 
