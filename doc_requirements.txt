@@ -12,3 +12,5 @@ sphinx-rtd-theme
 sphinxcontrib-openapi
 towncrier
 twine
+# Unified docs
+pulp-docs @ git+https://github.com/pulp/pulp-docs@main
