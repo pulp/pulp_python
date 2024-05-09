@@ -221,3 +221,8 @@ latex_elements = {
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
+
+rst_prolog = """.. attention::
+    This docs will be deactivated in July 2024. `Learn More <https://discourse.pulpproject.org/t/unified-documentation-part-2/1188>`_
+    or go to the `New Pulp Docs <https://staging-docs.pulpproject.org/>`_ (beta).
+"""
