@@ -182,7 +182,7 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
             capture_output=True,
             check=True,
         )
-        tasks = task_api.list(reserved_resources_record=[repo.pulp_href]).results
+        tasks = task_api.list(reserved_resources=repo.pulp_href).results
         for task in reversed(tasks):
             t = monitor_task(task.pulp_href)
             repo_ver_href = t.created_resources[-1]
