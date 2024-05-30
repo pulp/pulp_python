@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from django.db import transaction
 from django.contrib.sessions.models import Session
 from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
+from pulpcore.plugin.util import get_domain
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
 from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
@@ -18,8 +19,9 @@ def upload(artifact_sha256, filename, repository_pk=None):
         filename: the full filename of the package to create
         repository_pk: the optional pk of the repository to add the content to
     """
-    pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256)
-    content_to_add = pre_check or create_content(artifact_sha256, filename)
+    domain = get_domain()
+    pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256, _pulp_domain=domain)
+    content_to_add = pre_check or create_content(artifact_sha256, filename, domain)
     content_to_add.get().touch()
     if repository_pk:
         repository = PythonRepository.objects.get(pk=repository_pk)
@@ -36,6 +38,7 @@ def upload_group(session_pk, repository_pk=None):
         repository_pk: optional repository to add Content to
     """
     s_query = Session.objects.select_for_update().filter(pk=session_pk)
+    domain = get_domain()
     while True:
         with transaction.atomic():
             session_data = s_query.first().get_decoded()
@@ -44,8 +47,10 @@ def upload_group(session_pk, repository_pk=None):
             if now >= start_time:
                 content_to_add = PythonPackageContent.objects.none()
                 for artifact_sha256, filename in session_data['artifacts']:
-                    pre_check = PythonPackageContent.objects.filter(sha256=artifact_sha256)
-                    content = pre_check or create_content(artifact_sha256, filename)
+                    pre_check = PythonPackageContent.objects.filter(
+                        sha256=artifact_sha256, _pulp_domain=domain
+                    )
+                    content = pre_check or create_content(artifact_sha256, filename, domain)
                     content.get().touch()
                     content_to_add |= content
 
@@ -59,17 +64,18 @@ def upload_group(session_pk, repository_pk=None):
         time.sleep(sleep_time.seconds)
 
 
-def create_content(artifact_sha256, filename):
+def create_content(artifact_sha256, filename, domain):
     """
     Creates PythonPackageContent from artifact.
 
     Args:
         artifact_sha256: validated artifact
         filename: file name
+        domain: the pulp_domain to perform this task in
     Returns:
         queryset of the new created content
     """
-    artifact = Artifact.objects.get(sha256=artifact_sha256)
+    artifact = Artifact.objects.get(sha256=artifact_sha256, pulp_domain=domain)
     metadata = get_project_metadata_from_artifact(filename, artifact)
 
     data = parse_project_metadata(vars(metadata))
@@ -77,6 +83,8 @@ def create_content(artifact_sha256, filename):
     data['version'] = metadata.version
     data['filename'] = filename
     data['sha256'] = artifact.sha256
+    data['pulp_domain'] = domain
+    data['_pulp_domain'] = domain
 
     @transaction.atomic()
     def create():

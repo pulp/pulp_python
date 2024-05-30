@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import json
 from collections import defaultdict
-from django.core.files.storage import default_storage as storage
 from django.conf import settings
 from jinja2 import Template
 from packaging.utils import canonicalize_name
@@ -144,15 +143,14 @@ def get_project_metadata_from_artifact(filename, artifact):
     # because pkginfo validates that the filename has a valid extension before
     # reading it
     with tempfile.NamedTemporaryFile('wb', dir=".", suffix=filename) as temp_file:
-        artifact_file = storage.open(artifact.file.name)
-        shutil.copyfileobj(artifact_file, temp_file)
+        shutil.copyfileobj(artifact.file, temp_file)
         temp_file.flush()
         metadata = DIST_TYPES[packagetype](temp_file.name)
         metadata.packagetype = packagetype
         return metadata
 
 
-def python_content_to_json(base_path, content_query, version=None):
+def python_content_to_json(base_path, content_query, version=None, domain=None):
     """
     Converts a QuerySet of PythonPackageContent into the PyPi JSON format
     https://www.python.org/dev/peps/pep-0566/
@@ -169,8 +167,8 @@ def python_content_to_json(base_path, content_query, version=None):
     if not latest_content:
         return None
     full_metadata.update({"info": python_content_to_info(latest_content[0])})
-    full_metadata.update({"releases": python_content_to_releases(content_query, base_path)})
-    full_metadata.update({"urls": python_content_to_urls(latest_content, base_path)})
+    full_metadata.update({"releases": python_content_to_releases(content_query, base_path, domain)})
+    full_metadata.update({"urls": python_content_to_urls(latest_content, base_path, domain)})
     return full_metadata
 
 
@@ -245,25 +243,27 @@ def python_content_to_info(content):
     }
 
 
-def python_content_to_releases(content_query, base_path):
+def python_content_to_releases(content_query, base_path, domain=None):
     """
     Takes a QuerySet of PythonPackageContent and returns a dictionary of releases
     with each key being a version and value being a list of content for that version of the package
     """
     releases = defaultdict(lambda: [])
     for content in content_query:
-        releases[content.version].append(python_content_to_download_info(content, base_path))
+        releases[content.version].append(
+            python_content_to_download_info(content, base_path, domain)
+        )
     return releases
 
 
-def python_content_to_urls(contents, base_path):
+def python_content_to_urls(contents, base_path, domain=None):
     """
     Takes the latest content in contents and returns a list of download information
     """
-    return [python_content_to_download_info(content, base_path) for content in contents]
+    return [python_content_to_download_info(content, base_path, domain) for content in contents]
 
 
-def python_content_to_download_info(content, base_path):
+def python_content_to_download_info(content, base_path, domain=None):
     """
     Takes in a PythonPackageContent and base path of the distribution to create a dictionary of
     download information for that content. This dictionary is used by Releases and Urls.
@@ -280,7 +280,10 @@ def python_content_to_download_info(content, base_path):
     origin = settings.CONTENT_ORIGIN.strip("/")
     prefix = settings.CONTENT_PATH_PREFIX.strip("/")
     base_path = base_path.strip("/")
-    url = "/".join((origin, prefix, base_path, content.filename))
+    components = [origin, prefix, base_path, content.filename]
+    if domain:
+        components.insert(2, domain.name)
+    url = "/".join(components)
     return {
         "comment_text": "",
         "digests": {"md5": artifact.md5, "sha256": artifact.sha256},

@@ -24,8 +24,6 @@ def test_pip_consume_content(
         "--force-reinstall",
         "--trusted-host",
         urlsplit(distro.base_url).hostname,
-        "--trusted-host",
-        "ci-azurite",
         "-i",
         distro.base_url + "simple/",
         "shelf-reader",

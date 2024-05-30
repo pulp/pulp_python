@@ -26,7 +26,9 @@ from urllib.parse import urljoin, urlparse, urlunsplit
 from pathlib import PurePath
 from pypi_simple.parse_stream import parse_links_stream_response
 
+from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.util import get_domain
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
@@ -75,7 +77,7 @@ class PyPIMixin:
             "repository", "publication", "publication__repository_version", "remote"
         )
         try:
-            return distro_qs.get(base_path=path)
+            return distro_qs.get(base_path=path, pulp_domain=get_domain())
         except ObjectDoesNotExist:
             raise Http404(f"No PythonDistribution found for base_path {path}")
 
@@ -99,6 +101,14 @@ class PyPIMixin:
         repo_ver = self.get_repository_version(distro)
         content = self.get_content(repo_ver)
         return distro, repo_ver, content
+
+    def initial(self, request, *args, **kwargs):
+        """Perform common initialization tasks for PyPI endpoints."""
+        super().initial(request, *args, **kwargs)
+        if settings.DOMAIN_ENABLED:
+            self.base_content_url = urljoin(BASE_CONTENT_URL, f"{get_domain().name}/")
+        else:
+            self.base_content_url = BASE_CONTENT_URL
 
 
 class PackageUploadMixin(PyPIMixin):
@@ -137,7 +147,7 @@ class PackageUploadMixin(PyPIMixin):
                           kwargs={"artifact_sha256": artifact.sha256,
                                   "filename": filename,
                                   "repository_pk": str(repo.pk)})
-        return Response(data={"task": reverse('tasks-detail', args=[result.pk], request=None)})
+        return OperationPostponedResponse(result, request)
 
     def upload_package_group(self, repo, artifact, filename, session):
         """Steps 4 & 5, spawns tasks to add packages to index."""
@@ -176,7 +186,7 @@ class PackageUploadMixin(PyPIMixin):
         return reverse('tasks-detail', args=[result.pk], request=None)
 
 
-class SimpleView(ViewSet, PackageUploadMixin):
+class SimpleView(PackageUploadMixin, ViewSet):
     """View for the PyPI simple API."""
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -186,7 +196,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
         """Gets the simple api html page for the index."""
         distro, repo_version, content = self.get_drvc(path)
         if self.should_redirect(distro, repo_version=repo_version):
-            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/'))
+            return redirect(urljoin(self.base_content_url, f'{path}/simple/'))
         names = content.order_by('name').values_list('name', flat=True).distinct().iterator()
         return StreamingHttpResponse(write_simple_index(names, streamed=True))
 
@@ -197,7 +207,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
             digest, _, value = parsed.fragment.partition('=')
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
             redirect = f'{path}/{link.text}?redirect={stripped_url}'
-            d_url = urljoin(BASE_CONTENT_URL, redirect)
+            d_url = urljoin(self.base_content_url, redirect)
             return link.text, d_url, value if digest == 'sha256' else ''
 
         url = remote.get_remote_artifact_url(f'simple/{package}/')
@@ -224,7 +234,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
             if not repo_ver or not content.filter(name__normalize=normalized).exists():
                 return self.pull_through_package_simple(normalized, path, distro.remote)
         if self.should_redirect(distro, repo_version=repo_ver):
-            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/{normalized}/'))
+            return redirect(urljoin(self.base_content_url, f'{path}/simple/{normalized}/'))
         packages = (
             content.filter(name__normalize=normalized)
             .values_list('filename', 'sha256', 'name')
@@ -237,7 +247,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
         else:
             packages = chain([present], packages)
             name = present[2]
-        releases = ((f, urljoin(BASE_CONTENT_URL, f'{path}/{f}'), d) for f, d, _ in packages)
+        releases = ((f, urljoin(self.base_content_url, f'{path}/{f}'), d) for f, d, _ in packages)
         return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
 
     @extend_schema(request=PackageUploadSerializer,
@@ -253,7 +263,7 @@ class SimpleView(ViewSet, PackageUploadMixin):
         return self.upload(request, path)
 
 
-class MetadataView(ViewSet, PyPIMixin):
+class MetadataView(PyPIMixin, ViewSet):
     """View for the PyPI JSON metadata endpoint."""
 
     authentication_classes = []
@@ -272,6 +282,7 @@ class MetadataView(ViewSet, PyPIMixin):
         meta_path = PurePath(meta)
         name = None
         version = None
+        domain = None
         if meta_path.match("*/*/json"):
             version = meta_path.parts[1]
             name = meta_path.parts[0]
@@ -281,13 +292,17 @@ class MetadataView(ViewSet, PyPIMixin):
             package_content = content.filter(name__iexact=name)
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
-            json_body = python_content_to_json(path, package_content, version=version)
+            if settings.DOMAIN_ENABLED:
+                domain = get_domain()
+            json_body = python_content_to_json(
+                path, package_content, version=version, domain=domain
+            )
             if json_body:
                 return Response(data=json_body, headers=headers)
         return Response(status="404")
 
 
-class PyPIView(ViewSet, PyPIMixin):
+class PyPIView(PyPIMixin, ViewSet):
     """View for base_url of distribution."""
 
     authentication_classes = []
@@ -305,7 +320,7 @@ class PyPIView(ViewSet, PyPIMixin):
         return Response(data=data)
 
 
-class UploadView(ViewSet, PackageUploadMixin):
+class UploadView(PackageUploadMixin, ViewSet):
     """View for the `/legacy` upload endpoint."""
 
     @extend_schema(request=PackageUploadSerializer,

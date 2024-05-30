@@ -52,9 +52,11 @@ pulp_settings:
   allowed_import_paths: /tmp
   orphan_protection_time: 0
   pypi_api_hostname: https://pulp:443
-pulp_settings_azure: null
+pulp_settings_azure:
+  domain_enabled: true
 pulp_settings_gcp: null
-pulp_settings_s3: null
+pulp_settings_s3:
+  domain_enabled: true
 pydocstyle: true
 release_email: pulp-infra@redhat.com
 release_user: pulpbot

@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
+from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
 from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
@@ -56,6 +57,8 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
 
     def get_base_url(self, obj):
         """Gets the base url."""
+        if settings.DOMAIN_ENABLED:
+            return f"{settings.PYPI_API_HOSTNAME}/pypi/{get_domain().name}/{obj.base_path}/"
         return f"{settings.PYPI_API_HOSTNAME}/pypi/{obj.base_path}/"
 
     class Meta:
@@ -232,13 +235,17 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         _data['version'] = metadata.version
         _data['filename'] = filename
         _data['sha256'] = artifact.sha256
+        data["pulp_domain_id"] = artifact.pulp_domain_id
+        data["_pulp_domain_id"] = artifact.pulp_domain_id
 
         data.update(_data)
 
         return data
 
     def retrieve(self, validated_data):
-        content = python_models.PythonPackageContent.objects.filter(sha256=validated_data["sha256"])
+        content = python_models.PythonPackageContent.objects.filter(
+            sha256=validated_data["sha256"], _pulp_domain=get_domain()
+        )
         return content.first()
 
     class Meta:

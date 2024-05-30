@@ -15,7 +15,7 @@ def test_basic_pulp_to_pulp_sync(
     python_content_summary,
     python_publication_factory,
     python_distribution_factory,
-    pulp_settings,
+    pulp_content_url,
 ):
     """
     This test checks that the JSON endpoint is setup correctly to allow one Pulp
@@ -27,14 +27,7 @@ def test_basic_pulp_to_pulp_sync(
     repo = python_repo_with_sync(remote)
     pub = python_publication_factory(repository=repo)
     distro = python_distribution_factory(publication=pub)
-    # TODO Add if check if domains are enabled.
-    url_fragments = [
-        pulp_settings.CONTENT_ORIGIN,
-        pulp_settings.CONTENT_PATH_PREFIX.strip("/"),
-        distro.base_path,
-        ""
-    ]
-    unit_url = "/".join(url_fragments)
+    unit_url = f"{pulp_content_url}{distro.base_path}/"
 
     # Sync using old Pulp content api endpoints
     remote2 = python_remote_factory(url=unit_url, **remote_body)

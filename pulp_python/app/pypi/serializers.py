@@ -4,6 +4,7 @@ from gettext import gettext as _
 from rest_framework import serializers
 from pulp_python.app.utils import DIST_EXTENSIONS
 from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.util import get_domain
 from django.db.utils import IntegrityError
 
 log = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class PackageUploadSerializer(serializers.Serializer):
         try:
             artifact.save()
         except IntegrityError:
-            artifact = Artifact.objects.get(sha256=artifact.sha256)
+            artifact = Artifact.objects.get(sha256=artifact.sha256, pulp_domain=get_domain())
             artifact.touch()
             log.info(f"Artifact for {file.name} already existed in database")
         data["content"] = (artifact, file.name)
