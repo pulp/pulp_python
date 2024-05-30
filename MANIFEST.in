@@ -1,7 +1,7 @@
 include LICENSE
 include requirements.txt
 include pyproject.toml
-include CHANGES.rst
+include CHANGES.md
 include COMMITMENT
 include COPYRIGHT
 include functest_requirements.txt
