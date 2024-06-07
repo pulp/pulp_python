@@ -1,36 +1,16 @@
+import os
 from urllib.parse import urljoin
 
-from pulp_smash import config
-from pulp_smash.pulp3.constants import (
-    BASE_DISTRIBUTION_PATH,
-    BASE_PUBLICATION_PATH,
-    BASE_REMOTE_PATH,
-    BASE_REPO_PATH,
-    BASE_CONTENT_PATH,
+
+PULP_FIXTURES_BASE_URL = os.environ.get(
+    "REMOTE_FIXTURES_ORIGIN", "https://fixtures.pulpproject.org/"
 )
-
-
-PULP_FIXTURES_BASE_URL = config.get_config().get_fixtures_url()
 
 PYPI_URL = "https://pypi.org/"
 
 PYTHON_CONTENT_NAME = "python.python"
 
-PYTHON_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "python/packages/")
-
-PYTHON_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "python/pypi/")
-
 PYTHON_FIXTURES_URL = urljoin(PULP_FIXTURES_BASE_URL, "python-pypi/")
-
-PYTHON_PUBLICATION_PATH = urljoin(BASE_PUBLICATION_PATH, "python/pypi/")
-
-PYTHON_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "python/python/")
-
-PYTHON_REPO_PATH = urljoin(BASE_REPO_PATH, "python/python/")
-
-PULP_CONTENT_HOST_BASE_URL = config.get_config().get_content_host_base_url()
-
-PULP_CONTENT_BASE_URL = urljoin(PULP_CONTENT_HOST_BASE_URL, "pulp/content/")
 
 PULP_PYPI_BASE_URL = "/pypi/"
 

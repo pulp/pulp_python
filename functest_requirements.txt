@@ -1,7 +1,10 @@
-git+https://github.com/pulp/pulp-smash.git#egg=pulp-smash
 pytest<8
 lxml
 twine
 pypi-simple
 pulpcore-client
 pulp-python-client
+pytest-custom_exit_code
+pytest-xdist
+proxy.py~=2.4.4
+trustme~=1.1.0

@@ -1,19 +1,8 @@
-# coding=utf-8
-"""Tests that perform actions over content unit."""
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
+import pytest
 
-from pulp_python.tests.functional.utils import (
-    gen_artifact,
-    gen_python_content_attrs,
-    skip_if,
-    TestCaseUsingBindings,
-    TestHelpersMixin,
-)
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from tempfile import NamedTemporaryFile
 from urllib.parse import urljoin
 
-from pulp_smash.utils import http_get
+from pulpcore.tests.functional.utils import PulpTaskError
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURES_URL,
     PYTHON_PACKAGE_DATA,
@@ -23,207 +12,99 @@ from pulp_python.tests.functional.constants import (
 )
 
 
-class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
-    """CRUD content unit.
+def test_content_crud(
+    python_bindings, pulpcore_bindings, python_repo_factory, download_python_file, monitor_task
+):
+    """Test CRUD python content unit."""
+    monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
+    python_file = download_python_file(PYTHON_EGG_FILENAME, PYTHON_EGG_URL)
 
-    This test targets the following issues:
+    artifact = pulpcore_bindings.ArtifactsApi.create(python_file)
 
-    * `Pulp #2872 <https://pulp.plan.io/issues/2872>`_
-    * `Pulp #3445 <https://pulp.plan.io/issues/3445>`_
-    * `Pulp Smash #870 <https://github.com/pulp/pulp-smash/issues/870>`_
-    """
+    # Test create
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "artifact": artifact.pulp_href}
+    response = python_bindings.ContentPackagesApi.create(**content_body)
+    task = monitor_task(response.task)
+    content = python_bindings.ContentPackagesApi.read(task.created_resources[0]).to_dict()
+    for k, v in PYTHON_PACKAGE_DATA.items():
+        assert content[k] == v
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variable."""
-        super().setUpClass()
-        delete_orphans()
-        cls.content_unit = {}
-        cls.artifact = gen_artifact()
+    # Test read
+    result = python_bindings.ContentPackagesApi.list(filename=content["filename"])
+    assert result.count == 1
+    assert result.results[0].to_dict() == content
 
-    @classmethod
-    def tearDownClass(cls):
-        """Clean class-wide variable."""
-        delete_orphans()
+    # Test partial update
+    with pytest.raises(AttributeError) as e:
+        python_bindings.ContentPackagesApi.partial_update(content["pulp_href"], {"filename": "te"})
+    assert "object has no attribute 'partial_update'" in e.value.args[0]
 
-    def test_01_create_content_unit(self):
-        """Create content unit."""
-        attrs = gen_python_content_attrs(self.artifact)
-        response = self.content_api.create(**attrs)
-        created_resources = monitor_task(response.task).created_resources
-        content_unit = self.content_api.read(created_resources[0])
-        self.content_unit.update(content_unit.to_dict())
-        self.check_package_data(self.content_unit)
+    # Test delete
+    with pytest.raises(AttributeError) as e:
+        python_bindings.ContentPackagesApi.delete(content["pulp_href"])
+    assert "object has no attribute 'delete'" in e.value.args[0]
 
-    @skip_if(bool, "content_unit", False)
-    def test_02_read_content_unit(self):
-        """Read a content unit by its href."""
-        content_unit = self.content_api.read(self.content_unit["pulp_href"]).to_dict()
-        for key, val in self.content_unit.items():
-            with self.subTest(key=key):
-                self.assertEqual(content_unit[key], val)
+    monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
 
-    @skip_if(bool, "content_unit", False)
-    def test_02_read_content_units(self):
-        """Read a content unit by its relative_path."""
-        page = self.content_api.list(filename=self.content_unit["filename"])
-        self.assertEqual(len(page.results), 1)
-        for key, val in self.content_unit.items():
-            with self.subTest(key=key):
-                self.assertEqual(page.results[0].to_dict()[key], val)
+    # Test create w/ file
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file": python_file}
+    response = python_bindings.ContentPackagesApi.create(**content_body)
+    task = monitor_task(response.task)
+    content = python_bindings.ContentPackagesApi.read(task.created_resources[0]).to_dict()
+    for k, v in PYTHON_PACKAGE_DATA.items():
+        assert content[k] == v
 
-    @skip_if(bool, "content_unit", False)
-    def test_03_partially_update(self):
-        """Attempt to update a content unit using HTTP PATCH.
+    monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
 
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        attrs = gen_python_content_attrs(self.artifact)
-        with self.assertRaises(AttributeError) as exc:
-            self.content_api.partial_update(
-                self.content_unit["pulp_href"], attrs
-            )
-        msg = "object has no attribute 'partial_update'"
-        self.assertIn(msg, exc.exception.args[0])
+    # Test create w/ file & repository
+    repo = python_repo_factory()
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    assert len(task.created_resources) == 2
+    content_search = python_bindings.ContentPackagesApi.list(
+        repository_version_added=task.created_resources[0]
+    )
+    content = python_bindings.ContentPackagesApi.read(content_search.results[0].pulp_href).to_dict()
+    for k, v in PYTHON_PACKAGE_DATA.items():
+        assert content[k] == v
 
-    @skip_if(bool, "content_unit", False)
-    def test_03_fully_update(self):
-        """Attempt to update a content unit using HTTP PUT.
+    # Test duplicate upload
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file": python_file}
+    response = python_bindings.ContentPackagesApi.create(**content_body)
+    task = monitor_task(response.task)
+    assert task.created_resources[0] == content["pulp_href"]
 
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        attrs = gen_python_content_attrs(self.artifact)
-        with self.assertRaises(AttributeError) as exc:
-            self.content_api.update(self.content_unit["pulp_href"], attrs)
-        msg = "object has no attribute 'update'"
-        self.assertIn(msg, exc.exception.args[0])
+    # Test upload same filename w/ different artifact
+    second_python_url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), "aiohttp-3.3.0.tar.gz")
+    second_python_file = download_python_file("aiohttp-3.3.0.tar.gz", second_python_url)
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file": second_python_file}
+    response = python_bindings.ContentPackagesApi.create(**content_body)
+    task = monitor_task(response.task)
+    content2 = python_bindings.ContentPackagesApi.read(task.created_resources[0]).to_dict()
+    assert content2["pulp_href"] != content["pulp_href"]
 
-    @skip_if(bool, "content_unit", False)
-    def test_04_delete(self):
-        """Attempt to delete a content unit using HTTP DELETE.
+    # Test upload same filename w/ different artifacts in same repo
+    # repo already has EGG_FILENAME w/ EGG_ARTIFACT, not upload EGG_FILENAME w/ AIO_ARTIFACT
+    # and see that repo will only have the second content unit inside after upload
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    assert len(task.created_resources) == 2
+    assert content2["pulp_href"] in task.created_resources
+    repo_ver2 = task.created_resources[0]
+    content_list = python_bindings.ContentPackagesApi.list(repository_version=repo_ver2)
+    assert content_list.count == 1
+    assert content_list.results[0].pulp_href == content2["pulp_href"]
 
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        with self.assertRaises(AttributeError) as exc:
-            self.content_api.delete(self.content_unit["pulp_href"])
-        msg = "object has no attribute 'delete'"
-        self.assertIn(msg, exc.exception.args[0])
-
-    def test_05_upload_file_without_repo(self):
-        """
-        1) returns a task
-        2) check task status complete
-        3) check created resource of completed task
-        4) ensure only one resource was created and it's a content unit
-        """
-        delete_orphans()
-        response = self.do_upload()
-        created_resources = monitor_task(response.task).created_resources
-        content_unit = self.content_api.read(created_resources[0]).to_dict()
-        self.assertEqual(len(created_resources), 1)
-        self.check_package_data(content_unit)
-
-    def test_06_upload_file_with_repo(self):
-        """
-        1) returns a task
-        2) check task status complete
-        3) check created resource of completed task
-        4) ensure there was two resources created and are a content unit and a repository version
-        """
-        delete_orphans()
-        repo = self._create_repository()
-        response = self.do_upload(repository=repo.pulp_href)
-        created_resources = monitor_task(response.task).created_resources
-        self.assertEqual(len(created_resources), 2)
-        content_list_search = self.content_api.list(
-            repository_version_added=created_resources[0]
-        ).results[0]
-        content_unit = self.content_api.read(created_resources[1])
-        self.assertEqual(content_unit.pulp_href, content_list_search.pulp_href)
-        self.check_package_data(content_unit.to_dict())
-
-    def test_07_upload_duplicate_file_without_repo(self):
-        """
-        1) upload file
-        2) upload the same file again
-        3) this should return first unit
-        """
-        delete_orphans()
-        response = self.do_upload()
-        created_resources = monitor_task(response.task).created_resources
-        content_unit = self.content_api.read(created_resources[0])
-        self.check_package_data(content_unit.to_dict())
-
-        created_resources = monitor_task(self.do_upload().task).created_resources
-        self.assertEqual(content_unit.pulp_href, created_resources[0])
-
-    def test_08_upload_same_filename_different_artifact(self):
-        """
-        1) upload PYTHON_EGG file with PYTHON_EGG filename
-        2) upload aiohttp-3.3.0.tar.gz with PYTHON_EGG filename
-        3) assert that two content units where created
-        """
-        delete_orphans()
-        response = self.do_upload()
-        created_resources = monitor_task(response.task).created_resources
-        content_unit = self.content_api.read(created_resources[0])
-        self.assertEqual(len(created_resources), 1)
-
-        url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), "aiohttp-3.3.0.tar.gz")
-        response = self.do_upload(remote_path=url)
-        created_resources = monitor_task(response.task).created_resources
-        content_unit2 = self.content_api.read(created_resources[0])
-        self.assertEqual(len(created_resources), 1)
-        self.assertNotEqual(content_unit.pulp_href, content_unit2.pulp_href)
-
-    def test_09_upload_same_repo_filename_different_artifact(self):
-        """
-        1) create repository
-        2) upload PYTHON_EGG file with PYTHON_EGG filename
-        3) upload aiohttp-3.3.0.tar.gz with PYTHON_EGG filename
-        4) assert only second content unit is in repository
-        """
-        delete_orphans()
-        repo = self._create_repository()
-        response = self.do_upload(repository=repo.pulp_href)
-        created_resources = monitor_task(response.task).created_resources
-        self.assertEqual(len(created_resources), 2)
-
-        url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), "aiohttp-3.3.0.tar.gz")
-        response = self.do_upload(repository=repo.pulp_href, remote_path=url)
-        created_resources = monitor_task(response.task).created_resources
-        content_unit2 = self.content_api.read(created_resources[1])
-        content_list_search = self.content_api.list(
-            repository_version=created_resources[0]
-        ).results
-        self.assertEqual(len(content_list_search), 1)
-        self.assertEqual(content_unit2.pulp_href, content_list_search[0].pulp_href)
-
-    def test_10_upload_with_mismatched_sha256(self):
-        """
-        1) upload PYTHON_EGG file with aiohttp-3.3.0.tar.gz's sha256
-        2) this should fail
-        """
-        delete_orphans()
-        with self.assertRaises(PulpTaskError) as cm:
-            sha256 = PYTHON_SM_FIXTURE_CHECKSUMS["aiohttp-3.3.0.tar.gz"]
-            monitor_task(self.do_upload(sha256=sha256).task)
-        task_report = cm.exception.task.to_dict()
-        msg = "The uploaded artifact's sha256 checksum does not match the one provided"
-        self.assertTrue(msg in task_report["error"]["description"])
-
-    def do_upload(
-        self, filename=PYTHON_EGG_FILENAME, remote_path=PYTHON_EGG_URL, **kwargs
-    ):
-        """Takes in attributes dict for a file and creates content from it"""
-        with NamedTemporaryFile() as file_to_upload:
-            file_to_upload.write(http_get(remote_path))
-            attrs = {"file": file_to_upload.name, "relative_path": filename}
-            attrs.update(kwargs)
-            return self.content_api.create(**attrs)
-
-    def check_package_data(self, content_unit, expected=PYTHON_PACKAGE_DATA):
-        """Subset Dict comparision, checking if content_unit contains expected"""
-        for k, v in expected.items():
-            with self.subTest(key=k):
-                self.assertEqual(content_unit[k], v)
+    # Test upload w/ mismatched sha256
+    # If we don't perform orphan cleanup here, the upload will fail with a different error :hmm:
+    monitor_task(python_bindings.RepositoriesPythonApi.delete(repo.pulp_href).task)
+    monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
+    mismatch_sha256 = PYTHON_SM_FIXTURE_CHECKSUMS["aiohttp-3.3.0.tar.gz"]
+    content_body = {
+        "relative_path": PYTHON_EGG_FILENAME, "file": python_file, "sha256": mismatch_sha256
+    }
+    with pytest.raises(PulpTaskError) as e:
+        response = python_bindings.ContentPackagesApi.create(**content_body)
+        monitor_task(response.task)
+    msg = "The uploaded artifact's sha256 checksum does not match the one provided"
+    assert msg in e.value.task.error["description"]
