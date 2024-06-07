@@ -1,559 +1,220 @@
-# coding=utf-8
-"""Tests that sync python plugin repositories."""
 import pytest
-import unittest
-
-from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    get_added_content_summary,
-    get_removed_content_summary,
-    get_content_summary,
-)
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_XS_FIXTURE_SUMMARY,
     PYTHON_XS_PACKAGE_COUNT,
-    PYTHON_INVALID_FIXTURE_URL,
-    PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY,
     PYTHON_PRERELEASE_TEST_SPECIFIER,
-    PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY,
     PYTHON_WITH_PRERELEASE_COUNT,
     PYTHON_WITHOUT_PRERELEASE_COUNT,
-    PYTHON_CONTENT_NAME,
     PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_MD_PROJECT_SPECIFIER,
-    PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_MD_PACKAGE_COUNT,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
     PYTHON_LG_PROJECT_SPECIFIER,
-    PYTHON_LG_FIXTURE_SUMMARY,
+    PYTHON_LG_PACKAGE_COUNT,
     PYTHON_LG_FIXTURE_COUNTS,
     DJANGO_LATEST_3,
     SCIPY_COUNTS,
 )
-from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_python import (
-    RepositoriesPythonApi,
-    RepositorySyncURL,
-    RemotesPythonApi,
-)
 
 
-class BasicSyncTestCase(unittest.TestCase):
-    """Sync a repository with the python plugin."""
+@pytest.mark.parallel
+def test_sync(
+    python_bindings, python_repo, python_remote_factory, python_content_summary, monitor_task
+):
+    """Sync repositories with the python plugin."""
+    remote = python_remote_factory()
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.cfg = config.get_config()
-        cls.client = gen_python_client()
+    # Sync the repository.
+    sync_data = dict(remote=remote.pulp_href)
+    response = python_bindings.RepositoriesPythonApi.sync(python_repo.pulp_href, sync_data)
+    task = monitor_task(response.task)
+    repo = python_bindings.RepositoriesPythonApi.read(python_repo.pulp_href)
 
-    def test_sync(self):
-        """Sync repositories with the python plugin.
+    assert task.created_resources[0] == repo.latest_version_href
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.added["python.python"]["count"] == PYTHON_XS_PACKAGE_COUNT
+    assert summary.present["python.python"]["count"] == PYTHON_XS_PACKAGE_COUNT
 
-        In order to sync a repository a remote has to be associated within
-        this repository. When a repository is created this version field is set
-        as None. After a sync the repository version is updated.
+    # Sync the repository again.
+    latest_version_href = repo.latest_version_href
+    response = python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, sync_data)
+    task = monitor_task(response.task)
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
 
-        Do the following:
-
-        1. Create a repository, and a remote.
-        2. Assert that repository version is None.
-        3. Sync the remote.
-        4. Assert that repository version is not None.
-        5. Assert that the correct number of units were added and are present
-           in the repo.
-        6. Sync the remote one more time.
-        7. Assert that repository version is different from the previous one.
-        8. Assert that the same number of are present and that no units were
-           added.
-        """
-        repo_api = RepositoriesPythonApi(self.client)
-        remote_api = RemotesPythonApi(self.client)
-
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
-
-        body = gen_python_remote()
-        remote = remote_api.create(body)
-        self.addCleanup(remote_api.delete, remote.pulp_href)
-
-        # Sync the repository.
-        self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = repo_api.read(repo.pulp_href)
-
-        self.assertIsNotNone(repo.latest_version_href)
-        self.assertDictEqual(
-            get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
-        self.assertDictEqual(
-            get_added_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
-
-        # Sync the repository again.
-        latest_version_href = repo.latest_version_href
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = repo_api.read(repo.pulp_href)
-
-        self.assertEqual(latest_version_href, repo.latest_version_href)
-        self.assertDictEqual(
-            get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
+    assert latest_version_href == repo.latest_version_href
+    assert len(task.created_resources) == 0
 
 
-class SyncInvalidTestCase(unittest.TestCase):
-    """Sync a repository with a given url on the remote."""
+@pytest.mark.parallel
+def test_sync_prereleases(python_repo_with_sync, python_remote_factory, python_content_summary):
+    """Test syncing with prereleases filter."""
+    remote = python_remote_factory(includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=False)
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_WITHOUT_PRERELEASE_COUNT
 
-    @unittest.skip("Sync task does no work with invalid url")
-    def test_invalid_url(self):
-        """Sync a repository using a remote url that does not exist.
+    # Now sync with prereleases=True
+    remote = python_remote_factory(includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=True)
+    repo = python_repo_with_sync(remote, repository=repo)
 
-        Test that we get a task failure. See :meth:`do_test`.
-        """
-        with self.assertRaises(PulpTaskError) as cm:
-            self.do_test("http://i-am-an-invalid-url.com/invalid/")
-        task = cm.exception.task.to_dict()
-        self.assertIsNotNone(task["error"]["description"])
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_WITH_PRERELEASE_COUNT
+    diff_count = PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT
+    assert summary.added["python.python"]["count"] == diff_count
 
-    # Provide an invalid repository and specify keywords in the anticipated error message
-    @unittest.skip(
-        "Need a fixture url with invalid content"
-    )  # This test is not present in the original test_sync
-    def test_invalid_python_content(self):
-        """Sync a repository using an invalid plugin_content repository.
+    # Sync w/ mirror=True & prereleases=False to ensure units are removed
+    remote = python_remote_factory(includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=False)
+    repo = python_repo_with_sync(remote, mirror=True, repository=repo)
 
-        Assert that an exception is raised, and that error message has
-        keywords related to the reason of the failure. See :meth:`do_test`.
-        """
-        with self.assertRaises(PulpTaskError) as cm:
-            self.do_test(PYTHON_INVALID_FIXTURE_URL)
-        task = cm.exception.task.to_dict()
-        # this url is not valid on the fixture,
-        # it needs to point to somewhere that has invalid content
-        for key in ("mismached", "empty"):
-            self.assertIn(key, task["error"]["description"])
-
-    def do_test(self, url):
-        """Sync a repository given ``url`` on the remote."""
-        repo_api = RepositoriesPythonApi(self.client)
-        remote_api = RemotesPythonApi(self.client)
-
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
-
-        body = gen_python_remote(url=url)
-        remote = remote_api.create(body)
-        self.addCleanup(remote_api.delete, remote.pulp_href)
-
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        return monitor_task(sync_response.task)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_WITHOUT_PRERELEASE_COUNT
+    assert summary.removed["python.python"]["count"] == diff_count
 
 
-class PrereleasesTestCase(unittest.TestCase):
-    """
-    Sync a repository with and without prereleases included by the Remote.
-    """
+@pytest.mark.parallel
+def test_sync_includes_excludes(
+    python_repo_with_sync, python_remote_factory, python_content_summary
+):
+    """Test behavior of the includes and excludes fields on the Remote during sync."""
+    remote = python_remote_factory(includes=PYTHON_XS_PROJECT_SPECIFIER)
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUpClass(cls):
-        """
-        Create class-wide variables.
-        """
-        cls.client = gen_python_client()
-        cls.remote = None
-        cls.remote_api = RemotesPythonApi(cls.client)
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.repo = cls.repo_api.create(gen_repo())
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_XS_PACKAGE_COUNT
 
-    @classmethod
-    def tearDownClass(cls):
-        """
-        Clean class-wide variable.
-        """
-        cls.repo_api.delete(cls.repo.pulp_href)
-        cls.remote_api.delete(cls.remote.pulp_href)
+    # Test w/ large superset includes
+    remote = python_remote_factory(includes=PYTHON_MD_PROJECT_SPECIFIER)
+    repo = python_repo_with_sync(remote, repository=repo)
 
-    def test_01_excluding_prereleases(self):
-        """
-        Sync a Remote, excluding prereleases.
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_MD_PACKAGE_COUNT
 
-        Do the following:
+    # Test w/ exclude subset
+    remote = python_remote_factory(
+        includes=PYTHON_MD_PROJECT_SPECIFIER, excludes=PYTHON_SM_PROJECT_SPECIFIER
+    )
+    repo = python_repo_with_sync(remote, repository=repo, mirror=True)
 
-        1. Create a remote with prereleases=False.
-        2. Sync the remote.
-        3. Assert that the content counts in the repo match the non-prerelease packages matched
-           by the specifiers.
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = PYTHON_MD_PACKAGE_COUNT - PYTHON_SM_PACKAGE_COUNT
+    assert summary.present["python.python"]["count"] == diff_count
+    assert summary.removed["python.python"]["count"] == PYTHON_SM_PACKAGE_COUNT
 
-        """
-        body = gen_python_remote(
-            includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=False
-        )
-        sync_to_remote(self, body, create=True)
+    # Test w/ even smaller exclude subset
+    remote = python_remote_factory(
+        includes=PYTHON_MD_PROJECT_SPECIFIER, excludes=PYTHON_XS_PROJECT_SPECIFIER
+    )
+    repo = python_repo_with_sync(remote, repository=repo, mirror=True)
 
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()),
-            PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY,
-        )
-
-    def test_02_including_prereleases(self):
-        """
-        Sync a Remote, including prereleases.
-
-        Do the following:
-
-        1. Update the remote to include pre-releases.
-        2. Sync the remote again.
-        3. Assert that the content counts in the repo match *all* the packages matched by the
-           specifier, including prereleases.
-
-        """
-        body = {"prereleases": True}
-        sync_to_remote(self, body)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict()),
-            PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY,
-        )
-        self.assertEqual(
-            get_added_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT,
-        )
-
-    def test_03_removing_units(self):
-        """
-        Sync a Remote, excluding prereleases again.
-
-        Just to be sure that the units are being properly removed afterwards.
-
-        Do the following:
-
-        1. Update the remote to exclude pre-releases again.
-        2. Sync the remote again.
-        3. Assert that we're back to the state in test_01_excluding_prereleases.
-
-        """
-        body = {"prereleases": False}
-        sync_to_remote(self, body, mirror=True)
-
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()),
-            PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY,
-        )
-        self.assertEqual(
-            get_removed_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_WITH_PRERELEASE_COUNT - PYTHON_WITHOUT_PRERELEASE_COUNT,
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = PYTHON_MD_PACKAGE_COUNT - PYTHON_XS_PACKAGE_COUNT
+    assert summary.present["python.python"]["count"] == diff_count
 
 
-class IncludesExcludesTestCase(unittest.TestCase):
-    """
-    Test behavior of the includes and excludes fields on the Remote during sync.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
-
-        cls.remote = {}
-        cls.remote_api = RemotesPythonApi(cls.client)
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.repo = cls.repo_api.create(gen_repo())
-
-    @classmethod
-    def tearDownClass(cls):
-        """Clean class-wide variable."""
-        cls.repo_api.delete(cls.repo.pulp_href)
-        cls.remote_api.delete(cls.remote.pulp_href)
-
-    def test_01_basic_include(self):
-        """
-        Test updating the remote and performing normal sync.
-        Really just a setup for the next test.
-        Do the following:
-        1. Create a remote.
-        2. Sync the remote.
-        3. Assert that the content counts in the repo match the correct count for the specifier.
-        """
-        body = gen_python_remote(includes=PYTHON_XS_PROJECT_SPECIFIER)
-        sync_to_remote(self, body, create=True)
-
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
-
-    def test_02_add_superset_include(self):
-        """
-        Test updating the remote with a larger set of includes, and syncing again.
-        Do the following:
-        1. Update the remote with a larger specifier that is a strict superset of the previous one.
-        2. Sync the remote again.
-        3. Assert that the content counts in the repo increased to match the new correct count.
-        """
-        body = {"includes": PYTHON_MD_PROJECT_SPECIFIER}
-        sync_to_remote(self, body)
-
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()), PYTHON_MD_FIXTURE_SUMMARY
-        )
-
-    def test_03_add_subset_exclude(self):
-        """
-        Test that excluding a subset of the packages will reduce the count by that amount.
-        Do the following:
-        1. Update the remote to exclude a specifier that is a strict subset of the previous one.
-        2. Sync the remote again.
-        3. Assert that that the content counts in the repo decreased by the count of the
-           excludes specifier.
-        """
-        body = {"excludes": PYTHON_SM_PROJECT_SPECIFIER}
-        sync_to_remote(self, body, mirror=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_MD_PACKAGE_COUNT - PYTHON_SM_PACKAGE_COUNT,
-        )
-        self.assertEqual(
-            get_removed_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_SM_PACKAGE_COUNT,
-        )
-
-    def test_04_remove_excludes(self):
-        """
-        Test that removing some of the excludes increases the count again.
-        Do the following:
-        1. Update the remote to exclude a specifier that is smaller than the previous one.
-        2. Sync the remote again.
-        3. Assert that the content counts in the repo have increased again, to the count
-           of the smaller excludes specifier.
-        """
-        body = {"excludes": PYTHON_XS_PROJECT_SPECIFIER}
-        sync_to_remote(self, body, mirror=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_MD_PACKAGE_COUNT - PYTHON_XS_PACKAGE_COUNT,
-        )
-
-
-class UnavailableProjectsTestCase(unittest.TestCase):
+@pytest.mark.parallel
+def test_sync_unavailable_projects(
+    python_repo_with_sync, python_remote_factory, python_content_summary
+):
     """
     Test syncing with projects that aren't on the upstream remote.
 
     Tests that sync doesn't fail if the Remote contains projects (includes or excludes) for which
     metadata does not exist on the upstream remote.
     """
+    remote = python_remote_factory(includes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER)
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_UNAVAILABLE_PACKAGE_COUNT
 
-    @classmethod
-    def setUp(cls):
-        """Create class-wide variables per test"""
-        cls.repo = cls.repo_api.create(gen_repo())
-        cls.remote = None
+    remote = python_remote_factory(
+        includes=PYTHON_MD_PROJECT_SPECIFIER, excludes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER
+    )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def tearDown(cls):
-        """Destroy class-wide variables per test"""
-        cls.remote_api.delete(cls.remote.pulp_href)
-        cls.repo_api.delete(cls.repo.pulp_href)
-
-    def test_include_unavailable_projects(self):
-        """
-        Test that the sync doesn't fail if some included projects aren't available.
-        Do the following:
-        1. Create a remote.
-        2. Sync the remote.
-        3. Assert that the content counts in the repo match the correct count for the specifier.
-        """
-        body = gen_python_remote(includes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER)
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_UNAVAILABLE_PACKAGE_COUNT,
-        )
-
-    def test_exclude_unavailable_projects(self):
-        """
-        Test that sync doesn't fail if some of the excluded projects aren't available.
-        Do the following:
-        1. Update the remote to exclude a specifier that is smaller than the previous one.
-        2. Sync the remote again.
-        3. Assert that the content counts in the repo have increased again, to the count
-           of the smaller excludes specifier.
-        """
-        body = gen_python_remote(
-            includes=PYTHON_MD_PROJECT_SPECIFIER,
-            excludes=PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_MD_PACKAGE_COUNT - PYTHON_UNAVAILABLE_PACKAGE_COUNT,
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = PYTHON_MD_PACKAGE_COUNT - PYTHON_UNAVAILABLE_PACKAGE_COUNT
+    assert summary.present["python.python"]["count"] == diff_count
 
 
-class LatestKeptPackagesTestCase(unittest.TestCase):
+@pytest.mark.parallel
+def test_sync_latest_kept(python_repo_with_sync, python_remote_factory, python_content_summary):
     """
     Test checks that latest X packages are synced when latest kept is
     specified
-
-    Targets issue:
-    https://pulp.plan.io/issues/138
 
     This feature uses Bandersnatch's latest_kept filter which doesn't work well
     with the other filters like pre-releases and allow/blocklist. Whether to
     count the behavior as a bug or feature is hard to tell.
     """
+    # Tests latest_kept on syncing one package w/ prereleases
+    remote = python_remote_factory(
+        includes=["Django"],
+        keep_latest_packages=3,
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == DJANGO_LATEST_3
 
-    @classmethod
-    def setUp(cls):
-        """Create class-wide variables per test"""
-        cls.repo = cls.repo_api.create(gen_repo())
-        cls.remote = None
+    # Tests latest_kept on syncing multiple packages w/ prereleases
+    remote = python_remote_factory(
+        includes=PYTHON_LG_PROJECT_SPECIFIER,
+        keep_latest_packages=3,
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def tearDown(cls):
-        """Destroy class-wide variables per test"""
-        cls.remote_api.delete(cls.remote.pulp_href)
-        cls.repo_api.delete(cls.repo.pulp_href)
-
-    def test_latest_kept_sync(self):
-        """
-        Tests latest_kept on syncing one package w/ prereleases
-        """
-        body = gen_python_remote(
-            includes=["Django"],
-            keep_latest_packages=3,
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            DJANGO_LATEST_3,
-        )
-
-    def test_latest_kept_sync_all(self):
-        """
-        Tests latest_kept on syncing multiple packages w/ prereleases
-        """
-        body = gen_python_remote(
-            includes=PYTHON_LG_PROJECT_SPECIFIER,
-            keep_latest_packages=3,
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["latest_3"]
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_LG_FIXTURE_COUNTS["latest_3"]
 
 
-class PackageTypeTestCase(unittest.TestCase):
-    """
-    Tests that check only specified package types can be synced
+@pytest.mark.parallel
+def test_sync_package_type(python_repo_with_sync, python_remote_factory, python_content_summary):
+    """Tests that check only specified package types can be synced."""
+    # Checks that only sdist content is synced
+    remote = python_remote_factory(
+        includes=PYTHON_LG_PROJECT_SPECIFIER,
+        package_types=["sdist"],
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-    Targets:
-    https://pulp.plan.io/issues/2040
-    """
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_LG_FIXTURE_COUNTS["sdist"]
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
+    # Checks that only bdist_wheel content is synced
+    remote = python_remote_factory(
+        includes=PYTHON_LG_PROJECT_SPECIFIER,
+        package_types=["bdist_wheel"],
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUp(cls):
-        """Create class-wide variables per test"""
-        cls.repo = cls.repo_api.create(gen_repo())
-        cls.remote = None
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_LG_FIXTURE_COUNTS["bdist_wheel"]
 
-    @classmethod
-    def tearDown(cls):
-        """Destroy class-wide variables per test"""
-        cls.remote_api.delete(cls.remote.pulp_href)
-        cls.repo_api.delete(cls.repo.pulp_href)
+    # Checks that specifying sdist and bdist_wheel gets all packages
+    remote = python_remote_factory(
+        includes=PYTHON_LG_PROJECT_SPECIFIER,
+        package_types=["sdist", "bdist_wheel"],
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-    def test_sdist_sync_only(self):
-        """Checks that only sdist content is synced"""
-        body = gen_python_remote(
-            includes=PYTHON_LG_PROJECT_SPECIFIER,
-            package_types=["sdist"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["sdist"]
-        )
-
-    def test_bdist_wheel_sync_only(self):
-        """Checks that only bdist_wheel content is synced"""
-        body = gen_python_remote(
-            includes=PYTHON_LG_PROJECT_SPECIFIER,
-            package_types=["bdist_wheel"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["bdist_wheel"]
-        )
-
-    def test_both_together_sync(self):
-        """Checks that specifying sdist and bdist_wheel gets all packages"""
-        body = gen_python_remote(
-            includes=PYTHON_LG_PROJECT_SPECIFIER,
-            package_types=["bdist_wheel", "sdist"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict()),
-            PYTHON_LG_FIXTURE_SUMMARY
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_LG_PACKAGE_COUNT
 
 
-class PlatformExcludeTestCase(unittest.TestCase):
+@pytest.mark.parallel
+def test_sync_platform_exclude(
+        python_repo_with_sync, python_remote_factory, python_content_summary
+):
     """
     Tests for platform specific packages not being synced when specified
 
@@ -564,141 +225,76 @@ class PlatformExcludeTestCase(unittest.TestCase):
     10 linux releases
     1 any platform release
     """
+    # Tests that no windows packages are synced
+    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["windows"],
+                                   prereleases=True, )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_python_client()
-        cls.repo_api = RepositoriesPythonApi(cls.client)
-        cls.remote_api = RemotesPythonApi(cls.client)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = SCIPY_COUNTS["total"] - SCIPY_COUNTS["windows"]
+    assert summary.present["python.python"]["count"] == diff_count
 
-    @classmethod
-    def setUp(cls):
-        """Create class-wide variables per test"""
-        cls.repo = cls.repo_api.create(gen_repo())
-        cls.remote = None
+    # Tests that no macos packages are synced
+    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["macos"],
+                                   prereleases=True, )
+    repo = python_repo_with_sync(remote)
 
-    @classmethod
-    def tearDown(cls):
-        """Destroy class-wide variables per test"""
-        cls.remote_api.delete(cls.remote.pulp_href)
-        cls.repo_api.delete(cls.repo.pulp_href)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = SCIPY_COUNTS["total"] - SCIPY_COUNTS["macos"]
+    assert summary.present["python.python"]["count"] == diff_count
 
-    def test_no_windows_sync(self):
-        """Tests that no windows packages are synced"""
-        body = gen_python_remote(
-            includes=["scipy"],
-            exclude_platforms=["windows"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
+    # Tests that no linux packages are synced
+    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["linux"],
+                                   prereleases=True, )
+    repo = python_repo_with_sync(remote)
 
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["windows"]
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    diff_count = SCIPY_COUNTS["total"] - SCIPY_COUNTS["linux"]
+    assert summary.present["python.python"]["count"] == diff_count
 
-    def test_no_macos_sync(self):
-        """Tests that no macos packages are synced"""
-        body = gen_python_remote(
-            includes=["scipy"],
-            exclude_platforms=["macos"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
+    # Tests that no package specified for a platform is synced
+    remote = python_remote_factory(
+        includes=["scipy"],
+        exclude_platforms=["windows", "macos", "linux", "freebsd"],
+        prereleases=True,
+    )
+    repo = python_repo_with_sync(remote)
 
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["macos"]
-        )
-
-    def test_no_linux_sync(self):
-        """Tests that no linux packages are synced"""
-        body = gen_python_remote(
-            includes=["scipy"],
-            exclude_platforms=["linux"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["linux"]
-        )
-
-    def test_no_platform_sync(self):
-        """Tests that no package specified for a platform is synced"""
-        body = gen_python_remote(
-            includes=["scipy"],
-            exclude_platforms=["linux", "windows", "macos", "freebsd"],
-            prereleases=True,
-        )
-        sync_to_remote(self, body, create=True)
-
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["no_os"]
-        )
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == SCIPY_COUNTS["no_os"]
 
 
 @pytest.mark.parallel
 def test_proxy_sync(
-    python_repo,
-    python_repo_api_client,
+    python_bindings,
+    python_repo_with_sync,
     python_remote_factory,
-    python_content_api_client,
     http_proxy,
 ):
     """Test syncing with a proxy."""
-    body = gen_python_remote(proxy_url=http_proxy.proxy_url)
-    remote = python_remote_factory(**body)
-    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
-    monitor_task(sync_resp.task)
-
-    repo = python_repo_api_client.read(python_repo.pulp_href)
+    remote = python_remote_factory(proxy_url=http_proxy.proxy_url)
+    repo = python_repo_with_sync(remote)
     assert repo.latest_version_href[-2] == "1"
 
-    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
-    assert content_resp.count == 2
+    content = python_bindings.ContentPackagesApi.list(repository_version=repo.latest_version_href)
+    assert content.count == 2
 
 
 @pytest.mark.parallel
 def test_proxy_auth_sync(
-    python_repo,
-    python_repo_api_client,
+    python_bindings,
+    python_repo_with_sync,
     python_remote_factory,
-    python_content_api_client,
     http_proxy_with_auth,
 ):
     """Test syncing with a proxy with auth."""
-    body = gen_python_remote(
+    remote = python_remote_factory(
         proxy_url=http_proxy_with_auth.proxy_url,
         proxy_username=http_proxy_with_auth.username,
         proxy_password=http_proxy_with_auth.password,
     )
-    remote = python_remote_factory(**body)
-    sync_resp = python_repo_api_client.sync(python_repo.pulp_href, {"remote": remote.pulp_href})
-    monitor_task(sync_resp.task)
-
-    repo = python_repo_api_client.read(python_repo.pulp_href)
+    repo = python_repo_with_sync(remote)
     assert repo.latest_version_href[-2] == "1"
 
-    content_resp = python_content_api_client.list(repository_version=repo.latest_version_href)
-    assert content_resp.count == 2
-
-
-def sync_to_remote(self, body, create=False, mirror=False):
-    """Takes a body and creates/updates a remote object, then it performs a sync"""
-    if create:
-        type(self).remote = self.remote_api.create(body)
-    else:
-        remote_task = self.remote_api.partial_update(self.remote.pulp_href, body)
-        monitor_task(remote_task.task)
-        type(self).remote = self.remote_api.read(self.remote.pulp_href)
-
-    repository_sync_data = RepositorySyncURL(
-        remote=self.remote.pulp_href, mirror=mirror
-    )
-    sync_response = self.repo_api.sync(self.repo.pulp_href, repository_sync_data)
-    monitor_task(sync_response.task)
-    type(self).repo = self.repo_api.read(self.repo.pulp_href)
+    content = python_bindings.ContentPackagesApi.list(repository_version=repo.latest_version_href)
+    assert content.count == 2

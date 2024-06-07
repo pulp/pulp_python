@@ -14,14 +14,10 @@ from pulp_python.tests.functional.constants import (
 
 @pytest.mark.parallel
 def test_export_then_import(
+    python_bindings,
+    pulpcore_bindings,
     python_repo_factory,
     python_remote_factory,
-    python_repo_api_client,
-    python_repo_version_api_client,
-    exporters_pulp_api_client,
-    exporters_pulp_exports_api_client,
-    importers_pulp_api_client,
-    importers_pulp_imports_api_client,
     monitor_task,
     monitor_task_group,
     gen_object_with_cleanup,
@@ -32,21 +28,21 @@ def test_export_then_import(
     remote_b = python_remote_factory(includes=PYTHON_SM_PROJECT_SPECIFIER, policy="immediate")
     repo_a = python_repo_factory()
     repo_b = python_repo_factory()
-    sync_response_a = python_repo_api_client.sync(
+    sync_response_a = python_bindings.RepositoriesPythonApi.sync(
         repo_a.pulp_href, {"remote": remote_a.pulp_href}
     )
-    sync_response_b = python_repo_api_client.sync(
+    sync_response_b = python_bindings.RepositoriesPythonApi.sync(
         repo_b.pulp_href, {"remote": remote_b.pulp_href}
     )
     monitor_task(sync_response_a.task)
     monitor_task(sync_response_b.task)
 
-    repo_ver_a = python_repo_version_api_client.read(f"{repo_a.pulp_href}versions/1/")
-    repo_ver_b = python_repo_version_api_client.read(f"{repo_b.pulp_href}versions/1/")
+    repo_ver_a = python_bindings.RepositoriesPythonVersionsApi.read(f"{repo_a.versions_href}1/")
+    repo_ver_b = python_bindings.RepositoriesPythonVersionsApi.read(f"{repo_b.versions_href}1/")
 
     # Prepare export
     exporter = gen_object_with_cleanup(
-        exporters_pulp_api_client,
+        pulpcore_bindings.ExportersPulpApi,
         {
             "name": str(uuid.uuid4()),
             "path": f"/tmp/{uuid.uuid4()}/",
@@ -55,10 +51,10 @@ def test_export_then_import(
     )
 
     # Export
-    task = exporters_pulp_exports_api_client.create(exporter.pulp_href, {}).task
+    task = pulpcore_bindings.ExportersPulpExportsApi.create(exporter.pulp_href, {}).task
     task = monitor_task(task)
     assert len(task.created_resources) == 1
-    export = exporters_pulp_exports_api_client.read(task.created_resources[0])
+    export = pulpcore_bindings.ExportersPulpExportsApi.read(task.created_resources[0])
     assert export is not None
     assert len(exporter.repositories) == len(export.exported_resources)
     assert export.output_file_info is not None
@@ -73,20 +69,21 @@ def test_export_then_import(
     repo_d = python_repo_factory()
     repo_mapping = {repo_a.name: repo_c.name, repo_b.name: repo_d.name}
     importer = gen_object_with_cleanup(
-        importers_pulp_api_client, {"name": str(uuid.uuid4()), "repo_mapping": repo_mapping}
+        pulpcore_bindings.ImportersPulpApi,
+        {"name": str(uuid.uuid4()), "repo_mapping": repo_mapping},
     )
 
     # Import
-    import_response = importers_pulp_imports_api_client.create(
+    import_response = pulpcore_bindings.ImportersPulpImportsApi.create(
         importer.pulp_href, {"path": export_filename}
     )
     monitor_task_group(import_response.task_group)
-    repo_c = python_repo_api_client.read(repo_c.pulp_href)
-    repo_d = python_repo_api_client.read(repo_d.pulp_href)
-    assert repo_c.latest_version_href == f"{repo_c.pulp_href}versions/1/"
-    assert repo_d.latest_version_href == f"{repo_d.pulp_href}versions/1/"
-    repo_ver_c = python_repo_version_api_client.read(f"{repo_c.pulp_href}versions/1/")
-    repo_ver_d = python_repo_version_api_client.read(f"{repo_d.pulp_href}versions/1/")
+    repo_c = python_bindings.RepositoriesPythonApi.read(repo_c.pulp_href)
+    repo_d = python_bindings.RepositoriesPythonApi.read(repo_d.pulp_href)
+    assert repo_c.latest_version_href == f"{repo_c.versions_href}1/"
+    assert repo_d.latest_version_href == f"{repo_d.versions_href}1/"
+    repo_ver_c = python_bindings.RepositoriesPythonVersionsApi.read(f"{repo_c.versions_href}1/")
+    repo_ver_d = python_bindings.RepositoriesPythonVersionsApi.read(f"{repo_d.versions_href}1/")
     assert (
         repo_ver_c.content_summary.added["python.python"]["count"]
         == repo_ver_a.content_summary.present["python.python"]["count"]
@@ -97,12 +94,12 @@ def test_export_then_import(
     )
 
     # Import a second time
-    import_response = importers_pulp_imports_api_client.create(
+    import_response = pulpcore_bindings.ImportersPulpImportsApi.create(
         importer.pulp_href, {"path": export_filename}
     )
     monitor_task_group(import_response.task_group)
-    assert len(importers_pulp_imports_api_client.list(importer.pulp_href).results) == 2
+    assert len(pulpcore_bindings.ImportersPulpImportsApi.list(importer.pulp_href).results) == 2
     for repo in [repo_c, repo_d]:
-        repo = python_repo_api_client.read(repo.pulp_href)
+        repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
         # still only one version as pulp won't create a new version if nothing changed
-        assert repo.latest_version_href == f"{repo.pulp_href}versions/1/"
+        assert repo.latest_version_href == f"{repo.versions_href}1/"
