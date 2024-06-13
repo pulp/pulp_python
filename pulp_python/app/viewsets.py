@@ -18,7 +18,9 @@ from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
 
 
-class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryActionMixin):
+class PythonRepositoryViewSet(
+    core_viewsets.RepositoryViewSet, ModifyRepositoryActionMixin, core_viewsets.RolesMixin
+):
     """
     PythonRepository represents a single Python repository, to which content can be
     synced, added, or removed.
@@ -27,6 +29,98 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
     endpoint_name = 'python'
     queryset = python_models.PythonRepository.objects.all()
     serializer_class = python_serializers.PythonRepositorySerializer
+    queryset_filtering_required_permission = "python.view_pythonrepository"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_perms:python.add_pythonrepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:python.view_pythonremote",
+                ],
+            },
+            {
+                "action": ["retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.delete_pythonrepository",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
+            {
+                "action": ["update", "partial_update", "set_label", "unset_label"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.change_pythonrepository",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:python.view_pythonremote",
+                ],
+            },
+            {
+                "action": ["sync"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.sync_pythonrepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:python.view_pythonremote",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
+            {
+                "action": ["modify"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.modify_pythonrepository",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.manage_roles_pythonrepository"
+                ],
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "python.pythonrepository_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+    LOCKED_ROLES = {
+        "python.pythonrepository_creator": ["python.add_pythonrepository"],
+        "python.pythonrepository_owner": [
+            "python.view_pythonrepository",
+            "python.change_pythonrepository",
+            "python.delete_pythonrepository",
+            "python.modify_pythonrepository",
+            "python.sync_pythonrepository",
+            "python.manage_roles_pythonrepository",
+            "python.repair_pythonrepository",
+        ],
+        "python.pythonrepository_viewer": ["python.view_pythonrepository"],
+    }
 
     @extend_schema(
         summary="Sync from remote",
@@ -69,8 +163,38 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
 
     parent_viewset = PythonRepositoryViewSet
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition":
+                    "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_domain_or_obj_perms:python.delete_pythonrepository",
+                    "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
+            {
+                "action": ["repair"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_domain_or_obj_perms:python.repair_pythonrepository",
+                    "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
+        ],
+    }
 
-class PythonDistributionViewSet(core_viewsets.DistributionViewSet):
+
+class PythonDistributionViewSet(core_viewsets.DistributionViewSet, core_viewsets.RolesMixin):
     """
     <!-- User-facing documentation, rendered as html-->
     Pulp Python Distributions are used to distribute Python content from
@@ -84,6 +208,82 @@ class PythonDistributionViewSet(core_viewsets.DistributionViewSet):
     endpoint_name = 'pypi'
     queryset = python_models.PythonDistribution.objects.all()
     serializer_class = python_serializers.PythonDistributionSerializer
+    queryset_filtering_required_permission = "python.view_pythondistribution"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_perms:python.add_pythondistribution",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "python.view_pythonrepository",
+                    "has_publication_param_model_or_domain_or_obj_perms:"
+                    "python.view_pythonpublication",
+                ],
+            },
+            {
+                "action": ["retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.view_pythondistribution",
+            },
+            {
+                "action": ["update", "partial_update", "set_label", "unset_label"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.change_pythondistribution",
+                    "has_model_or_domain_or_obj_perms:python.view_pythondistribution",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "python.view_pythonrepository",
+                    "has_publication_param_model_or_domain_or_obj_perms:"
+                    "python.view_pythonpublication",
+                ],
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.delete_pythondistribution",
+                    "has_model_or_domain_or_obj_perms:python.view_pythondistribution",
+                ],
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.manage_roles_pythondistribution"
+                ],
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "python.pythondistribution_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+    LOCKED_ROLES = {
+        "python.pythondistribution_creator": ["python.add_pythondistribution"],
+        "python.pythondistribution_owner": [
+            "python.view_pythondistribution",
+            "python.change_pythondistribution",
+            "python.delete_pythondistribution",
+            "python.manage_roles_pythondistribution",
+        ],
+        "python.pythondistribution_viewer": ["python.view_pythondistribution"],
+    }
 
 
 class PythonPackageContentFilter(core_viewsets.ContentFilter):
@@ -123,8 +323,29 @@ class PythonPackageSingleArtifactContentUploadViewSet(
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
     filterset_class = PythonPackageContentFilter
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:python.modify_pythonrepository",
+                    "has_required_repo_perms_on_upload:python.view_pythonrepository",
+                    "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
 
-class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
+
+class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin):
     """
     <!-- User-facing documentation, rendered as html-->
     Python Remotes are representations of an <b>external repository</b> of Python content, eg.
@@ -136,6 +357,70 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
     endpoint_name = 'python'
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
+    queryset_filtering_required_permission = "python.view_pythonremote"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create", "from_bandersnatch"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_perms:python.add_pythonremote",
+            },
+            {
+                "action": ["retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.view_pythonremote",
+            },
+            {
+                "action": ["update", "partial_update", "set_label", "unset_label"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.change_pythonremote",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonremote",
+                ],
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.delete_pythonremote",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonremote",
+                ],
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": ["has_model_or_domain_or_obj_perms:python.manage_roles_pythonremote"],
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "python.pythonremote_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+    LOCKED_ROLES = {
+        "python.pythonremote_creator": ["python.add_pythonremote"],
+        "python.pythonremote_owner": [
+            "python.view_pythonremote",
+            "python.change_pythonremote",
+            "python.delete_pythonremote",
+            "python.manage_roles_pythonremote",
+        ],
+        "python.pythonremote_viewer": ["python.view_pythonremote"],
+    }
 
     @extend_schema(
         summary="Create from Bandersnatch",
@@ -185,7 +470,7 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
         return Response(remote.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
+class PythonPublicationViewSet(core_viewsets.PublicationViewSet, core_viewsets.RolesMixin):
     """
     <!-- User-facing documentation, rendered as html-->
     Python Publications refer to the Python Package content in a repository version, and include
@@ -196,6 +481,66 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
     endpoint_name = 'pypi'
     queryset = python_models.PythonPublication.objects.exclude(complete=False)
     serializer_class = python_serializers.PythonPublicationSerializer
+    queryset_filtering_required_permission = "python.view_pythonpublication"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_perms:python.add_pythonpublication",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "python.view_pythonrepository",
+                ],
+            },
+            {
+                "action": ["retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.view_pythonpublication",
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.delete_pythonpublication",
+                    "has_model_or_domain_or_obj_perms:python.view_pythonpublication",
+                ],
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.manage_roles_pythonpublication"
+                ],
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "python.pythonpublication_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+    LOCKED_ROLES = {
+        "python.pythonpublication_creator": ["python.add_pythonpublication"],
+        "python.pythonpublication_owner": [
+            "python.view_pythonpublication",
+            "python.delete_pythonpublication",
+            "python.manage_roles_pythonpublication",
+        ],
+        "python.pythonpublication_viewer": ["python.view_pythonpublication"],
+    }
 
     @extend_schema(
         responses={202: AsyncOperationResponseSerializer}

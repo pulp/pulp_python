@@ -89,6 +89,6 @@ class PackageUploadTaskSerializer(serializers.Serializer):
     A Serializer for responding to a package upload task.
     """
 
-    session = serializers.CharField()
+    session = serializers.CharField(allow_null=True)
     task = serializers.CharField()
-    task_start_time = serializers.DateTimeField()
+    task_start_time = serializers.DateTimeField(allow_null=True)
