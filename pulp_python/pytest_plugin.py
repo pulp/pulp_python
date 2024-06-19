@@ -35,11 +35,14 @@ def python_bindings(_api_client_set, bindings_cfg):
 @pytest.fixture
 def python_repo_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Repository with auto-cleanup."""
-    def _gen_python_repo(remote=None, **body):
+    def _gen_python_repo(remote=None, pulp_domain=None, **body):
         body.setdefault("name", str(uuid.uuid4()))
+        kwargs = {}
+        if pulp_domain:
+            kwargs["pulp_domain"] = pulp_domain
         if remote:
             body["remote"] = remote if isinstance(remote, str) else remote.pulp_href
-        return gen_object_with_cleanup(python_bindings.RepositoriesPythonApi, body)
+        return gen_object_with_cleanup(python_bindings.RepositoriesPythonApi, body, **kwargs)
 
     return _gen_python_repo
 
@@ -53,7 +56,9 @@ def python_repo(python_repo_factory):
 @pytest.fixture
 def python_distribution_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Distribution with auto-cleanup."""
-    def _gen_python_distribution(publication=None, repository=None, version=None, **body):
+    def _gen_python_distribution(
+        publication=None, repository=None, version=None, pulp_domain=None, **body
+    ):
         name = str(uuid.uuid4())
         body.setdefault("name", name)
         body.setdefault("base_path", name)
@@ -69,7 +74,10 @@ def python_distribution_factory(python_bindings, gen_object_with_cleanup):
                 body = {"repository_version": ver_href}
             else:
                 body["repository"] = repo_href
-        return gen_object_with_cleanup(python_bindings.DistributionsPypiApi, body)
+        kwargs = {}
+        if pulp_domain:
+            kwargs["pulp_domain"] = pulp_domain
+        return gen_object_with_cleanup(python_bindings.DistributionsPypiApi, body, **kwargs)
 
     yield _gen_python_distribution
 
@@ -77,7 +85,7 @@ def python_distribution_factory(python_bindings, gen_object_with_cleanup):
 @pytest.fixture
 def python_publication_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Publication with auto-cleanup."""
-    def _gen_python_publication(repository, version=None):
+    def _gen_python_publication(repository, version=None, pulp_domain=None):
         repo_href = get_href(repository)
         if version:
             if version.isnumeric():
@@ -87,7 +95,10 @@ def python_publication_factory(python_bindings, gen_object_with_cleanup):
             body = {"repository_version": ver_href}
         else:
             body = {"repository": repo_href}
-        return gen_object_with_cleanup(python_bindings.PublicationsPypiApi, body)
+        kwargs = {}
+        if pulp_domain:
+            kwargs["pulp_domain"] = pulp_domain
+        return gen_object_with_cleanup(python_bindings.PublicationsPypiApi, body, **kwargs)
 
     yield _gen_python_publication
 
@@ -95,13 +106,16 @@ def python_publication_factory(python_bindings, gen_object_with_cleanup):
 @pytest.fixture
 def python_remote_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Remote with auto-cleanup."""
-    def _gen_python_remote(url=PYTHON_FIXTURE_URL, includes=None, **body):
+    def _gen_python_remote(url=PYTHON_FIXTURE_URL, includes=None, pulp_domain=None, **body):
         body.setdefault("name", str(uuid.uuid4()))
         body.setdefault("url", url)
         if includes is None:
             includes = PYTHON_XS_PROJECT_SPECIFIER
         body["includes"] = includes
-        return gen_object_with_cleanup(python_bindings.RemotesPythonApi, body)
+        kwargs = {}
+        if pulp_domain:
+            kwargs["pulp_domain"] = pulp_domain
+        return gen_object_with_cleanup(python_bindings.RemotesPythonApi, body, **kwargs)
 
     yield _gen_python_remote
 
@@ -112,7 +126,10 @@ def python_repo_with_sync(
 ):
     """A factory to generate a Python Repository synced with the passed in Remote."""
     def _gen_python_repo_sync(remote=None, mirror=False, repository=None, **body):
-        remote = remote or python_remote_factory()
+        kwargs = {}
+        if pulp_domain := body.get("pulp_domain"):
+            kwargs["pulp_domain"] = pulp_domain
+        remote = remote or python_remote_factory(**kwargs)
         repo = repository or python_repo_factory(**body)
         sync_body = {"mirror": mirror, "remote": remote.pulp_href}
         monitor_task(python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, sync_body).task)
@@ -190,5 +207,5 @@ def python_content_summary(python_bindings):
 
 
 def get_href(item):
-    """Tries to get the href from the given item, wether it is a string or object."""
+    """Tries to get the href from the given item, whether it is a string or object."""
     return item if isinstance(item, str) else item.pulp_href

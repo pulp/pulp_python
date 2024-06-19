@@ -38,7 +38,7 @@ def test_pull_through_install(
 
 
 @pytest.mark.parallel
-def test_pull_through_simple(python_remote_factory, python_distribution_factory, pulp_settings):
+def test_pull_through_simple(python_remote_factory, python_distribution_factory, pulp_content_url):
     """Tests that the simple page is properly modified when requesting a pull-through."""
     remote = python_remote_factory(url=PYPI_URL)
     distro = python_distribution_factory(remote=remote.pulp_href)
@@ -46,13 +46,11 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
     url = f"{distro.base_url}simple/shelf-reader/"
     project_page = parse_repo_project_response("shelf-reader", requests.get(url))
 
-    # TODO ADD check for pulp_domains when added
-    pulp_content_base_url = urljoin(pulp_settings.CONTENT_ORIGIN, pulp_settings.CONTENT_PATH_PREFIX)
     assert len(project_page.packages) == 2
     for package in project_page.packages:
         assert package.filename in PYTHON_XS_FIXTURE_CHECKSUMS
         relative_path = f"{distro.base_path}/{package.filename}?redirect="
-        assert urljoin(pulp_content_base_url, relative_path) in package.url
+        assert urljoin(pulp_content_url, relative_path) in package.url
         digests = package.get_digests()
         assert PYTHON_XS_FIXTURE_CHECKSUMS[package.filename] == digests["sha256"]
 

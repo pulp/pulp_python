@@ -6,6 +6,7 @@ from django.core.files import File
 from packaging.utils import canonicalize_name
 
 from pulpcore.plugin import models
+from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
 from pulp_python.app.utils import write_simple_index, write_simple_detail
@@ -49,11 +50,12 @@ def write_simple_api(publication):
         publication (pulpcore.plugin.models.Publication): A publication to generate metadata for
 
     """
+    domain = get_domain()
     simple_dir = 'simple/'
     os.mkdir(simple_dir)
     project_names = (
         python_models.PythonPackageContent.objects.filter(
-            pk__in=publication.repository_version.content
+            pk__in=publication.repository_version.content, _pulp_domain=domain
         )
         .order_by('name')
         .values_list('name', flat=True)
@@ -76,7 +78,7 @@ def write_simple_api(publication):
         return
 
     packages = python_models.PythonPackageContent.objects.filter(
-        pk__in=publication.repository_version.content
+        pk__in=publication.repository_version.content, _pulp_domain=domain
     )
     releases = packages.order_by("name").values("name", "filename", "sha256")
 

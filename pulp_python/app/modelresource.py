@@ -1,5 +1,6 @@
 from pulpcore.plugin.importexport import BaseContentResource
 from pulpcore.plugin.modelresources import RepositoryResource
+from pulpcore.plugin.util import get_domain
 from pulp_python.app.models import (
     PythonPackageContent,
     PythonRepository,
@@ -15,7 +16,9 @@ class PythonPackageContentResource(BaseContentResource):
         """
         :return: PythonPackageContent specific to a specified repo-version.
         """
-        return PythonPackageContent.objects.filter(pk__in=self.repo_version.content)
+        return PythonPackageContent.objects.filter(
+            pk__in=self.repo_version.content, _pulp_domain=get_domain()
+        )
 
     class Meta:
         model = PythonPackageContent

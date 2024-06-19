@@ -106,7 +106,7 @@ def test_package_upload(
         files={"content": open(egg_file, "rb")},
         auth=("admin", "password"),
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
     monitor_task(response.json()["task"])
     summary = python_content_summary(repository=repo)
     assert summary.added["python.python"]["count"] == 1
@@ -136,7 +136,7 @@ def test_package_upload_session(
         files={"content": open(egg_file, "rb")},
         auth=("admin", "password"),
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
     task = monitor_task(response.json()["task"])
     response2 = session.post(
         url,
@@ -144,7 +144,7 @@ def test_package_upload_session(
         files={"content": open(wheel_file, "rb")},
         auth=("admin", "password"),
     )
-    assert response2.status_code == 200
+    assert response2.status_code == 202
     task2 = monitor_task(response2.json()["task"])
     assert task != task2
     summary = python_content_summary(repository=repo)
@@ -165,7 +165,7 @@ def test_package_upload_simple(
         files={"content": open(egg_file, "rb")},
         auth=("admin", "password"),
     )
-    assert response.status_code == 200
+    assert response.status_code == 202
     monitor_task(response.json()["task"])
     summary = python_content_summary(repository=repo)
     assert summary.added["python.python"]["count"] == 1

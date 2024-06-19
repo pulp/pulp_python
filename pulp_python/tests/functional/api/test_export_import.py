@@ -7,9 +7,20 @@ the case.
 import pytest
 import uuid
 
+from pulpcore.app import settings
 from pulp_python.tests.functional.constants import (
     PYTHON_XS_PROJECT_SPECIFIER, PYTHON_SM_PROJECT_SPECIFIER
 )
+
+
+pytestmark = [
+    pytest.mark.skipif(settings.DOMAIN_ENABLED, reason="Domains do not support export."),
+    pytest.mark.skipif(
+        "/tmp" not in settings.ALLOWED_EXPORT_PATHS,
+        reason="Cannot run export-tests unless /tmp is in ALLOWED_EXPORT_PATHS "
+        f"({settings.ALLOWED_EXPORT_PATHS}).",
+    ),
+]
 
 
 @pytest.mark.parallel

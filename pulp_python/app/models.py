@@ -23,6 +23,7 @@ from .utils import (
     PYPI_SERIAL_CONSTANT,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
+from pulpcore.plugin.util import get_domain_pk, get_domain
 
 log = getLogger(__name__)
 
@@ -68,6 +69,7 @@ class PythonDistribution(Distribution):
         path = PurePath(path)
         name = None
         version = None
+        domain = get_domain()
         if path.match("pypi/*/*/json"):
             version = path.parts[2]
             name = path.parts[1]
@@ -76,7 +78,7 @@ class PythonDistribution(Distribution):
         elif len(path.parts) and path.parts[0] == "simple":
             # Temporary fix for PublishedMetadata not being properly served from remote storage
             # https://github.com/pulp/pulp_python/issues/413
-            if settings.DEFAULT_FILE_STORAGE != "pulpcore.app.models.storage.FileSystem":
+            if domain.storage_class != "pulpcore.app.models.storage.FileSystem":
                 if self.publication or self.repository:
                     try:
                         publication = self.publication or Publication.objects.filter(
@@ -105,7 +107,11 @@ class PythonDistribution(Distribution):
             )
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
-            json_body = python_content_to_json(self.base_path, package_content, version=version)
+            if not settings.DOMAIN_ENABLED:
+                domain = None
+            json_body = python_content_to_json(
+                self.base_path, package_content, version=version, domain=domain
+            )
             if json_body:
                 return json_response(json_body, headers=headers)
 
@@ -143,7 +149,7 @@ class PythonPackageContent(Content):
     name = models.TextField()
     name.register_lookup(NormalizeName)
     version = models.TextField()
-    sha256 = models.CharField(unique=True, db_index=True, max_length=64)
+    sha256 = models.CharField(db_index=True, max_length=64)
     # Optional metadata
     python_version = models.TextField()
     metadata_version = models.TextField()
@@ -168,6 +174,8 @@ class PythonPackageContent(Content):
     classifiers = models.JSONField(default=list)
     project_urls = models.JSONField(default=dict)
     description_content_type = models.TextField()
+    # Pulp Domains
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     @staticmethod
     def init_from_artifact_and_relative_path(artifact, relative_path):
@@ -179,6 +187,8 @@ class PythonPackageContent(Content):
         data["version"] = metadata.version
         data["filename"] = path.name
         data["sha256"] = artifact.sha256
+        data["pulp_domain_id"] = artifact.pulp_domain_id
+        data["_pulp_domain_id"] = artifact.pulp_domain_id
         return PythonPackageContent(**data)
 
     def __str__(self):
@@ -200,7 +210,7 @@ class PythonPackageContent(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("sha256",)
+        unique_together = ("sha256", "_pulp_domain")
 
 
 class PythonPublication(Publication):

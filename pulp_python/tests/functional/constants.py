@@ -201,33 +201,34 @@ PYTHON_PACKAGE_DATA = {
     "classifiers": "[]",
 }
 
-# Info data for Shelf-reader
+# Info data for Shelf-reader, Not all the fields are the same whether uploaded or synced :(
+# pkginfo filters out 'UNKNOWN' values & fails to find a couple others due to package description
 PYTHON_INFO_DATA = {
     "name": "shelf-reader",
     "version": "0.1",
     # "metadata_version": "",  # Maybe program "1.1" into parse_metadata of app/utils.py
     "summary": "Make sure your collections are in call number order.",
-    "keywords": "library barcode call number shelf collection",
+    # "keywords": "library barcode call number shelf collection",
     "home_page": "https://github.com/asmacdo/shelf-reader",
-    "download_url": "UNKNOWN",
+    # "download_url": "UNKNOWN",
     "author": "Austin Macdonald",
     "author_email": "asmacdo@gmail.com",
     "maintainer": "",
     "maintainer_email": "",
     # "license": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991",
     "requires_python": None,
-    "project_url": "https://pypi.org/project/shelf-reader/",
-    "platform": "UNKNOWN",
+    # "project_url": "https://pypi.org/project/shelf-reader/",
+    # "platform": "UNKNOWN",
     # "supported_platform": None,
     "requires_dist": None,
     # "provides_dist": [],
     # "obsoletes_dist": [],
     # "requires_external": [],
-    "classifiers": ['Development Status :: 4 - Beta', 'Environment :: Console',
-                    'Intended Audience :: Developers',
-                    'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
-                    'Natural Language :: English', 'Programming Language :: Python :: 2',
-                    'Programming Language :: Python :: 2.7'],
+    # "classifiers": ['Development Status :: 4 - Beta', 'Environment :: Console',
+    #                 'Intended Audience :: Developers',
+    #                 'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+    #                 'Natural Language :: English', 'Programming Language :: Python :: 2',
+    #                 'Programming Language :: Python :: 2.7'],
     "downloads": {"last_day": -1, "last_month": -1, "last_week": -1},
     # maybe add description, license is long for this one
 }
