@@ -1,1 +1,0 @@
-Raised the minimum `pulpcore` bound to `>=3.49` and dropped support for `python 3.8`.
