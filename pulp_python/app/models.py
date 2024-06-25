@@ -6,6 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
 from pulpcore.plugin.models import (
+    AutoAddObjPermsMixin,
     Content,
     Publication,
     Distribution,
@@ -47,7 +48,7 @@ PLATFORMS = (
 )
 
 
-class PythonDistribution(Distribution):
+class PythonDistribution(Distribution, AutoAddObjPermsMixin):
     """
     Distribution for 'Python' Content.
     """
@@ -119,6 +120,9 @@ class PythonDistribution(Distribution):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_pythondistribution", "Can manage roles on python distributions"),
+        ]
 
 
 class NormalizeName(models.Transform):
@@ -213,7 +217,7 @@ class PythonPackageContent(Content):
         unique_together = ("sha256", "_pulp_domain")
 
 
-class PythonPublication(Publication):
+class PythonPublication(Publication, AutoAddObjPermsMixin):
     """
     A Publication for PythonContent.
     """
@@ -222,9 +226,12 @@ class PythonPublication(Publication):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_pythonpublication", "Can manage roles on python publications"),
+        ]
 
 
-class PythonRemote(Remote):
+class PythonRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Python Content.
 
@@ -259,9 +266,12 @@ class PythonRemote(Remote):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_pythonremote", "Can manage roles on python remotes"),
+        ]
 
 
-class PythonRepository(Repository):
+class PythonRepository(Repository, AutoAddObjPermsMixin):
     """
     Repository for "python" content.
     """
@@ -274,6 +284,12 @@ class PythonRepository(Repository):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("sync_pythonrepository", "Can start a sync task"),
+            ("modify_pythonrepository", "Can modify content of the repository"),
+            ("manage_roles_pythonrepository", "Can manage roles on python repositories"),
+            ("repair_pythonrepository", "Can repair repository versions"),
+        ]
 
     def on_new_version(self, version):
         """

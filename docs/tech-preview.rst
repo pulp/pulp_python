@@ -10,3 +10,4 @@ The following features are currently being released as part of a tech preview
 * ``Twine`` upload packages to indexes at endpoints '/simple` or '/legacy'.
 * Create pull-through caches of remote sources.
 * Pulp Domain support
+* RBAC support

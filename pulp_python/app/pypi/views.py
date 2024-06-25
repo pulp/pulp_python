@@ -3,7 +3,6 @@ import requests
 
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from datetime import datetime, timezone, timedelta
@@ -58,17 +57,17 @@ BASE_CONTENT_URL = urljoin(settings.CONTENT_ORIGIN, settings.CONTENT_PATH_PREFIX
 class PyPIMixin:
     """Mixin to get index specific info."""
 
-    @staticmethod
-    def get_repository_version(distribution):
-        """Finds the repository version this distribution is serving."""
-        pub = distribution.publication
-        rep = distribution.repository
-        if pub:
-            return pub.repository_version or pub.repository.latest_version()
-        elif rep:
-            return rep.latest_version()
-        else:
-            raise Http404("No repository associated with this index")
+    _distro = None
+
+    @property
+    def distribution(self):
+        if self._distro:
+            return self._distro
+
+        path = self.kwargs["path"]
+        distro = self.get_distribution(path)
+        self._distro = distro
+        return distro
 
     @staticmethod
     def get_distribution(path):
@@ -82,25 +81,37 @@ class PyPIMixin:
             raise Http404(f"No PythonDistribution found for base_path {path}")
 
     @staticmethod
+    def get_repository_version(distribution):
+        """Finds the repository version this distribution is serving."""
+        pub = distribution.publication
+        rep = distribution.repository
+        if pub:
+            return pub.repository_version or pub.repository.latest_version()
+        elif rep:
+            return rep.latest_version()
+        else:
+            raise Http404("No repository associated with this index")
+
+    @staticmethod
     def get_content(repository_version):
         """Returns queryset of the content in this repository version."""
         return PythonPackageContent.objects.filter(pk__in=repository_version.content)
 
-    def should_redirect(self, distro, repo_version=None):
+    def should_redirect(self, repo_version=None):
         """Checks if there is a publication the content app can serve."""
-        if distro.publication:
+        if self.distribution.publication:
             return True
-        rv = repo_version or self.get_repository_version(distro)
+        rv = repo_version or self.get_repository_version(self.distribution)
         return PythonPublication.objects.filter(repository_version=rv).exists()
 
-    def get_drvc(self, path):
-        """Takes the base_path and returns the distribution, repository_version and content."""
-        distro = self.get_distribution(path)
-        if distro.remote and not distro.repository and not distro.publication:
-            return distro, None, None
-        repo_ver = self.get_repository_version(distro)
+    def get_rvc(self):
+        """Takes the base_path and returns the repository_version and content."""
+        if self.distribution.remote:
+            if not self.distribution.repository and not self.distribution.publication:
+                return None, None
+        repo_ver = self.get_repository_version(self.distribution)
         content = self.get_content(repo_ver)
-        return distro, repo_ver, content
+        return repo_ver, content
 
     def initial(self, request, *args, **kwargs):
         """Perform common initialization tasks for PyPI endpoints."""
@@ -109,6 +120,11 @@ class PyPIMixin:
             self.base_content_url = urljoin(BASE_CONTENT_URL, f"{get_domain().name}/")
         else:
             self.base_content_url = BASE_CONTENT_URL
+
+    @classmethod
+    def urlpattern(cls):
+        """Mocking NamedModelViewSet behavior to get PyPI APIs to support RBAC access polices."""
+        return f"pypi/{cls.endpoint_name}"
 
 
 class PackageUploadMixin(PyPIMixin):
@@ -125,18 +141,17 @@ class PackageUploadMixin(PyPIMixin):
         4. Spawn task to add content if no/old session present
         5. Add uploads to current session to group into one task
         """
-        distro = self.get_distribution(path)
-        if not distro.allow_uploads:
+        if not self.distribution.allow_uploads:
             return HttpResponseForbidden(reason="Index is not allowing uploads")
 
-        repo = distro.repository
+        repo = self.distribution.repository
         if not repo:
             return HttpResponseBadRequest(reason="Index is not pointing to a repository")
 
         serializer = PackageUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         artifact, filename = serializer.validated_data["content"]
-        repo_content = self.get_content(self.get_repository_version(distro))
+        repo_content = self.get_content(self.get_repository_version(self.distribution))
         if repo_content.filter(filename=filename).exists():
             return HttpResponseBadRequest(reason=f"Package {filename} already exists in index")
 
@@ -189,13 +204,28 @@ class PackageUploadMixin(PyPIMixin):
 class SimpleView(PackageUploadMixin, ViewSet):
     """View for the PyPI simple API."""
 
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    endpoint_name = "simple"
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "*",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "index_has_repo_perm:python.modify_pythonrepository",
+            },
+        ],
+    }
 
     @extend_schema(summary="Get index simple page")
     def list(self, request, path):
         """Gets the simple api html page for the index."""
-        distro, repo_version, content = self.get_drvc(path)
-        if self.should_redirect(distro, repo_version=repo_version):
+        repo_version, content = self.get_rvc()
+        if self.should_redirect(repo_version=repo_version):
             return redirect(urljoin(self.base_content_url, f'{path}/simple/'))
         names = content.order_by('name').values_list('name', flat=True).distinct().iterator()
         return StreamingHttpResponse(write_simple_index(names, streamed=True))
@@ -227,13 +257,13 @@ class SimpleView(PackageUploadMixin, ViewSet):
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html page for a package."""
-        distro, repo_ver, content = self.get_drvc(path)
+        repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
-        if distro.remote:
+        if self.distribution.remote:
             if not repo_ver or not content.filter(name__normalize=normalized).exists():
-                return self.pull_through_package_simple(normalized, path, distro.remote)
-        if self.should_redirect(distro, repo_version=repo_ver):
+                return self.pull_through_package_simple(normalized, path, self.distribution.remote)
+        if self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f'{path}/simple/{normalized}/'))
         packages = (
             content.filter(name__normalize=normalized)
@@ -266,8 +296,16 @@ class SimpleView(PackageUploadMixin, ViewSet):
 class MetadataView(PyPIMixin, ViewSet):
     """View for the PyPI JSON metadata endpoint."""
 
-    authentication_classes = []
-    permission_classes = []
+    endpoint_name = "pypi"
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["retrieve"],
+                "principal": "*",
+                "effect": "allow",
+            },
+        ],
+    }
 
     @extend_schema(tags=["Pypi: Metadata"],
                    responses={200: PackageMetadataSerializer},
@@ -278,7 +316,7 @@ class MetadataView(PyPIMixin, ViewSet):
         https://packaging.python.org/specifications/core-metadata/.
         `meta` must be a path in form of `{package}/json/` or `{package}/{version}/json/`
         """
-        distro, repo_ver, content = self.get_drvc(path)
+        repo_ver, content = self.get_rvc()
         meta_path = PurePath(meta)
         name = None
         version = None
@@ -305,14 +343,22 @@ class MetadataView(PyPIMixin, ViewSet):
 class PyPIView(PyPIMixin, ViewSet):
     """View for base_url of distribution."""
 
-    authentication_classes = []
-    permission_classes = []
+    endpoint_name = "root"
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "*",
+                "effect": "allow",
+            },
+        ],
+    }
 
     @extend_schema(responses={200: SummarySerializer},
                    summary="Get index summary")
     def retrieve(self, request, path):
         """Gets package summary stats of index."""
-        distro, repo_ver, content = self.get_drvc(path)
+        repo_ver, content = self.get_rvc()
         files = content.count()
         releases = content.distinct("name", "version").count()
         projects = content.distinct("name").count()
@@ -322,6 +368,18 @@ class PyPIView(PyPIMixin, ViewSet):
 
 class UploadView(PackageUploadMixin, ViewSet):
     """View for the `/legacy` upload endpoint."""
+
+    endpoint_name = "legacy"
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "index_has_repo_perm:python.modify_pythonrepository",
+            },
+        ],
+    }
 
     @extend_schema(request=PackageUploadSerializer,
                    responses={200: PackageUploadTaskSerializer},
