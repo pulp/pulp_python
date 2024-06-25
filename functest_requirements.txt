@@ -2,8 +2,6 @@ pytest<8
 lxml
 twine
 pypi-simple
-pulpcore-client
-pulp-python-client
 pytest-custom_exit_code
 pytest-xdist
 proxy.py~=2.4.4
