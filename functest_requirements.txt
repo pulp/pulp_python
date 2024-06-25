@@ -3,5 +3,3 @@ pytest<8
 lxml
 twine
 pypi-simple
-pulpcore-client
-pulp-python-client
