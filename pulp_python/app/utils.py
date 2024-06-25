@@ -91,8 +91,9 @@ def parse_project_metadata(project):
     package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
     package['requires_external'] = json.dumps(project.get('requires_external', []))
     package['classifiers'] = json.dumps(project.get('classifiers', []))
-    package['project_urls'] = json.dumps(project.get('project_urls', {}))
     package['description_content_type'] = project.get('description_content_type') or ""
+    package['provides_extra'] = project.get('provides_extra', None)
+    package['dynamic'] = project.get('dynamic', None)
 
     return package
 
@@ -219,7 +220,6 @@ def python_content_to_info(content):
         "summary": content.summary or "",
         "keywords": content.keywords or "",
         "description": content.description or "",
-        "description_content_type": content.description_content_type or "",
         "bugtrack_url": None,  # These two are basically never used
         "docs_url": None,
         "downloads": {"last_day": -1, "last_month": -1, "last_week": -1},
@@ -240,6 +240,9 @@ def python_content_to_info(content):
         "classifiers": json_to_dict(content.classifiers) or None,
         "yanked": False,  # These are no longer used on PyPI, but are still present
         "yanked_reason": None,
+        "description_content_type": content.description_content_type or "",
+        "provides_extra": content.provides_extra,
+        "dynamic": content.dynamic,
     }
 
 

@@ -108,11 +108,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, allow_blank=True,
         help_text=_('A longer description of the package that can run to several paragraphs.')
     )
-    description_content_type = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A string stating the markup syntax (if any) used in the distribution’s'
-                    ' description, so that tools can intelligently render the description.')
-    )
     keywords = serializers.CharField(
         required=False, allow_blank=True,
         help_text=_('Additional keywords to be used to assist searching for the '
@@ -195,6 +190,23 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, default=list,
         help_text=_('A JSON list containing classification values for a Python package.')
     )
+    # Metadata 2.1
+    description_content_type = serializers.CharField(
+        required=False, allow_blank=True,
+        help_text=_('A string stating the markup syntax (if any) used in the distribution’s'
+                    ' description, so that tools can intelligently render the description.')
+    )
+    provides_extra = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing names of optional features provided by the package.')
+    )
+    # Metadata 2.2
+    dynamic = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing names of other core metadata fields which are '
+                    'permitted to vary between sdist and bdist packages. Fields NOT marked '
+                    'dynamic MUST be the same between bdist and sdist.')
+    )
 
     def deferred_validate(self, data):
         """
@@ -251,10 +263,11 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
             'filename', 'packagetype', 'name', 'version', 'sha256', 'metadata_version', 'summary',
-            'description', 'description_content_type', 'keywords', 'home_page', 'download_url',
-            'author', 'author_email', 'maintainer', 'maintainer_email', 'license',
-            'requires_python', 'project_url', 'project_urls', 'platform', 'supported_platform',
-            'requires_dist', 'provides_dist', 'obsoletes_dist', 'requires_external', 'classifiers'
+            'description', 'keywords', 'home_page', 'download_url', 'author', 'author_email',
+            'maintainer', 'maintainer_email', 'license', 'requires_python', 'project_url',
+            'project_urls', 'platform', 'supported_platform', 'requires_dist', 'provides_dist',
+            'obsoletes_dist', 'requires_external', 'classifiers', 'description_content_type',
+            'provides_extra', 'dynamic',
         )
         model = python_models.PythonPackageContent
 
