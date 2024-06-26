@@ -2,6 +2,7 @@ import pytest
 import uuid
 
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
+from pulp_python.tests.functional.constants import PYTHON_EGG_FILENAME, PYTHON_URL
 from pulp_python.tests.functional.utils import gen_python_remote
 
 from pulpcore.client.pulp_python import (
@@ -128,6 +129,38 @@ def python_repo_with_sync(
         return python_repo_api_client.read(repo.pulp_href)
 
     yield _gen_python_repo_sync
+
+
+@pytest.fixture
+def download_python_file(tmp_path, http_get):
+    """Download a Python file and return its path."""
+    def _download_python_file(relative_path, url):
+        file_path = tmp_path / relative_path
+        with open(file_path, mode="wb") as f:
+            f.write(http_get(url))
+        return file_path
+
+    yield _download_python_file
+
+
+@pytest.fixture
+def python_content_factory(python_content_api_client, download_python_file, monitor_task):
+    """A factory to create a Python Package Content."""
+    def _gen_python_content(relative_path=PYTHON_EGG_FILENAME, url=None, **body):
+        body["relative_path"] = relative_path
+        if url:
+            body["file"] = download_python_file(relative_path, url)
+        elif not any(x in body for x in ("artifact", "file", "upload")):
+            body["file"] = download_python_file(PYTHON_EGG_FILENAME, PYTHON_URL)
+        if repo := body.get("repository"):
+            repo_href = repo if isinstance(repo, str) else repo.pulp_href
+            body["repository"] = repo_href
+
+        task = python_content_api_client.create(**body).task
+        response = monitor_task(task)
+        return python_content_api_client.read(response.created_resources[0])
+
+    yield _gen_python_content
 
 
 @pytest.fixture
