@@ -8,6 +8,34 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.12.0 (2024-06-25) {: #3.12.0 }
+
+
+#### Features {: #3.12.0-feature }
+
+- Added RBAC support.
+  [#399](https://github.com/pulp/pulp_python/issues/399)
+- Added Pulp replication support for Python distributions.
+  [#648](https://github.com/pulp/pulp_python/issues/648)
+- Added Domain support.
+  [#668](https://github.com/pulp/pulp_python/issues/668)
+
+#### Bugfixes {: #3.12.0-bugfix }
+
+- Fixed tls_validation not being disabled when set to false on the remote.
+  [#653](https://github.com/pulp/pulp_python/issues/653)
+
+#### Deprecations and Removals {: #3.12.0-removal }
+
+- Raised the minimum `pulpcore` bound to `>=3.49` and dropped support for `python 3.8`.
+  [#pulpcore](https://github.com/pulp/pulp_python/issues/pulpcore)
+
+#### Misc {: #3.12.0-misc }
+
+- 
+
+---
+
 ## 3.11.1 (2024-04-11) {: #3.11.1 }
 
 ### Bugfixes
