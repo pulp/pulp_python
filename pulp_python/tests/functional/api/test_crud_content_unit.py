@@ -1,6 +1,7 @@
 import pytest
 
 from urllib.parse import urljoin
+from pypi_simple import PyPISimple
 
 from pulpcore.tests.functional.utils import PulpTaskError
 from pulp_python.tests.functional.constants import (
@@ -108,3 +109,16 @@ def test_content_crud(
         monitor_task(response.task)
     msg = "The uploaded artifact's sha256 checksum does not match the one provided"
     assert msg in e.value.task.error["description"]
+
+
+@pytest.mark.parallel
+def test_upload_metadata_23_spec(python_content_factory):
+    """Test that packages using metadata spec 2.3 can be uploaded to pulp."""
+    filename = "urllib3-2.2.2-py3-none-any.whl"
+    with PyPISimple() as client:
+        page = client.get_project_page("urllib3")
+        for package in page.packages:
+            if package.filename == filename:
+                content = python_content_factory(filename, url=package.url)
+                assert content.metadata_version == "2.3"
+                break
