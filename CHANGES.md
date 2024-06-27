@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.11.2 (2024-06-27) {: #3.11.2 }
+
+
+#### Bugfixes {: #3.11.2-bugfix }
+
+- Fixed the `package_types` filter breaking other remote filters.
+  [#691](https://github.com/pulp/pulp_python/issues/691)
+
+---
+
 ## 3.11.1 (2024-04-11) {: #3.11.1 }
 
 ### Bugfixes
