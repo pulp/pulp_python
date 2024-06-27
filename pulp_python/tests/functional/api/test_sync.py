@@ -265,6 +265,23 @@ def test_sync_platform_exclude(
 
 
 @pytest.mark.parallel
+def test_sync_multiple_filters(
+    python_repo_with_sync, python_remote_factory, python_content_summary
+):
+    """Tests sync with multiple filters."""
+    remote = python_remote_factory(
+        includes=PYTHON_LG_PROJECT_SPECIFIER,
+        package_types=["bdist_wheel"],
+        keep_latest_packages=1,
+        prereleases=False
+    )
+    repo = python_repo_with_sync(remote)
+
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == PYTHON_LG_FIXTURE_COUNTS["multi"]
+
+
+@pytest.mark.parallel
 def test_proxy_sync(
     python_bindings,
     python_repo_with_sync,
