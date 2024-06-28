@@ -23,7 +23,7 @@ from itertools import chain
 from packaging.utils import canonicalize_name
 from urllib.parse import urljoin, urlparse, urlunsplit
 from pathlib import PurePath
-from pypi_simple.parse_stream import parse_links_stream_response
+from pypi_simple import parse_links_stream_response
 
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
