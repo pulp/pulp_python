@@ -7,7 +7,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_XS_FIXTURE_CHECKSUMS,
 )
 
-from pypi_simple import parse_repo_project_response
+from pypi_simple import ProjectPage
 from urllib.parse import urljoin, urlsplit
 
 
@@ -44,15 +44,14 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
     distro = python_distribution_factory(remote=remote.pulp_href)
 
     url = f"{distro.base_url}simple/shelf-reader/"
-    project_page = parse_repo_project_response("shelf-reader", requests.get(url))
+    project_page = ProjectPage.from_response(requests.get(url), "shelf-reader")
 
     assert len(project_page.packages) == 2
     for package in project_page.packages:
         assert package.filename in PYTHON_XS_FIXTURE_CHECKSUMS
         relative_path = f"{distro.base_path}/{package.filename}?redirect="
         assert urljoin(pulp_content_url, relative_path) in package.url
-        digests = package.get_digests()
-        assert PYTHON_XS_FIXTURE_CHECKSUMS[package.filename] == digests["sha256"]
+        assert PYTHON_XS_FIXTURE_CHECKSUMS[package.filename] == package.digests["sha256"]
 
 
 @pytest.mark.parallel
@@ -65,7 +64,7 @@ def test_pull_through_with_repo(
     distro = python_distribution_factory(repository=repo.pulp_href, remote=remote.pulp_href)
 
     url = urljoin(distro.base_url, "simple/shelf-reader/")
-    project_page = parse_repo_project_response("shelf-reader", requests.get(url))
+    project_page = ProjectPage.from_response(requests.get(url), "shelf-reader")
 
     assert len(project_page.packages) == 2
     for package in project_page.packages:

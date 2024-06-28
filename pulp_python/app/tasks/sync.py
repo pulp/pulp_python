@@ -23,7 +23,7 @@ from pulp_python.app.models import (
     PythonRemote,
 )
 from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
-from pypi_simple import parse_repo_index_page
+from pypi_simple import IndexPage
 
 from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
@@ -226,7 +226,7 @@ class PulpMirror(Mirror):
             downloader = self.python_stage.remote.get_downloader(url=url)
             result = await downloader.run()
             with open(result.path) as f:
-                index = parse_repo_index_page(f.read())
+                index = IndexPage.from_html(f.read())
                 self.packages_to_sync.update({p: 0 for p in index.projects})
                 self.target_serial = result.headers.get(PYPI_LAST_SERIAL, 0)
 
