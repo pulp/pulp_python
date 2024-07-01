@@ -145,6 +145,10 @@ class PythonPackageContent(Content):
 
     PROTECTED_FROM_RECLAIM = False
 
+    # TODO: it appears we've set the default (usually empty-string) for each of these fields
+    # manually in the migrations rather than setting them declaratively. That's not ideal.
+    # At some point we should add proper default values and probably make some fields nullable.
+
     TYPE = "python"
     repo_key_fields = ("filename",)
     # Required metadata
@@ -178,6 +182,7 @@ class PythonPackageContent(Content):
     classifiers = models.JSONField(default=list)
     project_urls = models.JSONField(default=dict)
     description_content_type = models.TextField()
+    dynamic = models.TextField()
     # Pulp Domains
     _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
