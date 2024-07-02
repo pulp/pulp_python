@@ -1,7 +1,7 @@
 # Publish and Host Your Python Content
 
 This section assumes that you have a repository with content in it. To do this, see the
-[sync](02-sync.md) or [upload](03-upload.md) documentation.
+[sync](site:pulp_python/docs/user/guides/sync/) or [upload](site:pulp_python/docs/user/guides/upload/) documentation.
 
 ## Create a Publication (manually)
 
@@ -9,52 +9,56 @@ Kick off a publish task by creating a new publication. The publish task will gen
 metadata that `pip` needs to install packages (although it will need to be hosted through a
 Distribution before it is consumable).
 
-```bash
-# Create a new publication specifying the repository_version.
-# Alternatively, you can specify just the repository, and Pulp will assume the latest version.
-pulp python publication create --repository foo --version 1
+=== "Run"
 
-# Publications can only be referenced through their pulp_href
-PUBLICATION_HREF=$(pulp python publication list | jq -r .[0].pulp_href)
-```
+    ```bash
+    # Create a new publication specifying the repository_version.
+    # Alternatively, you can specify just the repository, and Pulp will assume the latest version.
+    pulp python publication create --repository foo --version 1
+    
+    # Publications can only be referenced through their pulp_href
+    PUBLICATION_HREF=$(pulp python publication list | jq -r .[0].pulp_href)
+    ```
 
-Publication Create Response:
+=== "Output"
 
-```
-{
-  "pulp_href": "/pulp/api/v3/publications/python/pypi/cad6007d-7172-41d1-8c22-0ec95e1d242a/",
-  "pulp_created": "2021-03-09T04:30:16.686784Z",
-  "repository_version": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/",
-  "repository": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/",
-  "distributions": []
-}
-```
+    ```
+    {
+      "pulp_href": "/pulp/api/v3/publications/python/pypi/cad6007d-7172-41d1-8c22-0ec95e1d242a/",
+      "pulp_created": "2021-03-09T04:30:16.686784Z",
+      "repository_version": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/",
+      "repository": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/",
+      "distributions": []
+    }
+    ```
 
 ## Host a Publication (Create a Distribution)
 
 To host a publication, (which makes it consumable by `pip`), users create a distribution which
 will serve the associated publication at `/pypi/<distribution.base_path>/`
 
-```bash
-# Distributions are created asynchronously. Create one, and specify the publication that will
-# be served at the base path specified.
-pulp python distribution create --name foo --base-path foo --publication "$PUBLICATION_HREF"
-```
+=== "Run"
 
-Response:
+    ```bash
+    # Distributions are created asynchronously. Create one, and specify the publication that will
+    # be served at the base path specified.
+    pulp python distribution create --name foo --base-path foo --publication "$PUBLICATION_HREF"
+    ```
 
-```
-{
-   "pulp_href": "/pulp/api/v3/distributions/python/pypi/4839c056-6f2b-46b9-ac5f-88eb8a7739a5/",
-   "pulp_created": "2021-03-09T04:36:48.289737Z",
-   "base_path": "foo",
-   "base_url": "/pypi/foo/",
-   "content_guard": null,
-   "pulp_labels": {},
-   "name": "foo",
-   "publication": "/pulp/api/v3/publications/python/pypi/a09111b1-6bce-43ac-aed7-2e8441c22704/"
- }
-```
+=== "Output"
+
+    ```
+    {
+       "pulp_href": "/pulp/api/v3/distributions/python/pypi/4839c056-6f2b-46b9-ac5f-88eb8a7739a5/",
+       "pulp_created": "2021-03-09T04:36:48.289737Z",
+       "base_path": "foo",
+       "base_url": "/pypi/foo/",
+       "content_guard": null,
+       "pulp_labels": {},
+       "name": "foo",
+       "publication": "/pulp/api/v3/publications/python/pypi/a09111b1-6bce-43ac-aed7-2e8441c22704/"
+     }
+    ```
 
 ## Automate Publication and Distribution
 
@@ -73,9 +77,6 @@ pulp python distribution update --name foo --repository foo
     Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
     is not guaranteed.
 
-
-
-
 ## Enable Pull-Through Caching:
 
 Only packages present in your repository will be available from your index, but adding a remote source to
@@ -91,9 +92,6 @@ pulp python distribution update --name foo --remote bar
     Support for pull-through caching is provided as a tech preview in Pulp 3.
     Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
     is not guaranteed.
-
-
-
 
 ## Use the newly created distribution
 
@@ -114,14 +112,18 @@ If you don't want to specify the distribution path every time, you can modify yo
 file. See the [pip docs](https://pip.pypa.io/en/stable/user_guide/#configuration) for more
 detail.:
 
-```bash
-$ cat pip.conf
-```
+=== "Run"
 
-```
-[global]
-index-url = http://localhost:24817/pypi/foo/simple/
-```
+    ```bash
+    $ cat pip.conf
+    ```
+
+=== "Output"
+
+    ```
+    [global]
+    index-url = http://localhost:24817/pypi/foo/simple/
+    ```
 
 The above configuration informs `pip` to install from `pulp`:
 

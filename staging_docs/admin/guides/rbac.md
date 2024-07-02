@@ -1,6 +1,7 @@
 # Role Base Access Control in Pulp Python
 
 Role based access control in Pulp Python is configured using access policies for the following `viewset_names`:
+
 * `content/python/packages`
 * `distributions/python/pypi`
 * `publications/python/pypi`
@@ -14,7 +15,7 @@ Role based access control in Pulp Python is configured using access policies for
 
 This document will focus on describing the default access policies for the PyPI specific APIs and how they may be
 customized. The access policies for the Pulp APIs follow the same scheme as the Pulp File plugin which can be read 
-about here: [Pulp File RBAC](https://docs.pulpproject.org/pulp_file/role-based-access-control.html). Use the Pulp 
+about here: [Pulp File RBAC](site:pulp_file/docs/admin/guides/01-rbac/). Use the Pulp 
 CLI to follow along with the examples here.
 
 !!! note 
