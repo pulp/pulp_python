@@ -102,6 +102,10 @@ $ http $BASE_ADDR/pypi/foo/simple/
 $ http $BASE_ADDR/pypi/foo/simple/shelf-reader/
 ```
 
+!!! note
+    When domains are enabled, it is necessary to include the domain name within the URL, like so:
+    `$BASE_ADDR/pypi/${DOMAIN_NAME}/foo/simple/`
+
 The content is also pip installable:
 
 ```bash
