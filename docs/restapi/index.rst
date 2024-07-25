@@ -1,9 +1,0 @@
-REST API
-========
-
-Pulpcore Reference: `pulpcore REST documentation <https://docs.pulpproject.org/pulpcore/restapi.html>`_.
-
-Pulp Python Endpoints
----------------------
-
-Pulp Python Reference `pulp-python REST documentation <../restapi.html>`_
