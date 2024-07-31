@@ -25,7 +25,7 @@ Some additional features are being supplied as a tech preview.  There is a possi
 backwards incompatible changes will be introduced for these particular features.  For a list of
 features currently being supplied as tech previews only, see the [tech preview page](site:pulp_python/docs/user/learn/tech-preview/).
 
-# How to use these docs
+## How to use these docs
 
 The documentation here should be considered the **primary documentation for managing Python related content.**
 All relevant workflows are covered here, with references to some pulpcore supplemental docs.
