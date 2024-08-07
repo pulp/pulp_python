@@ -1,6 +1,7 @@
+import json
 import logging
-import requests
 
+from aiohttp.client_exceptions import ClientError
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,7 +16,8 @@ from django.http.response import (
     Http404,
     HttpResponseForbidden,
     HttpResponseBadRequest,
-    StreamingHttpResponse
+    StreamingHttpResponse,
+    HttpResponse,
 )
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
@@ -23,11 +25,12 @@ from itertools import chain
 from packaging.utils import canonicalize_name
 from urllib.parse import urljoin, urlparse, urlunsplit
 from pathlib import PurePath
-from pypi_simple import parse_links_stream_response
+from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain
+from pulpcore.plugin.exceptions import TimeoutException
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
@@ -37,7 +40,7 @@ from pulp_python.app.pypi.serializers import (
     SummarySerializer,
     PackageMetadataSerializer,
     PackageUploadSerializer,
-    PackageUploadTaskSerializer
+    PackageUploadTaskSerializer,
 )
 from pulp_python.app.utils import (
     write_simple_index,
@@ -45,6 +48,7 @@ from pulp_python.app.utils import (
     python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
+    get_remote_package_filter,
 )
 
 from pulp_python.app import tasks
@@ -233,27 +237,36 @@ class SimpleView(PackageUploadMixin, ViewSet):
 
     def pull_through_package_simple(self, package, path, remote):
         """Gets the package's simple page from remote."""
-        def parse_url(link):
-            parsed = urlparse(link.url)
-            digest, _, value = parsed.fragment.partition('=')
+        def parse_package(release_package):
+            parsed = urlparse(release_package.url)
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
-            redirect = f'{path}/{link.text}?redirect={stripped_url}'
-            d_url = urljoin(self.base_content_url, redirect)
-            return link.text, d_url, value if digest == 'sha256' else ''
+            redirect_path = f'{path}/{release_package.filename}?redirect={stripped_url}'
+            d_url = urljoin(self.base_content_url, redirect_path)
+            return release_package.filename, d_url, release_package.digests.get("sha256", "")
+
+        rfilter = get_remote_package_filter(remote)
+        if not rfilter.filter_project(package):
+            raise Http404(f"{package} does not exist.")
 
         url = remote.get_remote_artifact_url(f'simple/{package}/')
-        kwargs = {}
-        if proxy_url := remote.proxy_url:
-            if remote.proxy_username or remote.proxy_password:
-                parsed_proxy = urlparse(proxy_url)
-                netloc = f"{remote.proxy_username}:{remote.proxy_password}@{parsed_proxy.netloc}"
-                proxy_url = urlunsplit((parsed_proxy.scheme, netloc, "", "", ""))
-            kwargs["proxies"] = {"http": proxy_url, "https": proxy_url}
+        remote.headers = remote.headers or []
+        remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
+        downloader = remote.get_downloader(url=url, max_retries=1)
+        try:
+            d = downloader.fetch()
+        except ClientError:
+            return HttpResponse(f"Failed to fetch {package} from {remote.url}.", status=502)
+        except TimeoutException:
+            return HttpResponse(f"{remote.url} timed out while fetching {package}.", status=504)
 
-        response = requests.get(url, stream=True, **kwargs)
-        links = parse_links_stream_response(response)
-        packages = (parse_url(link) for link in links)
-        return StreamingHttpResponse(write_simple_detail(package, packages, streamed=True))
+        if d.headers["content-type"] == "application/vnd.pypi.simple.v1+json":
+            page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=remote.url)
+        else:
+            page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=remote.url)
+        packages = [
+            parse_package(p) for p in page.packages if rfilter.filter_release(package, p.version)
+        ]
+        return HttpResponse(write_simple_detail(package, packages))
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
