@@ -17,6 +17,7 @@ from pulpcore.plugin.responses import ArtifactResponse
 
 from pathlib import PurePath
 from .utils import (
+    canonicalize_name,
     get_project_metadata_from_artifact,
     parse_project_metadata,
     python_content_to_json,
@@ -87,6 +88,8 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
                         ).latest("pulp_created")
                     except ObjectDoesNotExist:
                         return None
+                    if len(path.parts) == 2:
+                        path = PurePath(f"simple/{canonicalize_name(path.parts[1])}")
                     rel_path = f"{path}/index.html"
                     try:
                         ca = (
@@ -103,8 +106,9 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
                     return ArtifactResponse(ca.artifact, headers=headers)
 
         if name:
+            normalized = canonicalize_name(name)
             package_content = PythonPackageContent.objects.filter(
-                pk__in=self.publication.repository_version.content, name__iexact=name
+                pk__in=self.publication.repository_version.content, name__normalize=normalized
             )
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
