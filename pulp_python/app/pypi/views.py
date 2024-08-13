@@ -278,7 +278,8 @@ class MetadataView(ViewSet, PyPIMixin):
         elif meta_path.match("*/json"):
             name = meta_path.parts[0]
         if name:
-            package_content = content.filter(name__iexact=name)
+            normalized = canonicalize_name(name)
+            package_content = content.filter(name__normalize=normalized)
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
             json_body = python_content_to_json(path, package_content, version=version)
