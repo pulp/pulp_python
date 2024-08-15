@@ -54,6 +54,22 @@ protect who can download Python content then do so by adding a content guard to 
 pulp python distribution update --name foo --content-guard $CONTENT_GUARD_HREF_OR_NAME
 ```
 
+Example pulp-cli workflow to add RBAC-based access to download from the index:
+
+```bash
+pulp content-guard rbac create --name foo-guard
+pulp content-guard rbac assign --name foo-guard --user user1 --user user2 --group group1 --group group2
+CG_HREF=$(pulp content-guard rbac list --name foo-guard | jq -r ".[0].pulp_href")
+pulp python distribution update --name foo --content-guard $CG_HREF
+```
+
+Links for using basic auth with various python package tools to pass the 
+new RBACContentGuard:
+- [pip](https://pip.pypa.io/en/stable/topics/authentication/)
+- [poetry](https://python-poetry.org/docs/repositories/#private-repository-example)
+- [pipenv](https://pipenv.pypa.io/en/latest/credentials.html)
+- [pdm](https://pdm-project.org/en/latest/usage/config/#store-credentials-with-the-index)
+
 !!! warning
     The PyPI access policies do not support `creation_hooks` or `queryset_scoping`.
 
