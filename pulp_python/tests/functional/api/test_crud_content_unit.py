@@ -1,5 +1,6 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
+import pytest
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
 
 from pulp_python.tests.functional.utils import (
@@ -12,6 +13,7 @@ from pulp_python.tests.functional.utils import (
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 from tempfile import NamedTemporaryFile
 from urllib.parse import urljoin
+from pypi_simple import PyPISimple
 
 from pulp_smash.utils import http_get
 from pulp_python.tests.functional.constants import (
@@ -227,3 +229,16 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         for k, v in expected.items():
             with self.subTest(key=k):
                 self.assertEqual(content_unit[k], v)
+
+
+@pytest.mark.parallel
+def test_upload_metadata_23_spec(python_content_factory):
+    """Test that packages using metadata spec 2.3 can be uploaded to pulp."""
+    filename = "urllib3-2.2.2-py3-none-any.whl"
+    with PyPISimple() as client:
+        page = client.get_project_page("urllib3")
+        for package in page.packages:
+            if package.filename == filename:
+                content = python_content_factory(filename, url=package.url)
+                assert content.metadata_version == "2.3"
+                break
