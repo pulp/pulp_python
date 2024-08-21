@@ -1,5 +1,6 @@
 # coding=utf-8
 """Tests that verify download of content served by Pulp."""
+import pytest
 import hashlib
 from random import choice
 from urllib.parse import urljoin
@@ -149,3 +150,32 @@ class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
 
         repo3 = self._create_repo_and_sync_with_remote(remote)
         self.assertEqual(get_content_summary(repo3.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)
+
+
+@pytest.mark.parallel
+def test_pulp2pulp_sync_with_oddities(
+    python_repo_with_sync,
+    python_remote_factory,
+    python_publication_factory,
+    python_distribution_factory,
+    python_content_summary,
+):
+    """Test that Pulp can handle syncing packages with wierd names."""
+    remote = python_remote_factory(includes=["oslo.utils"], url="https://pypi.org")
+    repo = python_repo_with_sync(remote)
+    distro = python_distribution_factory(repository=repo.pulp_href)
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    # Test pulp 2 pulp full sync w/ live pypi apis
+    remote2 = python_remote_factory(includes=[], url=distro.base_url)
+    repo2 = python_repo_with_sync(remote2)
+    summary2 = python_content_summary(repository_version=repo2.latest_version_href)
+    assert summary2.present["python.python"]["count"] > 0
+    assert summary.present["python.python"]["count"] == summary2.present["python.python"]["count"]
+    # Test w/ publication
+    pub = python_publication_factory(repository=repo)
+    distro2 = python_distribution_factory(publication=pub.pulp_href)
+    remote3 = python_remote_factory(includes=[], url=distro2.base_url)
+    repo3 = python_repo_with_sync(remote3)
+    summary3 = python_content_summary(repository_version=repo3.latest_version_href)
+    assert summary3.present["python.python"]["count"] > 0
+    assert summary.present["python.python"]["count"] == summary3.present["python.python"]["count"]
