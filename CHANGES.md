@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+# ## 3.12.2 (2024-08-21) {: #3.12.2 }
+
+#### Bugfixes {: #3.12.2-bugfix }
+
+- Fixed package name normalization issue preventing syncing packages with "." or "_" in their names.
+  [#716](https://github.com/pulp/pulp_python/issues/716)
+
+---
+
 ## 3.12.1 (2024-06-27) {: #3.12.1 }
 
 
