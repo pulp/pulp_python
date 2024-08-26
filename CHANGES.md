@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.12.3 (2024-08-26) {: #3.12.3 }
+
+#### Bugfixes {: #3.12.3-bugfix }
+
+- Fixed uploads not supporting packages using metadata spec 2.3
+  [#682](https://github.com/pulp/pulp_python/issues/682)
+
+---
+
 # ## 3.12.2 (2024-08-21) {: #3.12.2 }
 
 #### Bugfixes {: #3.12.2-bugfix }
