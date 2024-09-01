@@ -3,3 +3,5 @@ pytest<8
 lxml
 twine
 pypi-simple
+pytest-xdist
+pytest-timeout
