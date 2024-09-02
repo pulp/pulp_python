@@ -6,3 +6,4 @@ pytest-custom_exit_code
 pytest-xdist
 proxy.py~=2.4.4
 trustme~=1.1.0
+pytest-timeout
