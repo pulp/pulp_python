@@ -256,8 +256,9 @@ class PulpMirror(Mirror):
             for package in dists:
                 entry = parse_metadata(pkg.info, version, package)
                 url = entry.pop("url")
+                size = package["size"] or None
 
-                artifact = Artifact(sha256=entry["sha256"])
+                artifact = Artifact(sha256=entry["sha256"], size=size)
                 package = PythonPackageContent(**entry)
 
                 da = DeclarativeArtifact(
