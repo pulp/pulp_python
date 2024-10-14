@@ -5,7 +5,12 @@ import subprocess
 
 from pulpcore.app import settings
 
-from pulp_python.tests.functional.constants import PYTHON_URL, PYTHON_EGG_FILENAME
+from pulp_python.tests.functional.constants import (
+    PYTHON_URL,
+    PYTHON_EGG_FILENAME,
+    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_SM_PACKAGE_COUNT,
+)
 from urllib.parse import urlsplit
 
 
@@ -144,7 +149,7 @@ def test_domain_content_replication(
     python_bindings,
     python_file,
     python_repo_factory,
-    python_publication_factory,
+    python_remote_factory,
     python_distribution_factory,
     monitor_task,
     monitor_task_group,
@@ -154,13 +159,12 @@ def test_domain_content_replication(
     """Test replication feature through the usage of domains."""
     # Set up source domain to replicate from
     source_domain = domain_factory()
-    repo = python_repo_factory(pulp_domain=source_domain.name)
+    repo = python_repo_factory(pulp_domain=source_domain.name, autopublish=True)
     body = {"relative_path": PYTHON_EGG_FILENAME, "file": python_file, "repository": repo.pulp_href}
     monitor_task(
         python_bindings.ContentPackagesApi.create(pulp_domain=source_domain.name, **body).task
     )
-    pub = python_publication_factory(repository=repo, pulp_domain=source_domain.name)
-    python_distribution_factory(publication=pub.pulp_href, pulp_domain=source_domain.name)
+    python_distribution_factory(repository=repo, pulp_domain=source_domain.name)
 
     # Create the replica domain
     replica_domain = domain_factory()
@@ -171,6 +175,7 @@ def test_domain_content_replication(
         "domain": source_domain.name,
         "username": bindings_cfg.username,
         "password": bindings_cfg.password,
+        "tls_validation": False,
     }
     upstream_pulp = gen_object_with_cleanup(
         pulpcore_bindings.UpstreamPulpsApi, upstream_pulp_body, pulp_domain=replica_domain.name
@@ -193,6 +198,25 @@ def test_domain_content_replication(
             add_to_cleanup(api_client, item.pulp_href)
 
     assert all(1 == x for x in counts.values()), f"Replica had more than 1 object {counts}"
+
+    # Test that we can replicate from an Upstream on-demand source (syncs are on-demand by default)
+    remote = python_remote_factory(
+        includes=PYTHON_SM_PROJECT_SPECIFIER, pulp_domain=source_domain.name
+    )
+    body = {"remote": remote.pulp_href}
+    monitor_task(python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, body).task)
+
+    response = pulpcore_bindings.UpstreamPulpsApi.replicate(upstream_pulp.pulp_href)
+    monitor_task_group(response.task_group)
+
+    response = python_bindings.ContentPackagesApi.list(pulp_domain=replica_domain.name)
+    assert PYTHON_SM_PACKAGE_COUNT + 1 == response.count
+    response = python_bindings.PublicationsPypiApi.list(pulp_domain=replica_domain.name)
+    assert 2 == response.count
+    add_to_cleanup(python_bindings.PublicationsPypiApi, response.results[0])
+    assert 1 == python_bindings.RepositoriesPythonApi.list(pulp_domain=replica_domain.name).count
+    assert 1 == python_bindings.DistributionsPypiApi.list(pulp_domain=replica_domain.name).count
+    assert 1 == python_bindings.RemotesPythonApi.list(pulp_domain=replica_domain.name).count
 
 
 @pytest.fixture

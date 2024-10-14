@@ -284,19 +284,21 @@ def python_content_to_download_info(content, base_path, domain=None):
     if domain:
         components.insert(2, domain.name)
     url = "/".join(components)
+    md5 = artifact.md5 if artifact and artifact.md5 else ""
+    size = artifact.size if artifact and artifact.size else 0
     return {
         "comment_text": "",
-        "digests": {"md5": artifact.md5, "sha256": artifact.sha256},
+        "digests": {"md5": md5, "sha256": content.sha256},
         "downloads": -1,
         "filename": content.filename,
         "has_sig": False,
-        "md5_digest": artifact.md5,
+        "md5_digest": md5,
         "packagetype": content.packagetype,
         "python_version": content.python_version,
         "requires_python": content.requires_python or None,
-        "size": artifact.size,
-        "upload_time": str(artifact.pulp_created),
-        "upload_time_iso_8601": str(artifact.pulp_created.isoformat()),
+        "size": size,
+        "upload_time": str(content.pulp_created),
+        "upload_time_iso_8601": str(content.pulp_created.isoformat()),
         "url": url,
         "yanked": False,
         "yanked_reason": None

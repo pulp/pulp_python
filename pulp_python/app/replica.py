@@ -28,6 +28,14 @@ class PythonReplicator(Replicator):
         # strain the upstream Pulp.
         return {"policy": "immediate", "prereleases": True}
 
+    def url(self, upstream_distribution):
+        # Ignore distributions that are only pull-through
+        repo, pub = upstream_distribution["repository"], upstream_distribution["publication"]
+        if repo or pub:
+            return super().url(upstream_distribution)
+
+        return None
+
     def repository_extra_fields(self, remote):
         # Use autopublish since publications result in faster serving times
         return {"autopublish": True}
