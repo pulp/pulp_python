@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.12.4 (2024-10-14) {: #3.12.4 }
+
+#### Bugfixes {: #3.12.4-bugfix }
+
+- Fixed replicate failing on upstream on-demand repositories
+  [#718](https://github.com/pulp/pulp_python/issues/718)
+
+---
+
 ## 3.12.3 (2024-08-26) {: #3.12.3 }
 
 #### Bugfixes {: #3.12.3-bugfix }
