@@ -1,12 +1,8 @@
 import logging
-import tempfile
-from typing import Optional, Any, AsyncGenerator
 
-import aiohttp
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
 from gettext import gettext as _
-from os import environ
 
 from rest_framework import serializers
 
@@ -29,7 +25,7 @@ from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
 from bandersnatch.configuration import BandersnatchConfig
 from packaging.requirements import Requirement
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
@@ -114,23 +110,14 @@ class PythonBanderStage(Stage):
         """
         If includes is specified, then only sync those,else try to sync all other packages
         """
-        # Prevent bandersnatch from reading actual .netrc file, set to empty file
-        # See discussion on https://github.com/pulp/pulp_python/issues/581
-        fake_netrc = tempfile.NamedTemporaryFile(dir=".", delete=False)
-        environ["NETRC"] = fake_netrc.name
-        # TODO Change Bandersnatch internal API to take proxy settings in from config parameters
-        if proxy_url := self.remote.proxy_url:
-            if self.remote.proxy_username or self.remote.proxy_password:
-                parsed_proxy = urlsplit(proxy_url)
-                creds = f"{self.remote.proxy_username}:{self.remote.proxy_password}"
-                netloc = f"{creds}@{parsed_proxy.netloc}"
-                proxy_url = urlunsplit((parsed_proxy.scheme, netloc, "", "", ""))
-            environ['http_proxy'] = proxy_url
-            environ['https_proxy'] = proxy_url
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
-        # local & global timeouts defaults to 10secs and 5 hours
-        async with PulpMaster(url, tls=self.remote.tls_validation) as master:
+        async with Master(url) as master:
+            # Replace the session with the remote's downloader session
+            old_session = master.session
+            factory = self.remote.download_factory
+            master.session = factory._session
+
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
@@ -150,25 +137,8 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
-
-
-class PulpMaster(Master):
-    """
-    Pulp Master Class for Pulp specific overrides
-    """
-
-    def __init__(self, *args, tls=True, **kwargs):
-        self.tls = tls
-        super().__init__(*args, **kwargs)
-
-    async def get(
-        self, path: str, required_serial: Optional[int], **kw: Any
-    ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
-        """Support tls=false"""
-        if not self.tls:
-            kw["ssl"] = False
-        async for r in super().get(path, required_serial, **kw):
-            yield r
+            # place back old session so that it is properly closed
+            master.session = old_session
 
 
 class PulpMirror(Mirror):
