@@ -3,6 +3,7 @@ from gettext import gettext as _
 
 from rest_framework import serializers
 from pulp_python.app.utils import DIST_EXTENSIONS
+from pulp_python.app import fields
 from pulpcore.plugin.models import Artifact
 from django.db.utils import IntegrityError
 
@@ -27,9 +28,9 @@ class PackageMetadataSerializer(serializers.Serializer):
     """
 
     last_serial = serializers.IntegerField(help_text=_("Cache value from last PyPI sync"))
-    info = serializers.JSONField(help_text=_("Core metadata of the package"))
-    releases = serializers.JSONField(help_text=_("List of all the releases of the package"))
-    urls = serializers.JSONField()
+    info = fields.JSONObjectField(help_text=_("Core metadata of the package"))
+    releases = fields.JSONObjectField(help_text=_("List of all the releases of the package"))
+    urls = fields.JSONObjectField()
 
 
 class PackageUploadSerializer(serializers.Serializer):
