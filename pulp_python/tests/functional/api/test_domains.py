@@ -52,7 +52,7 @@ def test_domain_object_creation(
         python_bindings.RepositoriesPythonApi.create(repo_body, pulp_domain=domain.name)
     assert e.value.status == 400
     assert json.loads(e.value.body) == {
-        "non_field_errors": [f"Objects must all be apart of the {domain_name} domain."]
+        "non_field_errors": [f"Objects must all be a part of the {domain_name} domain."]
     }
 
     with pytest.raises(python_bindings.ApiException) as e:
@@ -60,7 +60,7 @@ def test_domain_object_creation(
         python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, sync_body)
     assert e.value.status == 400
     assert json.loads(e.value.body) == {
-        "non_field_errors": [f"Objects must all be apart of the {domain_name} domain."]
+        "non_field_errors": [f"Objects must all be a part of the {domain_name} domain."]
     }
 
     with pytest.raises(python_bindings.ApiException) as e:
@@ -68,7 +68,7 @@ def test_domain_object_creation(
         python_bindings.PublicationsPypiApi.create(publish_body)
     assert e.value.status == 400
     assert json.loads(e.value.body) == {
-        "non_field_errors": ["Objects must all be apart of the default domain."]
+        "non_field_errors": ["Objects must all be a part of the default domain."]
     }
 
     with pytest.raises(python_bindings.ApiException) as e:
@@ -78,7 +78,7 @@ def test_domain_object_creation(
         python_bindings.DistributionsPypiApi.create(distro_body)
     assert e.value.status == 400
     assert json.loads(e.value.body) == {
-        "non_field_errors": ["Objects must all be apart of the default domain."]
+        "non_field_errors": ["Objects must all be a part of the default domain."]
     }
 
 
@@ -113,7 +113,7 @@ def test_domain_content_upload(
         python_bindings.ContentPackagesApi.create(**content_body, pulp_domain=domain.name)
     assert e.value.status == 400
     assert json.loads(e.value.body) == {
-        "non_field_errors": [f"Objects must all be apart of the {domain.name} domain."]
+        "non_field_errors": [f"Objects must all be a part of the {domain.name} domain."]
     }
 
     # Now create the same content in the second domain
