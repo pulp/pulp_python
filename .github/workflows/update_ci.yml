@@ -69,28 +69,6 @@ jobs:
         with:
           fetch-depth: 0
           path: "pulp_python"
-          ref: "3.12"
-
-      - name: "Run update"
-        working-directory: "pulp_python"
-        run: |
-          ../plugin_template/scripts/update_ci.sh --release
-
-      - name: "Create Pull Request for CI files"
-        uses: "peter-evans/create-pull-request@v6"
-        with:
-          token: "${{ secrets.RELEASE_TOKEN }}"
-          path: "pulp_python"
-          committer: "pulpbot <pulp-infra@redhat.com>"
-          author: "pulpbot <pulp-infra@redhat.com>"
-          title: "Update CI files for branch 3.12"
-          branch: "update-ci/3.12"
-          base: "3.12"
-          delete-branch: true
-      - uses: "actions/checkout@v4"
-        with:
-          fetch-depth: 0
-          path: "pulp_python"
           ref: "3.11"
 
       - name: "Run update"
@@ -108,5 +86,27 @@ jobs:
           title: "Update CI files for branch 3.11"
           branch: "update-ci/3.11"
           base: "3.11"
+          delete-branch: true
+      - uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+          path: "pulp_python"
+          ref: "3.12"
+
+      - name: "Run update"
+        working-directory: "pulp_python"
+        run: |
+          ../plugin_template/scripts/update_ci.sh --release
+
+      - name: "Create Pull Request for CI files"
+        uses: "peter-evans/create-pull-request@v6"
+        with:
+          token: "${{ secrets.RELEASE_TOKEN }}"
+          path: "pulp_python"
+          committer: "pulpbot <pulp-infra@redhat.com>"
+          author: "pulpbot <pulp-infra@redhat.com>"
+          title: "Update CI files for branch 3.12"
+          branch: "update-ci/3.12"
+          base: "3.12"
           delete-branch: true
 ...
