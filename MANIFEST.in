@@ -3,6 +3,7 @@ include requirements.txt
 include pyproject.toml
 include CHANGES.md
 include COMMITMENT
+exclude CONTRIBUTING.md
 include COPYRIGHT
 include functest_requirements.txt
 include test_requirements.txt

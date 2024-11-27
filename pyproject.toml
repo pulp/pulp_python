@@ -1,3 +1,51 @@
+[build-system]
+requires = [
+    "setuptools >= 40.8.0",
+    "wheel >= 0.29.0",
+]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = "pulp_python"
+version = "3.13.0.dev"
+description = "pulp-python plugin for the Pulp Project"
+readme = "README.md"
+authors = [
+  {name="Pulp Team", email="pulp-list@redhat.com"},
+]
+classifiers=[
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Operating System :: POSIX :: Linux",
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: Django",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "pulpcore>=3.49.0,<3.70",
+  "pkginfo>=1.10.0,<1.12.0",  # Twine has <1.11 in their requirements
+  "bandersnatch>=6.3,<7.0",  # Anything >6.3 requires Python 3.10+
+  "pypi-simple>=1.5.0,<2.0",
+]
+
+[project.urls]
+Homepage = "https://pulpproject.org"
+Documentation = "https://pulpproject.org/pulp_python/"
+Repository = "https://github.com/pulp/pulp_python"
+"Bug Tracker" = "https://github.com/pulp/pulp_python/issues"
+Changelog = "https://pulpproject.org/pulp_python/changes/"
+
+[project.entry-points."pulpcore.plugin"]
+pulp_python = "pulp_python:default_app_config"
+
+[project.entry-points."pytest11"]
+pulp_python = "pulp_python.pytest_plugin"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
 [tool.towncrier]
 package = "pulp_python"
 filename = "CHANGES.md"
@@ -10,21 +58,15 @@ underlines = ["", "", ""]
 
 [tool.check-manifest]
 ignore = [
-    ".bumpversion.cfg",
-    ".pep8speaks.yml",
     "CHANGES/**",
-    "CONTRIBUTING.rst",
-    "HISTORY.rst",
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
-    "staging_docs/**",
     "template_config.yml",
-    ".travis/**",
-    ".travis.yml",
+    ".pep8speaks.yml",
     "shelf_reader-0.1-py2-none-any.whl",
-    ".github/**",
     ".ci/**",
+    ".github/**",
     "lint_requirements.txt",
     ".flake8",
 ]
@@ -58,4 +100,8 @@ search = "version = \"{current_version}\""
 replace = "version = \"{new_version}\""
 
 [[tool.bumpversion.files]]
-filename = "./setup.py"
+# This section is managed by the plugin template. Do not edit manually.
+
+filename = "./pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""

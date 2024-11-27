@@ -1,4 +1,0 @@
-pulpcore>=3.49.0,<3.70.0
-pkginfo>=1.10.0,<1.12.0  # Twine has <1.11 in their requirements
-bandersnatch>=6.3,<7.0  # Anything >6.3 requires Python 3.10+
-pypi-simple>=1.5.0,<2.0
