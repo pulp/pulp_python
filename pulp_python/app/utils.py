@@ -1,4 +1,5 @@
 import pkginfo
+import re
 import shutil
 import tempfile
 import json
@@ -51,6 +52,20 @@ DIST_EXTENSIONS = {
     ".zip": "sdist",
 }
 
+DIST_REGEXES = {
+    # regex from https://github.com/pypa/pip/blob/18.0/src/pip/_internal/wheel.py#L569
+    ".whl": re.compile(
+        r"""^(?P<name>.+?)-(?P<version>.*?)
+        ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
+        \.whl|\.dist-info)$""",
+        re.VERBOSE
+    ),
+    # regex based on https://setuptools.pypa.io/en/latest/deprecated/python_eggs.html#filename-embedded-metadata  # noqa: E501
+    ".egg": re.compile(r"^(?P<name>.+?)-(?P<version>.*?)(-(?P<pyver>.+?(-(?P<plat>.+?))?))?\.egg|\.egg-info$"),  # noqa: E501
+    # regex based on https://github.com/python/cpython/blob/v3.7.0/Lib/distutils/command/bdist_wininst.py#L292  # noqa: E501
+    ".exe": re.compile(r"^(?P<name>.+?)-(?P<version>.*?)\.(?P<plat>.+?)(-(?P<pyver>.+?))?\.exe$"),
+}
+
 DIST_TYPES = {
     "bdist_wheel": pkginfo.Wheel,
     "bdist_wininst": pkginfo.Distribution,
@@ -72,6 +87,8 @@ def parse_project_metadata(project):
     """
     package = {}
     package['name'] = project.get('name') or ""
+    package['version'] = project.get('version') or ""
+    package['packagetype'] = project.get('packagetype') or ""
     package['metadata_version'] = project.get('metadata_version') or ""
     package['summary'] = project.get('summary') or ""
     package['description'] = project.get('description') or ""
@@ -86,6 +103,7 @@ def parse_project_metadata(project):
     package['project_url'] = project.get('project_url') or ""
     package['platform'] = project.get('platform') or ""
     package['supported_platform'] = project.get('supported_platform') or ""
+    package['requires_python'] = project.get('requires_python') or ""
     package['requires_dist'] = json.dumps(project.get('requires_dist', []))
     package['provides_dist'] = json.dumps(project.get('provides_dist', []))
     package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
@@ -93,6 +111,7 @@ def parse_project_metadata(project):
     package['classifiers'] = json.dumps(project.get('classifiers', []))
     package['project_urls'] = json.dumps(project.get('project_urls', {}))
     package['description_content_type'] = project.get('description_content_type') or ""
+    package['python_version'] = project.get('python_version') or ""
 
     return package
 
@@ -113,17 +132,15 @@ def parse_metadata(project, version, distribution):
         dictionary: of useful python metadata
 
     """
-    package = {}
+    package = parse_project_metadata(project)
 
     package['filename'] = distribution.get('filename') or ""
     package['packagetype'] = distribution.get('packagetype') or ""
     package['version'] = version
     package['url'] = distribution.get('url') or ""
     package['sha256'] = distribution.get('digests', {}).get('sha256') or ""
-    package['python_version'] = distribution.get('python_version') or ""
-    package['requires_python'] = distribution.get('requires_python') or ""
-
-    package.update(parse_project_metadata(project))
+    package['python_version'] = distribution.get('python_version') or package.get('python_version')
+    package['requires_python'] = distribution.get('requires_python') or package.get('requires_python')  # noqa: E501
 
     return package
 
@@ -147,7 +164,28 @@ def get_project_metadata_from_artifact(filename, artifact):
         temp_file.flush()
         metadata = DIST_TYPES[packagetype](temp_file.name)
         metadata.packagetype = packagetype
+        if packagetype == "sdist":
+            metadata.python_version = "source"
+        else:
+            pyver = ""
+            regex = DIST_REGEXES[extensions[pkg_type_index]]
+            if bdist_name := regex.match(filename):
+                pyver = bdist_name.group("pyver") or ""
+            metadata.python_version = pyver
         return metadata
+
+
+def artifact_to_python_content_data(filename, artifact, domain=None):
+    """
+    Takes the artifact/filename and returns the metadata needed to create a PythonPackageContent.
+    """
+    metadata = get_project_metadata_from_artifact(filename, artifact)
+    data = parse_project_metadata(vars(metadata))
+    data['sha256'] = artifact.sha256
+    data['filename'] = filename
+    data['pulp_domain'] = domain or artifact.pulp_domain
+    data['_pulp_domain'] = data['pulp_domain']
+    return data
 
 
 def python_content_to_json(base_path, content_query, version=None, domain=None):
