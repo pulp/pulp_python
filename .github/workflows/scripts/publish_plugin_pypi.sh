@@ -14,20 +14,13 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 
 VERSION="$1"
 
-if [[ -z "$VERSION" ]]; then
+if [[ -z "${VERSION}" ]]
+then
   echo "No version specified."
   exit 1
 fi
 
-RESPONSE="$(curl --write-out '%{http_code}' --silent --output /dev/null "https://pypi.org/project/pulp-python/$VERSION/")"
-
-if [ "$RESPONSE" == "200" ];
-then
-  echo "pulp_python $VERSION has already been released. Skipping."
-  exit
-fi
-
-twine upload -u __token__ -p "$PYPI_API_TOKEN" \
-dist/pulp?python-"$VERSION"-py3-none-any.whl \
-dist/pulp?python-"$VERSION".tar.gz \
+twine upload -u __token__ -p "${PYPI_API_TOKEN}" \
+dist/pulp?python-"${VERSION}"-py3-none-any.whl \
+dist/pulp?python-"${VERSION}".tar.gz \
 ;
