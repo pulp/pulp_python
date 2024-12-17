@@ -122,3 +122,15 @@ def test_upload_metadata_23_spec(python_content_factory):
                 content = python_content_factory(filename, url=package.url)
                 assert content.metadata_version == "2.3"
                 break
+
+
+@pytest.mark.parallel
+def test_upload_requires_python(python_content_factory):
+    filename = "pip-24.3.1-py3-none-any.whl"
+    with PyPISimple() as client:
+        page = client.get_project_page("pip")
+        for package in page.packages:
+            if package.filename == filename:
+                content = python_content_factory(filename, url=package.url)
+                assert content.requires_python == ">=3.8"
+                break

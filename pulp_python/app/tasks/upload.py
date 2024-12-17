@@ -7,7 +7,7 @@ from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
-from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
+from pulp_python.app.utils import artifact_to_python_content_data
 
 
 def upload(artifact_sha256, filename, repository_pk=None):
@@ -76,15 +76,7 @@ def create_content(artifact_sha256, filename, domain):
         queryset of the new created content
     """
     artifact = Artifact.objects.get(sha256=artifact_sha256, pulp_domain=domain)
-    metadata = get_project_metadata_from_artifact(filename, artifact)
-
-    data = parse_project_metadata(vars(metadata))
-    data['packagetype'] = metadata.packagetype
-    data['version'] = metadata.version
-    data['filename'] = filename
-    data['sha256'] = artifact.sha256
-    data['pulp_domain'] = domain
-    data['_pulp_domain'] = domain
+    data = artifact_to_python_content_data(filename, artifact, domain)
 
     @transaction.atomic()
     def create():

@@ -9,7 +9,7 @@ from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
 from pulp_python.app import fields
-from pulp_python.app.utils import get_project_metadata_from_artifact, parse_project_metadata
+from pulp_python.app.utils import artifact_to_python_content_data
 
 
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
@@ -217,7 +217,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
 
         artifact = data["artifact"]
         try:
-            metadata = get_project_metadata_from_artifact(filename, artifact)
+            _data = artifact_to_python_content_data(filename, artifact, domain=get_domain())
         except ValueError:
             raise serializers.ValidationError(_(
                 "Extension on {} is not a valid python extension "
@@ -230,14 +230,6 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                     "The uploaded artifact's sha256 checksum does not match the one provided"
                 )}
             )
-
-        _data = parse_project_metadata(vars(metadata))
-        _data['packagetype'] = metadata.packagetype
-        _data['version'] = metadata.version
-        _data['filename'] = filename
-        _data['sha256'] = artifact.sha256
-        data["pulp_domain_id"] = artifact.pulp_domain_id
-        data["_pulp_domain_id"] = artifact.pulp_domain_id
 
         data.update(_data)
 
