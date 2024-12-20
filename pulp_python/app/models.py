@@ -17,9 +17,8 @@ from pulpcore.plugin.responses import ArtifactResponse
 
 from pathlib import PurePath
 from .utils import (
+    artifact_to_python_content_data,
     canonicalize_name,
-    get_project_metadata_from_artifact,
-    parse_project_metadata,
     python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
@@ -189,14 +188,7 @@ class PythonPackageContent(Content):
     def init_from_artifact_and_relative_path(artifact, relative_path):
         """Used when downloading package from pull-through cache."""
         path = PurePath(relative_path)
-        metadata = get_project_metadata_from_artifact(path.name, artifact)
-        data = parse_project_metadata(vars(metadata))
-        data["packagetype"] = metadata.packagetype
-        data["version"] = metadata.version
-        data["filename"] = path.name
-        data["sha256"] = artifact.sha256
-        data["pulp_domain_id"] = artifact.pulp_domain_id
-        data["_pulp_domain_id"] = artifact.pulp_domain_id
+        data = artifact_to_python_content_data(path.name, artifact, domain=get_domain())
         return PythonPackageContent(**data)
 
     def __str__(self):

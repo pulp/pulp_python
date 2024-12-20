@@ -1,0 +1,4 @@
+Fixed `requires_python` field not being properly set on package upload.
+
+Run the new `pulpcore-manager repair-python-metadata` command with repositories containing affected
+packages to repair their metadata.
