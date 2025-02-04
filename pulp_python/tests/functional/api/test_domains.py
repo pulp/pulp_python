@@ -6,7 +6,6 @@ import subprocess
 from pulpcore.app import settings
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_URL,
     PYTHON_EGG_FILENAME,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
@@ -80,14 +79,6 @@ def test_domain_object_creation(
     assert json.loads(e.value.body) == {
         "non_field_errors": ["Objects must all be a part of the default domain."]
     }
-
-
-@pytest.fixture
-def python_file(tmp_path, http_get):
-    filename = tmp_path / PYTHON_EGG_FILENAME
-    with open(filename, mode="wb") as f:
-        f.write(http_get(PYTHON_URL))
-    yield filename
 
 
 @pytest.mark.parallel

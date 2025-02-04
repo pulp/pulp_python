@@ -145,7 +145,7 @@ def download_python_file(tmp_path, http_get):
         file_path = tmp_path / relative_path
         with open(file_path, mode="wb") as f:
             f.write(http_get(url))
-        return file_path
+        return str(file_path)
 
     yield _download_python_file
 
