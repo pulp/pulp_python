@@ -1,1 +1,0 @@
-Fixed package name normalization issue preventing syncing packages with "." or "_" in their names.
