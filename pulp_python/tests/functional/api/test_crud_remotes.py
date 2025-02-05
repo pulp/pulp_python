@@ -14,16 +14,16 @@ from pulp_python.tests.functional.constants import (
 @pytest.mark.parametrize("kwargs", [{}, {"policy": "on_demand"}])
 def test_remote_from_bandersnatch_config(kwargs, python_bindings, add_to_cleanup, tmp_path):
     """Verify whether it's possible to create a remote from a Bandersnatch config."""
-    filename = tmp_path / "bandersnatch.conf"
+    filename = str(tmp_path / "bandersnatch.conf")
     with open(filename, mode="wb") as config:
         config.write(BANDERSNATCH_CONF)
         config.flush()
     name = str(uuid.uuid4())
-    remote = python_bindings.RemotesPythonApi.from_bandersnatch(filename, name, **kwargs).to_dict()
-    add_to_cleanup(python_bindings.RemotesPythonApi, remote["pulp_href"])
+    remote = python_bindings.RemotesPythonApi.from_bandersnatch(filename, name, **kwargs)
+    add_to_cleanup(python_bindings.RemotesPythonApi, remote.pulp_href)
     expected = _gen_expected_remote_body(name, **kwargs)
     for key, val in expected.items():
-        assert remote[key] == val
+        assert getattr(remote, key) == val
 
 
 @pytest.mark.parallel
@@ -40,7 +40,7 @@ def test_remote_default_policy(python_bindings, gen_object_with_cleanup, monitor
 
 
 @pytest.mark.parallel
-def test_remote_invalid_project_specifier(python_bindings):
+def test_remote_invalid_project_specifier(python_bindings, has_pulp_plugin):
     """Test that creating a remote with an invalid project specifier fails."""
     # Test an include specifier without a "name" field.
     body = {
@@ -48,8 +48,10 @@ def test_remote_invalid_project_specifier(python_bindings):
         "url": "https://test",
         "includes": PYTHON_INVALID_SPECIFIER_NO_NAME,
     }
-    with pytest.raises(python_bindings.ApiException):
-        python_bindings.RemotesPythonApi.create(body)
+    # Pydantic addition to bindings in 3.70 prevent this test from working
+    if has_pulp_plugin("core", max="3.70"):
+        with pytest.raises(python_bindings.ApiException):
+            python_bindings.RemotesPythonApi.create(body)
 
     # Test an include specifier with an invalid "version_specifier" field value.
     body["includes"] = PYTHON_INVALID_SPECIFIER_BAD_VERSION
@@ -59,8 +61,9 @@ def test_remote_invalid_project_specifier(python_bindings):
     # Test an exclude specifier without a "name" field.
     body.pop("includes")
     body["excludes"] = PYTHON_INVALID_SPECIFIER_NO_NAME
-    with pytest.raises(python_bindings.ApiException):
-        python_bindings.RemotesPythonApi.create(body)
+    if has_pulp_plugin("core", max="3.70"):
+        with pytest.raises(python_bindings.ApiException):
+            python_bindings.RemotesPythonApi.create(body)
 
     # Test an exclude specifier with an invalid "version_specifier" field value.
     body["excludes"] = PYTHON_INVALID_SPECIFIER_BAD_VERSION
@@ -95,14 +98,17 @@ def test_remote_version_specifier(python_bindings, add_to_cleanup):
 
 
 @pytest.mark.parallel
-def test_remote_update_invalid_project_specifier(python_bindings, python_remote_factory):
+def test_remote_update_invalid_project_specifier(
+    python_bindings, python_remote_factory, has_pulp_plugin
+):
     """Test that updating a remote with an invalid project specifier fails non-destructively."""
     remote = python_remote_factory()
 
     # Test an include specifier without a "name" field.
     body = {"includes": PYTHON_INVALID_SPECIFIER_NO_NAME}
-    with pytest.raises(python_bindings.ApiException):
-        python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body)
+    if has_pulp_plugin("core", max="3.70"):
+        with pytest.raises(python_bindings.ApiException):
+            python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body)
 
     # Test an include specifier with an invalid "version_specifier" field value.
     body = {"includes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}
@@ -111,8 +117,9 @@ def test_remote_update_invalid_project_specifier(python_bindings, python_remote_
 
     # Test an exclude specifier without a "name" field.
     body = {"excludes": PYTHON_INVALID_SPECIFIER_NO_NAME}
-    with pytest.raises(python_bindings.ApiException):
-        python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body)
+    if has_pulp_plugin("core", max="3.70"):
+        with pytest.raises(python_bindings.ApiException):
+            python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body)
 
     # Test an exclude specifier with an invalid "version_specifier" field value.
     body = {"excludes": PYTHON_INVALID_SPECIFIER_BAD_VERSION}

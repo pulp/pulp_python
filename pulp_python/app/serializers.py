@@ -8,7 +8,6 @@ from pulpcore.plugin import serializers as core_serializers
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
-from pulp_python.app import fields
 from pulp_python.app.utils import artifact_to_python_content_data
 
 
@@ -158,7 +157,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, allow_blank=True,
         help_text=_('A browsable URL for the project and a label for it, separated by a comma.')
     )
-    project_urls = fields.JSONObjectField(
+    project_urls = serializers.JSONField(
         required=False, default=dict,
         help_text=_('A dictionary of labels and URLs for the project.')
     )
@@ -171,28 +170,28 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False, allow_blank=True,
         help_text=_('Field to specify the OS and CPU for which the binary package was compiled. ')
     )
-    requires_dist = fields.JSONObjectField(
+    requires_dist = serializers.JSONField(
         required=False, default=list,
         help_text=_('A JSON list containing names of some other distutils project '
                     'required by this distribution.')
     )
-    provides_dist = fields.JSONObjectField(
+    provides_dist = serializers.JSONField(
         required=False, default=list,
         help_text=_('A JSON list containing names of a Distutils project which is contained'
                     ' within this distribution.')
     )
-    obsoletes_dist = fields.JSONObjectField(
+    obsoletes_dist = serializers.JSONField(
         required=False, default=list,
         help_text=_('A JSON list containing names of a distutils project\'s distribution which '
                     'this distribution renders obsolete, meaning that the two projects should not '
                     'be installed at the same time.')
     )
-    requires_external = fields.JSONObjectField(
+    requires_external = serializers.JSONField(
         required=False, default=list,
         help_text=_('A JSON list containing some dependency in the system that the distribution '
                     'is to be used.')
     )
-    classifiers = fields.JSONObjectField(
+    classifiers = serializers.JSONField(
         required=False, default=list,
         help_text=_('A JSON list containing classification values for a Python package.')
     )
