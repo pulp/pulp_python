@@ -8,6 +8,36 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.13.0 (2025-02-05) {: #3.13.0 }
+
+#### Features {: #3.13.0-feature }
+
+- Added pulpcore 3.70 compatibility
+
+#### Bugfixes {: #3.13.0-bugfix }
+
+- Fixed uploads not supporting packages using metadata spec 2.3
+  [#682](https://github.com/pulp/pulp_python/issues/682)
+- Fixed the `package_types` filter breaking other remote filters.
+  [#691](https://github.com/pulp/pulp_python/issues/691)
+- Fixed package name normalization issue preventing syncing packages with "." or "_" in their names.
+  [#716](https://github.com/pulp/pulp_python/issues/716)
+- Fixed replicate failing on upstream on-demand repositories
+  [#718](https://github.com/pulp/pulp_python/issues/718)
+- Fixed `requires_python` field not being properly set on package upload.
+
+  Run the new `pulpcore-manager repair-python-metadata` command with repositories containing affected
+  packages to repair their metadata.
+  [#773](https://github.com/pulp/pulp_python/issues/773)
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+#### Misc {: #3.13.0-misc }
+
+- [#774](https://github.com/pulp/pulp_python/issues/774)
+
+---
+
 ## 3.12.5 (2024-10-25) {: #3.12.5 }
 
 #### Bugfixes {: #3.12.5-bugfix }
