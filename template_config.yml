@@ -47,6 +47,7 @@ pulp_settings:
   pypi_api_hostname: https://pulp:443
 pulp_settings_azure:
   domain_enabled: true
+  content_origin: null
 pulp_settings_gcp: null
 pulp_settings_s3:
   domain_enabled: true

@@ -315,7 +315,8 @@ def python_content_to_download_info(content, base_path, domain=None):
 
     content_artifact = content.contentartifact_set.first()
     artifact = find_artifact()
-    origin = settings.CONTENT_ORIGIN.strip("/")
+    origin = settings.CONTENT_ORIGIN or settings.PYPI_API_HOSTNAME or ""
+    origin = origin.strip("/")
     prefix = settings.CONTENT_PATH_PREFIX.strip("/")
     base_path = base_path.strip("/")
     components = [origin, prefix, base_path, content.filename]
