@@ -28,7 +28,7 @@ classifiers=[
 requires-python = ">=3.9"
 dependencies = [
   "pulpcore>=3.49.0,<3.85",
-  "pkginfo>=1.10.0,<1.12.0",  # Twine has <1.11 in their requirements
+  "pkginfo>=1.10.0,<1.13.0",
   "bandersnatch>=6.3,<7.0",  # Anything >6.3 requires Python 3.10+
   "pypi-simple>=1.5.0,<2.0",
 ]
