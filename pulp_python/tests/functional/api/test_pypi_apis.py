@@ -3,10 +3,11 @@ import os
 import requests
 import subprocess
 import tempfile
+import pytest
 
 from urllib.parse import urljoin
 
-from pulp_smash.pulp3.bindings import monitor_task, tasks as task_api
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import get_added_content_summary, get_content_summary
 from pulp_python.tests.functional.constants import (
     PYTHON_CONTENT_NAME,
@@ -38,6 +39,32 @@ PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
 HOST = client.configuration.host
 PYPI_HOST = urljoin(HOST, PULP_PYPI_BASE_URL)
+
+
+@pytest.fixture
+def python_empty_repo_distro(python_repo_factory, python_distribution_factory):
+    """Returns an empty repo with and distribution serving it."""
+    def _generate_empty_repo_distro(repo_body=None, distro_body=None):
+        repo_body = repo_body or {}
+        distro_body = distro_body or {}
+        repo = python_repo_factory(**repo_body)
+        distro = python_distribution_factory(repository=repo.pulp_href, **distro_body)
+        return repo, distro
+
+    yield _generate_empty_repo_distro
+
+
+@pytest.fixture(scope="module")
+def python_package_dist_directory(tmp_path_factory, http_get):
+    """Creates a temp dir to hold package distros for uploading."""
+    dist_dir = tmp_path_factory.mktemp("dist")
+    egg_file = dist_dir / PYTHON_EGG_FILENAME
+    wheel_file = dist_dir / PYTHON_WHEEL_FILENAME
+    with open(egg_file, "wb") as f:
+        f.write(http_get(PYTHON_EGG_URL))
+    with open(wheel_file, "wb") as f:
+        f.write(http_get(PYTHON_WHEEL_URL))
+    yield dist_dir, egg_file, wheel_file
 
 
 class PyPISummaryTestCase(TestCaseUsingBindings, TestHelpersMixin):
@@ -162,18 +189,51 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
         content = get_added_content_summary(repo, f"{repo.versions_href}1/")
         self.assertDictEqual({PYTHON_CONTENT_NAME: 1}, content)
 
-    def test_twine_upload(self):
-        """Tests that packages can be properly uploaded through Twine."""
-        repo, distro = self._create_empty_repo_and_distribution()
-        url = urljoin(PYPI_HOST, distro.base_path + "/legacy/")
-        username, password = "admin", "password"
+
+@pytest.mark.parallel
+def test_twine_upload(
+    pulpcore_bindings,
+    python_content_summary,
+    python_empty_repo_distro,
+    python_package_dist_directory,
+    monitor_task,
+):
+    """Tests that packages can be properly uploaded through Twine."""
+    repo, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "legacy/")
+    dist_dir, _, _ = python_package_dist_directory
+    username, password = "admin", "password"
+    subprocess.run(
+        (
+            "twine",
+            "upload",
+            "--repository-url",
+            url,
+            dist_dir / "*",
+            "-u",
+            username,
+            "-p",
+            password,
+        ),
+        capture_output=True,
+        check=True,
+    )
+    tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.pulp_href).results
+    for task in reversed(tasks):
+        t = monitor_task(task.pulp_href)
+        repo_ver_href = t.created_resources[-1]
+    summary = python_content_summary(repository_version=repo_ver_href)
+    assert summary.present["python.python"]["count"] == 2
+
+    # Test re-uploading same packages gives error
+    with pytest.raises(subprocess.CalledProcessError):
         subprocess.run(
             (
                 "twine",
                 "upload",
                 "--repository-url",
                 url,
-                self.dists_dir.name + "/*",
+                dist_dir / "*",
                 "-u",
                 username,
                 "-p",
@@ -182,50 +242,26 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
             capture_output=True,
             check=True,
         )
-        tasks = task_api.list(reserved_resources_record=[repo.pulp_href]).results
-        for task in reversed(tasks):
-            t = monitor_task(task.pulp_href)
-            repo_ver_href = t.created_resources[-1]
-        content = get_content_summary(repo, f"{repo_ver_href}")
-        self.assertDictEqual({PYTHON_CONTENT_NAME: 2}, content)
 
-        # Test re-uploading same packages gives error
-        with self.assertRaises(subprocess.CalledProcessError):
-            subprocess.run(
-                (
-                    "twine",
-                    "upload",
-                    "--repository-url",
-                    url,
-                    self.dists_dir.name + "/*",
-                    "-u",
-                    username,
-                    "-p",
-                    password,
-                ),
-                capture_output=True,
-                check=True,
-            )
-
-        # Test re-uploading same packages with --skip-existing works
-        output = subprocess.run(
-            (
-                "twine",
-                "upload",
-                "--repository-url",
-                url,
-                self.dists_dir.name + "/*",
-                "-u",
-                username,
-                "-p",
-                password,
-                "--skip-existing",
-            ),
-            capture_output=True,
-            check=True,
-            text=True
-        )
-        self.assertEqual(output.stdout.count("Skipping"), 2)
+    # Test re-uploading same packages with --skip-existing works
+    output = subprocess.run(
+        (
+            "twine",
+            "upload",
+            "--repository-url",
+            url,
+            dist_dir / "*",
+            "-u",
+            username,
+            "-p",
+            password,
+            "--skip-existing",
+        ),
+        capture_output=True,
+        check=True,
+        text=True
+    )
+    assert output.stdout.count("Skipping") == 2
 
 
 class PyPISimpleApi(TestCaseUsingBindings, TestHelpersMixin):
