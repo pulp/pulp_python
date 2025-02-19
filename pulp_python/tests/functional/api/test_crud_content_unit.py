@@ -134,3 +134,16 @@ def test_upload_requires_python(python_content_factory):
                 content = python_content_factory(filename, url=package.url)
                 assert content.requires_python == ">=3.8"
                 break
+
+
+@pytest.mark.parallel
+def test_upload_metadata_24_spec(python_content_factory):
+    """Test that packages using metadata spec 2.4 can be uploaded to pulp."""
+    filename = "urllib3-2.3.0-py3-none-any.whl"
+    with PyPISimple() as client:
+        page = client.get_project_page("urllib3")
+        for package in page.packages:
+            if package.filename == filename:
+                content = python_content_factory(filename, url=package.url)
+                assert content.metadata_version == "2.4"
+                break
