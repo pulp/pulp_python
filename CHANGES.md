@@ -8,6 +8,19 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.11.4 (2025-02-20) {: #3.11.4 }
+
+#### Bugfixes {: #3.11.4-bugfix }
+
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+#### Misc {: #3.11.4-misc }
+
+- 
+
+---
+
 # ## 3.11.3 (2024-08-21) {: #3.11.3 }
 
 #### Bugfixes {: #3.11.3-bugfix }
