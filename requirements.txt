@@ -1,4 +1,4 @@
 pulpcore>=3.49.0,<3.70.0
-pkginfo>=1.10.0,<1.12.0  # Twine has <1.11 in their requirements
+pkginfo>=1.12.0,<1.13.0
 bandersnatch>=6.1,<6.2
 pypi-simple>=0.9.0,<1.0.0
