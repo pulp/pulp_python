@@ -42,6 +42,8 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
     """Tests that the simple page is properly modified when requesting a pull-through."""
     remote = python_remote_factory(url=PYPI_URL)
     distro = python_distribution_factory(remote=remote.pulp_href)
+    print(distro.base_url)
+    assert False
 
     url = f"{distro.base_url}simple/shelf-reader/"
     project_page = ProjectPage.from_response(requests.get(url), "shelf-reader")
@@ -62,6 +64,8 @@ def test_pull_through_with_repo(
     remote = python_remote_factory()
     repo = python_repo_with_sync(remote)
     distro = python_distribution_factory(repository=repo.pulp_href, remote=remote.pulp_href)
+    print(distro.base_url)
+    assert False
 
     url = urljoin(distro.base_url, "simple/shelf-reader/")
     project_page = ProjectPage.from_response(requests.get(url), "shelf-reader")
