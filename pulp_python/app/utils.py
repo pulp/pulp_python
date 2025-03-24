@@ -7,7 +7,8 @@ from collections import defaultdict
 from django.conf import settings
 from jinja2 import Template
 from packaging.utils import canonicalize_name
-from packaging.version import parse
+from packaging.requirements import Requirement
+from packaging.version import parse, InvalidVersion
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -356,3 +357,80 @@ def write_simple_detail(project_name, project_packages, streamed=False):
     detail = Template(simple_detail_template)
     context = {"project_name": project_name, "project_packages": project_packages}
     return detail.stream(**context) if streamed else detail.render(**context)
+
+
+class PackageIncludeFilter:
+    """A special class to help filter Package's based on a remote's include/exclude"""
+
+    def __init__(self, remote):
+        self.remote = remote.cast()
+        self._filter_includes = self._parse_packages(self.remote.includes)
+        self._filter_excludes = self._parse_packages(self.remote.excludes)
+
+    def _parse_packages(self, packages):
+        config = defaultdict(lambda: defaultdict(list))
+        for value in packages:
+            requirement = Requirement(value)
+            requirement.name = canonicalize_name(requirement.name)
+            if requirement.specifier:
+                requirement.specifier.prereleases = True
+                config["range"][requirement.name].append(requirement)
+            else:
+                config["full"][requirement.name].append(requirement)
+        return config
+
+    def filter_project(self, project_name):
+        """Return true/false if project_name would be allowed through remote's filters."""
+        project_name = canonicalize_name(project_name)
+        include_full = self._filter_includes.get("full", {})
+        include_range = self._filter_includes.get("range", {})
+        include = set(include_range.keys()).union(include_full.keys())
+        if include and project_name not in include:
+            return False
+
+        exclude_full = self._filter_excludes.get("full", {})
+        if project_name in exclude_full:
+            return False
+
+        return True
+
+    def filter_release(self, project_name, version):
+        """Returns true/false if release would be allowed through remote's filters."""
+        project_name = canonicalize_name(project_name)
+        if not self.filter_project(project_name):
+            return False
+
+        try:
+            version = parse(version)
+        except InvalidVersion:
+            return False
+
+        include_range = self._filter_includes.get("range", {})
+        if project_name in include_range:
+            for req in include_range[project_name]:
+                if version in req.specifier:
+                    break
+            else:
+                return False
+
+        exclude_range = self._filter_excludes.get("range", {})
+        if project_name in exclude_range:
+            for req in exclude_range[project_name]:
+                if version in req.specifier:
+                    return False
+
+        return True
+
+
+_remote_filters = {}
+
+
+def get_remote_package_filter(remote):
+    if date_filter_tuple := _remote_filters.get(remote.pulp_id):
+        last_update, rfilter = date_filter_tuple
+        if last_update == remote.pulp_last_updated:
+            return rfilter
+
+    rfilter = PackageIncludeFilter(remote)
+    _remote_filters[remote.pulp_id] = (remote.pulp_last_updated, rfilter)
+    return rfilter

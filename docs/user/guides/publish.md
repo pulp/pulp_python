@@ -88,6 +88,9 @@ from the remote source and have Pulp store that package as orphaned content.
 pulp python distribution update --name foo --remote bar
 ```
 
+!!! note
+    Pull-through caching will respect the includes/excludes filters on the supplied remote.
+
 !!! warning
     Support for pull-through caching is provided as a tech preview in Pulp 3.
     Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
