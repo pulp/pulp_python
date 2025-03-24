@@ -275,6 +275,7 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
     TYPE = "python"
     CONTENT_TYPES = [PythonPackageContent]
     REMOTE_TYPES = [PythonRemote]
+    PULL_THROUGH_SUPPORTED = True
 
     autopublish = models.BooleanField(default=False)
 
