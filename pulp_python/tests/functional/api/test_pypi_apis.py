@@ -192,7 +192,7 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
 
 @pytest.mark.parallel
 def test_twine_upload(
-    pulpcore_bindings,
+    tasks_api_client,
     python_content_summary,
     python_empty_repo_distro,
     python_package_dist_directory,
@@ -218,7 +218,7 @@ def test_twine_upload(
         capture_output=True,
         check=True,
     )
-    tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.pulp_href).results
+    tasks = tasks_api_client.list(reserved_resources=repo.pulp_href).results
     for task in reversed(tasks):
         t = monitor_task(task.pulp_href)
         repo_ver_href = t.created_resources[-1]
