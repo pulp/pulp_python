@@ -12,6 +12,7 @@ from pulp_python.tests.functional.constants import (
 from pypi_simple import ProjectPage
 from packaging.version import parse
 from urllib.parse import urljoin, urlsplit
+from random import sample
 
 
 def test_pull_through_install(
@@ -97,17 +98,43 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
 @pytest.mark.parallel
 def test_pull_through_with_repo(
-    python_repo_with_sync, python_remote_factory, python_distribution_factory
+    python_repo_factory,
+    python_remote_factory,
+    python_distribution_factory,
+    python_bindings,
+    pulpcore_bindings,
+    monitor_task,
+    has_pulp_plugin,
 ):
-    """Tests that if content is already in repository, pull-through isn't used."""
-    remote = python_remote_factory()
-    repo = python_repo_with_sync(remote)
+    """Tests that content is saved to repository."""
+    remote = python_remote_factory(includes=[])
+    repo = python_repo_factory()
     distro = python_distribution_factory(repository=repo.pulp_href, remote=remote.pulp_href)
 
-    url = urljoin(distro.base_url, "simple/shelf-reader/")
-    project_page = ProjectPage.from_response(requests.get(url), "shelf-reader")
+    # Perform a download of aiohttp to ensure it's saved to the repo
+    url = urljoin(distro.base_url, "simple/aiohttp/")
+    project_page = ProjectPage.from_response(requests.get(url), "aiohttp")
+    for package in sample(project_page.packages, 3):
+        assert "?redirect=" in package.url
+        r = requests.get(package.url)
+        assert r.status_code == 200
 
-    assert len(project_page.packages) == 2
-    for package in project_page.packages:
-        assert package.filename in PYTHON_XS_FIXTURE_CHECKSUMS
-        assert "?redirect=" not in package.url
+    if has_pulp_plugin("core", max="3.73"):
+        pytest.skip("Pull-through repository save added in 3.74")
+
+    tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.prn)
+    assert tasks.count == 3
+
+    for task in tasks.results:
+        monitor_task(task.pulp_href)
+
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    assert repo.latest_version_href[-2] == "3"
+    content = python_bindings.ContentPackagesApi.list(repository_version=repo.latest_version_href)
+    assert content.count == 3
+
+    # Check that getting content that is already present doesn't trigger a task
+    r = requests.get(package.url)
+    assert r.status_code == 200
+    tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.prn)
+    assert tasks.count == 3

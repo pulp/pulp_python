@@ -275,8 +275,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
         if self.distribution.remote:
-            if not repo_ver or not content.filter(name__normalize=normalized).exists():
-                return self.pull_through_package_simple(normalized, path, self.distribution.remote)
+            return self.pull_through_package_simple(normalized, path, self.distribution.remote)
         if self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f'{path}/simple/{normalized}/'))
         packages = (
