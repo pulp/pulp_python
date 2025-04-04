@@ -3,9 +3,11 @@ import logging
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
 from gettext import gettext as _
+from functools import partial
 
 from rest_framework import serializers
 
+from pulpcore.plugin.download import HttpDownloader
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -112,11 +114,22 @@ class PythonBanderStage(Stage):
         """
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
+        downloader = self.remote.get_downloader(url=url)
+        if not isinstance(downloader, HttpDownloader):
+            raise ValueError("Only HTTP(S) is supported for python syncing")
+
         async with Master(url) as master:
             # Replace the session with the remote's downloader session
             old_session = master.session
-            factory = self.remote.download_factory
-            master.session = factory._session
+            master.session = downloader.session
+
+            # Set up master.get with remote's auth & proxy settings
+            master.get = partial(
+                master.get,
+                auth=downloader.auth,
+                proxy=downloader.proxy,
+                proxy_auth=downloader.proxy_auth,
+            )
 
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
