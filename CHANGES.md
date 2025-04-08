@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.13.3 (2025-04-07) {: #3.13.3 }
+
+#### Bugfixes {: #3.13.3-bugfix }
+
+- Fixed a proxy sync regression introduced in 3.13.0.
+
+---
+
 ## 3.13.2 (2025-02-20) {: #3.13.2 }
 
 #### Misc {: #3.13.2-misc }
