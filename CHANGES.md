@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.13.4 (2025-04-10) {: #3.13.4 }
+
+#### Misc {: #3.13.4-misc }
+
+- [#809](https://github.com/pulp/pulp_python/issues/809)
+
+---
+
 ## 3.13.3 (2025-04-07) {: #3.13.3 }
 
 #### Bugfixes {: #3.13.3-bugfix }
