@@ -8,6 +8,34 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.14.0 (2025-04-10) {: #3.14.0 }
+
+#### Features {: #3.14.0-feature }
+
+- Pull-through caching now respects the include/exclude filters on the upstream remote.
+  [#706](https://github.com/pulp/pulp_python/issues/706)
+- Added support for automatically saving pull-through content to a repository.
+  Requires pulpcore 3.74 or later.
+  [#815](https://github.com/pulp/pulp_python/issues/815)
+
+#### Bugfixes {: #3.14.0-bugfix }
+
+- Fixed a proxy sync regression introduced in 3.13.0.
+
+#### Misc {: #3.14.0-misc }
+
+- [#809](https://github.com/pulp/pulp_python/issues/809)
+
+---
+
+## 3.13.4 (2025-04-10) {: #3.13.4 }
+
+#### Misc {: #3.13.4-misc }
+
+- [#809](https://github.com/pulp/pulp_python/issues/809)
+
+---
+
 ## 3.13.3 (2025-04-07) {: #3.13.3 }
 
 #### Bugfixes {: #3.13.3-bugfix }
