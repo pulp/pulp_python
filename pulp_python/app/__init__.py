@@ -8,5 +8,5 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_python.app"
     label = "python"
-    version = "3.11.5"
+    version = "3.11.6.dev"
     python_package_name = "pulp-python"
