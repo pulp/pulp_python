@@ -170,6 +170,12 @@ No significant changes.
 
 ---
 
+## 3.11.5 (2025-04-15) {: #3.11.5 }
+
+No significant changes.
+
+---
+
 ## 3.11.4 (2025-02-20) {: #3.11.4 }
 
 #### Bugfixes {: #3.11.4-bugfix }
