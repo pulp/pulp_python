@@ -129,7 +129,7 @@ No significant changes.
 
 ---
 
-# ## 3.12.2 (2024-08-21) {: #3.12.2 }
+## 3.12.2 (2024-08-21) {: #3.12.2 }
 
 #### Bugfixes {: #3.12.2-bugfix }
 
@@ -140,7 +140,6 @@ No significant changes.
 
 ## 3.12.1 (2024-06-27) {: #3.12.1 }
 
-
 #### Bugfixes {: #3.12.1-bugfix }
 
 - Fixed the `package_types` filter breaking other remote filters.
@@ -149,7 +148,6 @@ No significant changes.
 ---
 
 ## 3.12.0 (2024-06-25) {: #3.12.0 }
-
 
 #### Features {: #3.12.0-feature }
 
@@ -195,7 +193,7 @@ No significant changes.
 
 ---
 
-# ## 3.11.3 (2024-08-21) {: #3.11.3 }
+## 3.11.3 (2024-08-21) {: #3.11.3 }
 
 #### Bugfixes {: #3.11.3-bugfix }
 
@@ -207,7 +205,6 @@ No significant changes.
 ---
 
 ## 3.11.2 (2024-06-27) {: #3.11.2 }
-
 
 #### Bugfixes {: #3.11.2-bugfix }
 
@@ -426,7 +423,7 @@ No significant changes.
 
 ---
 
-3.4.0 (2021-06-17)
+## 3.4.0 (2021-06-17) {: #3.4.0 }
 
 ### Features
 
