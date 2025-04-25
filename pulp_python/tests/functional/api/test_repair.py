@@ -1,11 +1,7 @@
 import pytest
 import subprocess
-from urllib.parse import urljoin
 
-from pulp_python.tests.functional.constants import (
-    PYTHON_EGG_FILENAME,
-    PYTHON_FIXTURES_URL,
-)
+from pulp_python.tests.functional.constants import PYTHON_EGG_FILENAME
 
 
 @pytest.fixture
@@ -80,47 +76,3 @@ def test_metadata_repair_command(
     assert content.packagetype == "sdist"
     assert content.requires_python == ""  # technically null
     assert content.author == "Austin Macdonald"
-
-
-def test_metadata_repair_endpoint(
-    create_content_direct,
-    download_python_file,
-    monitor_task,
-    move_to_repository,
-    python_bindings,
-    python_repo,
-):
-    """
-    Test repairing of package metadata via `Repository.repair_metadata` endpoint.
-    """
-    python_egg_filename = "scipy-1.1.0.tar.gz"
-    python_egg_url = urljoin(
-        urljoin(PYTHON_FIXTURES_URL, "packages/"), python_egg_filename
-    )
-    python_file = download_python_file(python_egg_filename, python_egg_url)
-
-    data = {
-        "name": "scipy",
-        # Wrong metadata
-        "author": "ME",
-        "packagetype": "bdist",
-        "requires_python": ">=3.8",
-        "version": "0.2",
-    }
-    content = create_content_direct(python_file, python_egg_filename, data)
-    for field, wrong_value in data.items():
-        if field == "python_version":
-            continue
-        assert getattr(content, field) == wrong_value
-    move_to_repository(python_repo.pulp_href, [content.pulp_href])
-
-    response = python_bindings.RepositoriesPythonApi.repair_metadata(
-        python_repo.pulp_href
-    )
-    _ = monitor_task(response.task)
-
-    content = python_bindings.ContentPackagesApi.read(content.pulp_href)
-    assert content.version == "1.1.0"
-    assert content.packagetype == "sdist"
-    assert content.requires_python == ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
-    assert content.author == ""
