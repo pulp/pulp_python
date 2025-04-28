@@ -83,7 +83,7 @@ class PythonRepositoryViewSet(
                 ],
             },
             {
-                "action": ["modify"],
+                "action": ["modify", "repair_metadata"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
@@ -121,6 +121,25 @@ class PythonRepositoryViewSet(
         ],
         "python.pythonrepository_viewer": ["python.view_pythonrepository"],
     }
+
+    @extend_schema(
+        summary="Repair metadata",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=None)
+    def repair_metadata(self, request, pk):
+        """
+        Trigger an asynchronous task to repair Python metadata. This task will repair metadata
+        of all packages for the specified `Repository`, without creating a new `RepositoryVersion`.
+        """
+        repository = self.get_object()
+
+        result = dispatch(
+            tasks.repair,
+            exclusive_resources=[repository],
+            kwargs={"repository_pk": str(repository.pk)},
+        )
+        return core_viewsets.OperationPostponedResponse(result, request)
 
     @extend_schema(
         summary="Sync from remote",
