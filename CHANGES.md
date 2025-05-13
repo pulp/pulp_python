@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.15.0 (2025-05-13) {: #3.15.0 }
+
+#### Features {: #3.15.0-feature }
+
+- Added new `repair_metadata` endpoint to `Repository` for fixing packages' metadata.
+  [#805](https://github.com/pulp/pulp_python/issues/805)
+
+---
+
 ## 3.14.0 (2025-04-10) {: #3.14.0 }
 
 #### Features {: #3.14.0-feature }
