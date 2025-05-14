@@ -260,9 +260,9 @@ class SimpleView(PackageUploadMixin, ViewSet):
             return HttpResponse(f"{remote.url} timed out while fetching {package}.", status=504)
 
         if d.headers["content-type"] == "application/vnd.pypi.simple.v1+json":
-            page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=remote.url)
+            page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
         else:
-            page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=remote.url)
+            page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
         packages = [
             parse_package(p) for p in page.packages if rfilter.filter_release(package, p.version)
         ]
