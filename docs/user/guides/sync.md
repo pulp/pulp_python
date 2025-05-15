@@ -3,7 +3,6 @@
 Users can populate their repositories with content from an external source like PyPI by syncing
 their repository.
 
-
 ## Create a Repository
 
 === "Run"
@@ -17,20 +16,22 @@ their repository.
 
     ```
     {
-       "pulp_href": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/",
-       "pulp_created": "2021-03-09T04:11:54.347921Z",
-       "versions_href": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/",
-       "pulp_labels": {},
-       "latest_version_href": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/0/",
-       "name": "foo",
-       "description": null,
-       "remote": null
-     }
+      "pulp_href": "/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/",
+      "prn": "prn:python.pythonrepository:0196ba2a-f353-736a-854c-2d415389a509",
+      "pulp_created": "2025-05-10T12:28:19.156941Z",
+      "pulp_last_updated": "2025-05-10T12:28:19.169190Z",
+      "versions_href": "/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/versions/",
+      "pulp_labels": {},
+      "latest_version_href": "/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/versions/0/",
+      "name": "foo",
+      "description": null,
+      "retain_repo_versions": null,
+      "remote": null,
+      "autopublish": false
+    }
     ```
 
 Reference: [Python Repository Usage](site:pulp_python/restapi/#tag/Repositories:-Python)
-
-
 
 ## Create a Remote
 
@@ -49,8 +50,10 @@ itself, a fixture, or even an instance of Pulp 2.
 
     ```
     {
-      "pulp_href": "/pulp/api/v3/remotes/python/python/a9bb3a02-c7d2-4b2e-9b66-050a6c9b7cb3/",
-      "pulp_created": "2021-03-09T04:14:02.646835Z",
+      "pulp_href": "/pulp/api/v3/remotes/python/python/0196ba2b-1461-7d0d-99f6-5f75610abf71/",
+      "prn": "prn:python.pythonremote:0196ba2b-1461-7d0d-99f6-5f75610abf71",
+      "pulp_created": "2025-05-10T12:28:27.617672Z",
+      "pulp_last_updated": "2025-05-10T12:28:27.617697Z",
       "name": "bar",
       "url": "https://pypi.org/",
       "ca_cert": null,
@@ -58,8 +61,8 @@ itself, a fixture, or even an instance of Pulp 2.
       "tls_validation": true,
       "proxy_url": null,
       "pulp_labels": {},
-      "pulp_last_updated": "2021-03-09T04:14:02.646845Z",
-      "download_concurrency": 10,
+      "download_concurrency": null,
+      "max_retries": null,
       "policy": "on_demand",
       "total_timeout": null,
       "connect_timeout": null,
@@ -67,11 +70,36 @@ itself, a fixture, or even an instance of Pulp 2.
       "sock_read_timeout": null,
       "headers": null,
       "rate_limit": null,
+      "hidden_fields": [
+        {
+          "name": "client_key",
+          "is_set": false
+        },
+        {
+          "name": "proxy_username",
+          "is_set": false
+        },
+        {
+          "name": "proxy_password",
+          "is_set": false
+        },
+        {
+          "name": "username",
+          "is_set": false
+        },
+        {
+          "name": "password",
+          "is_set": false
+        }
+      ],
       "includes": [
         "shelf-reader"
       ],
       "excludes": [],
       "prereleases": true,
+      "package_types": [],
+      "keep_latest_packages": 0,
+      "exclude_platforms": []
     }
     ```
 
@@ -80,7 +108,7 @@ Reference: [Python Remote Usage](site:pulp_python/restapi/#tag/Remotes:-Python)
 ## A More Complex Remote
 
 If only the name of a project is specified, every distribution of every version of that project
-will be synced. You can use the version_specifier field to ensure only distributions you care
+will be synced. You can use the version specifier field to ensure only distributions you care
 about will be synced:
 
 ```bash
@@ -115,22 +143,22 @@ You can also filter packages by their type, platform and amount synced through t
 "exclude_platforms", and "keep_latest_packages" fields respectively, like so:
 
 ```bash
+# Sync only sdist and bdist_wheel package types, exclude any packages built
+# for windows and keep the five latest versions
 pulp python remote create \
     --name 'complex-filters' \
     --url 'https://pypi.org/' \
     --includes '["django"]' \
-    --package-types '["sdist", "bdist-wheel"]' # only sync sdist and bdist-wheel package types \
-    --exclude-platforms '["windows"]' # exclude any packages built for windows \
-    --keep-latest-packages 5 # keep the five latest versions
+    --package-types '["sdist", "bdist_wheel"]' \
+    --exclude-platforms '["windows"]' \
+    --keep-latest-packages 5 
 ```
 
 Reference: [Python Remote Usage](site:pulp_python/restapi/#tag/Remotes:-Python)
 
-
-
 ### Creating a remote to sync all of PyPI
 
-A remote can be setup to sync all of PyPI by not specifying any included packages like so:
+A remote can be set up to sync all of PyPI by not specifying any included packages, like so:
 
 ```bash
 pulp python remote create \
@@ -173,22 +201,25 @@ sync with. You are telling pulp to fetch content from the remote and add to the 
 
     ```
     {
-      "pulp_href": "/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/",
-      "pulp_created": "2021-03-09T04:20:21.896132Z",
+      "pulp_href": "/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/versions/1/",
+      "prn": "prn:core.repositoryversion:0196ba2b-655c-7745-b10f-bdde15a941c6",
+      "pulp_created": "2025-05-10T12:28:48.349938Z",
+      "pulp_last_updated": "2025-05-10T12:28:49.031497Z",
       "number": 1,
+      "repository": "/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/",
       "base_version": null,
       "content_summary": {
         "added": {
           "python.python": {
             "count": 2,
-            "href": "/pulp/api/v3/content/python/packages/?repository_version_added=/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/"
+            "href": "/pulp/api/v3/content/python/packages/?repository_version_added=/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/versions/1/"
           }
         },
         "removed": {},
         "present": {
           "python.python": {
             "count": 2,
-            "href": "/pulp/api/v3/content/python/packages/?repository_version=/pulp/api/v3/repositories/python/python/8fbb24ee-dc91-44f4-a6ee-beec60aa542d/versions/1/"
+            "href": "/pulp/api/v3/content/python/packages/?repository_version=/pulp/api/v3/repositories/python/python/0196ba2a-f353-736a-854c-2d415389a509/versions/1/"
           }
         }
       }
