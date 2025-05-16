@@ -1,9 +1,9 @@
-# Setup your own PyPI:
+# Set up your own PyPI
 
-This section guides you through the quickest way to setup `pulp_python` to act as your very own
+This section guides you through the quickest way to set up `pulp_python` to act as your very own
 private `PyPI`.
 
-## Create a Repository:
+## Create a Repository
 
 Repositories are the base objects `Pulp` uses to store and organize its content. They are automatically
 versioned when content is added or deleted and allow for easy rollbacks to previous versions.
@@ -19,20 +19,22 @@ versioned when content is added or deleted and allow for easy rollbacks to previ
 
     ```
     {
-         "pulp_href": "/pulp/api/v3/repositories/python/python/3fe0d204-217f-4250-8177-c83b30751fca/",
-         "pulp_created": "2021-06-02T14:54:53.387054Z",
-         "versions_href": "/pulp/api/v3/repositories/python/python/3fe0d204-217f-4250-8177-c83b30751fca/versions/",
-         "pulp_labels": {},
-         "latest_version_href": "/pulp/api/v3/repositories/python/python/3fe0d204-217f-4250-8177-c83b30751fca/versions/1/",
-         "name": "foo",
-         "description": null,
-         "retained_versions": null,
-         "remote": null,
-         "autopublish": false
-     }
+      "pulp_href": "/pulp/api/v3/repositories/python/python/0196ba29-52b9-7cf4-b12e-f3247f0eb3dc/",
+      "prn": "prn:python.pythonrepository:0196ba29-52b9-7cf4-b12e-f3247f0eb3dc",
+      "pulp_created": "2025-05-10T12:26:32.506906Z",
+      "pulp_last_updated": "2025-05-10T12:26:32.517333Z",
+      "versions_href": "/pulp/api/v3/repositories/python/python/0196ba29-52b9-7cf4-b12e-f3247f0eb3dc/versions/",
+      "pulp_labels": {},
+      "latest_version_href": "/pulp/api/v3/repositories/python/python/0196ba29-52b9-7cf4-b12e-f3247f0eb3dc/versions/0/",
+      "name": "foo",
+      "description": null,
+      "retain_repo_versions": null,
+      "remote": null,
+      "autopublish": false
+    }
     ```
 
-## Create a Distribution:
+## Create a Distribution
 
 Distributions serve the content stored in repositories so that it can be used by tools like `pip`.
 
@@ -46,35 +48,43 @@ Distributions serve the content stored in repositories so that it can be used by
 
     ```
     {
-      "pulp_href": "/pulp/api/v3/distributions/python/pypi/e8438593-fd40-4654-8577-65398833c331/",
-      "pulp_created": "2021-06-03T20:04:18.233230Z",
+      "pulp_href": "/pulp/api/v3/distributions/python/pypi/0196ba29-8f95-776b-a782-78d7838f3f9f/",
+      "prn": "prn:python.pythondistribution:0196ba29-8f95-776b-a782-78d7838f3f9f",
+      "pulp_created": "2025-05-10T12:26:48.086775Z",
+      "pulp_last_updated": "2025-05-10T12:26:48.086806Z",
       "base_path": "my-pypi",
-      "base_url": "https://pulp3-source-fedora33.localhost.example.com/pypi/foo/",
+      "base_url": "http://localhost:5001/pypi/my-pypi/",
       "content_guard": null,
+      "no_content_change_since": null,
+      "hidden": false,
       "pulp_labels": {},
       "name": "my-pypi",
-      "repository": "/pulp/api/v3/repositories/python/python/3fe0d204-217f-4250-8177-c83b30751fca/",
+      "repository": "/pulp/api/v3/repositories/python/python/0196ba29-52b9-7cf4-b12e-f3247f0eb3dc/",
       "publication": null,
-      "allow_uploads": true
+      "allow_uploads": true,
+      "remote": null
     }
     ```
 
-## Upload and Install Packages:
+## Upload and Install Packages
 
 Packages can now be uploaded to the index using your favorite Python tool. The index url will be available
-at `/pypi/<distribution.base_path>/simple/`.
+at `${BASE_ADDR}/pypi/${DIST_BASE_PATH}/simple/`.
 
 ```bash
+BASE_ADDR="http://localhost:5001"
+PLUGIN_SOURCE="shelf-reader"
+git clone https://github.com/asmacdo/shelf-reader.git
 # Build custom package
-python -m build $PLUGIN_SOURCE
+python -m build "$PLUGIN_SOURCE"
 # Upload built package distributions to my-pypi
-twine upload --repository-url $BASE_ADDR/pypi/my-pypi/simple/ -u admin -p password "$PLUGIN_SOURCE"dist/*
+twine upload --repository-url "${BASE_ADDR}/pypi/my-pypi/simple/" -u admin -p password "${PLUGIN_SOURCE}/dist/"*
 ```
 
 Packages can then be installed using your favorite Python tool:
 
 ```bash
-pip install --trusted-host localhost -i $BASE_ADDR/pypi/my-pypi/simple/ shelf-reader
+pip install --trusted-host localhost -i "${BASE_ADDR}/pypi/my-pypi/simple/" "$PLUGIN_SOURCE"
 ```
 
 Now you have a fully operational Python package index. Check out the other workflows to see more features of
