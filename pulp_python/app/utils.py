@@ -1,5 +1,6 @@
 import pkginfo
 import re
+import requests
 import shutil
 import tempfile
 import json
@@ -9,6 +10,8 @@ from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
 from packaging.version import parse, InvalidVersion
+
+from pulpcore.plugin.models import Remote
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -187,6 +190,19 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     data['pulp_domain'] = domain or artifact.pulp_domain
     data['_pulp_domain'] = data['pulp_domain']
     return data
+
+
+def fetch_json_release_metadata(name: str, version: str, remote: Remote) -> dict:
+    """
+    Fetches metadata for a specific release from PyPI's JSON API. A release can contain
+    multiple distributions. See https://docs.pypi.org/api/json/#get-a-release for more details.
+
+    Returns dict containing "info", "last_serial", "urls", and "vulnerabilities" keys.
+    """
+    url = f"{remote.url}pypi/{name}/{version}/json"
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    return response.json()
 
 
 def python_content_to_json(base_path, content_query, version=None, domain=None):
