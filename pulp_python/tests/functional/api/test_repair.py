@@ -33,6 +33,49 @@ def create_content_direct(python_bindings):
 
 
 @pytest.fixture
+def create_content_remote(python_bindings):
+    def _create(filename, ra_url, ra_sha256, content_data, remote):
+        commands = (
+            "from pulpcore.plugin.models import ContentArtifact, RemoteArtifact; "
+            "from pulpcore.plugin.util import extract_pk, get_url; "
+            "from pulp_python.app.models import PythonPackageContent, PythonRemote; "
+            f"c = PythonPackageContent(filename={filename!r}, **{content_data!r}); "
+            "c.save(); "
+            f"ca = ContentArtifact(artifact=None, content=c, relative_path={filename!r}); "
+            "ca.save(); "
+            f"r = PythonRemote.objects.get(pk=extract_pk({remote.pulp_href!r})); "
+            f"ra = RemoteArtifact(content_artifact=ca, remote=r, sha256={ra_sha256!r}, url={ra_url!r}); "  # noqa: E501
+            "ra.save(); "
+            "print(get_url(c))"
+        )
+        process = subprocess.run(
+            ["pulpcore-manager", "shell", "-c", commands], capture_output=True
+        )
+
+        assert process.returncode == 0
+        content_href = process.stdout.decode().strip()
+        return python_bindings.ContentPackagesApi.read(content_href)
+
+    return _create
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def delete_content():
+    def _delete(content_href):
+        from pulpcore.plugin.util import extract_pk
+        from pulp_python.app.models import PythonPackageContent
+
+        content = PythonPackageContent.objects.get(pk=extract_pk(content_href))
+        content.version_memberships.all().delete()
+        artifacts = content._artifacts.all()
+        content.delete()
+        artifacts.delete()
+
+    return _delete
+
+
+@pytest.fixture
 def move_to_repository(python_bindings, monitor_task):
     def _move(repo_href, content_hrefs):
         body = {"add_content_units": content_hrefs}
@@ -84,6 +127,7 @@ def test_metadata_repair_command(
 
 def test_metadata_repair_endpoint(
     create_content_direct,
+    delete_content,
     download_python_file,
     monitor_task,
     move_to_repository,
@@ -124,3 +168,54 @@ def test_metadata_repair_endpoint(
     assert content.packagetype == "sdist"
     assert content.requires_python == ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
     assert content.author == ""
+    delete_content(content.pulp_href)
+
+
+def test_metadata_repair_endpoint_on_demand(
+    create_content_remote,
+    delete_content,
+    monitor_task,
+    move_to_repository,
+    python_bindings,
+    python_remote_factory,
+    python_repo_factory,
+):
+    """
+    Test repairing of package metadata via `Repositories.repair_metadata` endpoint
+    when only RemoteArtifact is present.
+    """
+    python_egg_filename = "scipy-1.1.0.tar.gz"
+    python_egg_url = urljoin(
+        urljoin(PYTHON_FIXTURES_URL, "packages/"), python_egg_filename
+    )
+    python_egg_sha256 = (
+        "878352408424dffaa695ffedf2f9f92844e116686923ed9aa8626fc30d32cfd1"
+    )
+    data = {
+        "name": "scipy",
+        "version": "1.1.0",
+        # Wrong metadata
+        "author": "ME",
+        "packagetype": "bdist",
+        "requires_python": ">=3.8",
+    }
+    remote = python_remote_factory(includes=["scipy"])
+    repo = python_repo_factory(remote=remote)
+
+    content = create_content_remote(
+        python_egg_filename, python_egg_url, python_egg_sha256, data, remote
+    )
+    for field, test_value in data.items():
+        assert getattr(content, field) == test_value
+    move_to_repository(repo.pulp_href, [content.pulp_href])
+
+    response = python_bindings.RepositoriesPythonApi.repair_metadata(repo.pulp_href)
+    monitor_task(response.task)
+
+    new_content = python_bindings.ContentPackagesApi.read(content.pulp_href)
+    assert new_content.author == ""
+    assert new_content.name == "scipy"
+    assert new_content.packagetype == "sdist"
+    assert new_content.requires_python == ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
+    assert new_content.version == "1.1.0"
+    delete_content(content.pulp_href)
