@@ -33,6 +33,33 @@ def create_content_direct(python_bindings):
 
 
 @pytest.fixture
+def create_content_remote(python_bindings):
+    def _create(filename, content_data, ra_sha256, remote):
+        commands = (
+            "from pulpcore.plugin.models import ContentArtifact, RemoteArtifact; "
+            "from pulpcore.plugin.util import extract_pk, get_url; "
+            "from pulp_python.app.models import PythonPackageContent, PythonRemote; "
+            f"c = PythonPackageContent(filename={filename!r}, **{content_data!r}); "
+            "c.save(); "
+            f"ca = ContentArtifact(content=c, relative_path={filename!r}); "
+            "ca.save(); "
+            f"r = PythonRemote.objects.get(pk=extract_pk({remote.pulp_href!r})); "
+            f"ra = RemoteArtifact(content_artifact=ca, remote=r, sha256={ra_sha256!r}); "
+            "ra.save(); "
+            "print(get_url(c))"
+        )
+        process = subprocess.run(
+            ["pulpcore-manager", "shell", "-c", commands], capture_output=True
+        )
+
+        assert process.returncode == 0
+        content_href = process.stdout.decode().strip()
+        return python_bindings.ContentPackagesApi.read(content_href)
+
+    return _create
+
+
+@pytest.fixture
 def move_to_repository(python_bindings, monitor_task):
     def _move(repo_href, content_hrefs):
         body = {"add_content_units": content_hrefs}
@@ -84,6 +111,7 @@ def test_metadata_repair_command(
 
 def test_metadata_repair_endpoint(
     create_content_direct,
+    delete_orphans_pre,
     download_python_file,
     monitor_task,
     move_to_repository,
@@ -124,3 +152,104 @@ def test_metadata_repair_endpoint(
     assert content.packagetype == "sdist"
     assert content.requires_python == ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
     assert content.author == ""
+
+
+def test_metadata_repair_endpoint_on_demand(
+    create_content_remote,
+    delete_orphans_pre,
+    monitor_task,
+    move_to_repository,
+    python_bindings,
+    python_remote_factory,
+    python_repo_factory,
+):
+    """
+    Test repairing of package metadata via `Repositories.repair_metadata` endpoint
+    when only RemoteArtifacts are present.
+    """
+    # 1. Set up tested data
+    python_remote = python_remote_factory()
+    python_repo = python_repo_factory(remote=python_remote)
+
+    scipy_filename_1 = "scipy-1.1.0.tar.gz"
+    scipy_sha256_1 = "878352408424dffaa695ffedf2f9f92844e116686923ed9aa8626fc30d32cfd1"
+    scipy_data_1 = {
+        "name": "scipy",
+        "version": "1.1.0",
+        # Wrong metadata
+        "author": "ME",
+        "packagetype": "bdist",
+        "requires_python": ">=3.8",
+        "sha256": scipy_sha256_1,
+    }
+
+    scipy_filename_2 = "scipy-1.1.0-cp36-none-win32.whl"
+    scipy_sha256_2 = "0e9bb7efe5f051ea7212555b290e784b82f21ffd0f655405ac4f87e288b730b3"
+    scipy_data_2 = scipy_data_1.copy()
+    scipy_data_2["sha256"] = scipy_sha256_2
+
+    celery_filename_1 = "celery-2.4.1.tar.gz"
+    celery_sha256_1 = "c77652ca179d14473975822dbfb1b5dab950c88c171ef6bc2257ddb9066e6790"
+    celery_data_1 = {
+        "name": "celery",
+        "version": "2.4.1",
+        # Wrong metadata
+        "author": "ME",
+        "packagetype": "bdist",
+        "requires_python": ">=3.8",
+    }
+
+    celery_filename_2 = "celery-4.0.0.tar.gz"
+    celery_sha256_2 = "3e38a9a7f2868f774dffbb49e3afd2e56f57875deb06cb3ee3808f572601a8f0"
+    celery_data_2 = celery_data_1.copy()
+    celery_data_2["sha256"] = celery_sha256_2
+    celery_data_2["version"] = "4.0.0"
+
+    # 2. Create content and store its href
+    content_hrefs = {}
+    for filename, data, sha256 in [
+        (scipy_filename_1, scipy_data_1, scipy_sha256_1),
+        (scipy_filename_2, scipy_data_2, scipy_sha256_2),
+        (celery_filename_1, celery_data_1, celery_sha256_1),
+        (celery_filename_2, celery_data_2, celery_sha256_2),
+    ]:
+        content = create_content_remote(filename, data, sha256, python_remote)
+        for field, test_value in data.items():
+            assert getattr(content, field) == test_value
+            content_hrefs[filename] = content.pulp_href
+    move_to_repository(python_repo.pulp_href, list(content_hrefs.values()))
+
+    # 3. Repair metadata
+    response = python_bindings.RepositoriesPythonApi.repair_metadata(
+        python_repo.pulp_href
+    )
+    monitor_task(response.task)
+
+    # 4. Check newly created metadata
+    new_metadata = [
+        (
+            "scipy-1.1.0.tar.gz",
+            "",
+            "scipy",
+            "sdist",
+            ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
+            "1.1.0",
+        ),
+        (
+            "scipy-1.1.0-cp36-none-win32.whl",
+            "",
+            "scipy",
+            "bdist_wheel",
+            ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
+            "1.1.0",
+        ),
+        ("celery-2.4.1.tar.gz", "Ask Solem", "celery", "sdist", "", "2.4.1"),
+        ("celery-4.0.0.tar.gz", "Ask Solem", "celery", "sdist", "", "4.0.0"),
+    ]
+    for filename, author, name, packagetype, requires_python, version in new_metadata:
+        new_content = python_bindings.ContentPackagesApi.read(content_hrefs[filename])
+        assert new_content.author == author
+        assert new_content.name == name
+        assert new_content.packagetype == packagetype
+        assert new_content.requires_python == requires_python
+        assert new_content.version == version
