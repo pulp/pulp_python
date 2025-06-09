@@ -9,6 +9,7 @@ from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
 from packaging.version import parse, InvalidVersion
+from pulpcore.plugin.models import Remote
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -187,6 +188,37 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     data['pulp_domain'] = domain or artifact.pulp_domain
     data['_pulp_domain'] = data['pulp_domain']
     return data
+
+
+def fetch_json_release_metadata(name: str, version: str, remotes: set[Remote]) -> dict:
+    """
+    Fetches metadata for a specific release from PyPI's JSON API. A release can contain
+    multiple distributions. See https://docs.pypi.org/api/json/#get-a-release for more details.
+    All remotes should have the same URL.
+
+    Returns:
+        Dict containing "info", "last_serial", "urls", and "vulnerabilities" keys.
+    Raises:
+        Exception if fetching from all remote URLs fails.
+    """
+    remote = next(iter(remotes))
+    url = remote.get_remote_artifact_url(f"pypi/{name}/{version}/json")
+
+    result = None
+    for remote in remotes:
+        downloader = remote.get_downloader(url=url, max_retries=1)
+        try:
+            result = downloader.fetch()
+            break
+        except Exception:
+            continue
+
+    if result:
+        with open(result.path, "r") as file:
+            json_data = json.load(file)
+        return json_data
+    else:
+        raise Exception(f"Failed to fetch {url} from any remote.")
 
 
 def python_content_to_json(base_path, content_query, version=None, domain=None):
