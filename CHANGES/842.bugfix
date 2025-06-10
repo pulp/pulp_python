@@ -1,1 +1,0 @@
-Fixed pull-through caching not working for indexes that use relative URLs.

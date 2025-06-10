@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.15.1 (2025-06-10) {: #3.15.1 }
+
+#### Bugfixes {: #3.15.1-bugfix }
+
+- Fixed pull-through caching not working for indexes that use relative URLs.
+  [#842](https://github.com/pulp/pulp_python/issues/842)
+
+---
+
 ## 3.15.0 (2025-05-13) {: #3.15.0 }
 
 #### Features {: #3.15.0-feature }
