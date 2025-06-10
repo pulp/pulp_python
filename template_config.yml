@@ -23,7 +23,7 @@ docker_fixtures: false
 flake8: true
 flake8_ignore: []
 github_org: pulp
-latest_release_branch: '3.15'
+latest_release_branch: '3.16'
 lint_requirements: true
 os_required_packages: []
 parallel_test_workers: 8
