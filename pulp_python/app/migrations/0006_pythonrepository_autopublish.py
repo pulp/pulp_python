@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0005_pythonpackagecontent_sha256'),
+        ("python", "0005_pythonpackagecontent_sha256"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythonrepository',
-            name='autopublish',
+            model_name="pythonrepository",
+            name="autopublish",
             field=models.BooleanField(default=False),
         ),
     ]
