@@ -23,7 +23,9 @@ helper = textwrap.dedent(
     """
 )
 
-parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description=helper)
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter, description=helper
+)
 
 parser.add_argument(
     "release_version",

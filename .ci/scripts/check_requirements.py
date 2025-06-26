@@ -53,10 +53,14 @@ def main():
                     if line.startswith("git+"):
                         # The single exception...
                         if "pulp-smash" not in line:
-                            errors.append(f"{filename}:{nr}: Invalid source requirement: {line}")
+                            errors.append(
+                                f"{filename}:{nr}: Invalid source requirement: {line}"
+                            )
                     elif line.startswith("-r "):
                         if check_r:
-                            errors.append(f"{filename}:{nr}: Invalid deferred requirement: {line}")
+                            errors.append(
+                                f"{filename}:{nr}: Invalid deferred requirement: {line}"
+                            )
                     else:
                         errors.append(f"{filename}:{nr}: Unreadable requirement {line}")
                 else:
@@ -66,13 +70,19 @@ def main():
                             not req.name.startswith("opentelemetry")
                             and req.name != "pulp-python-client"
                         ):
-                            errors.append(f"{filename}:{nr}: Prerelease versions found in {line}.")
+                            errors.append(
+                                f"{filename}:{nr}: Prerelease versions found in {line}."
+                            )
                     ops = [spec.operator for spec in req.specifier]
                     if "~=" in ops:
-                        warnings.warn(f"{filename}:{nr}: Please avoid using ~= on {req.name}!")
+                        warnings.warn(
+                            f"{filename}:{nr}: Please avoid using ~= on {req.name}!"
+                        )
                     elif "<" not in ops and "<=" not in ops and "==" not in ops:
                         if check_upperbound:
-                            errors.append(f"{filename}:{nr}: Upper bound missing in {line}.")
+                            errors.append(
+                                f"{filename}:{nr}: Upper bound missing in {line}."
+                            )
         except FileNotFoundError:
             # skip this test for plugins that don't use this requirements.txt
             pass

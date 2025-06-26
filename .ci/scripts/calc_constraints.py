@@ -19,7 +19,9 @@ except ImportError:
     import tomli as tomllib
 
 
-CORE_TEMPLATE_URL = "https://raw.githubusercontent.com/pulp/pulpcore/main/template_config.yml"
+CORE_TEMPLATE_URL = (
+    "https://raw.githubusercontent.com/pulp/pulpcore/main/template_config.yml"
+)
 
 
 def fetch_pulpcore_upper_bound(requirement):
@@ -89,7 +91,9 @@ def to_lower_bound(req):
                     # TODO Semver libraries should be allowed too.
                     operator = "~="
                     if len(Version(min_version).release) != 3:
-                        raise RuntimeError("Pulpcore lower bound must be in the form '>=x.y.z'.")
+                        raise RuntimeError(
+                            "Pulpcore lower bound must be in the form '>=x.y.z'."
+                        )
                 else:
                     operator = "=="
                 return f"{requirement.name}{operator}{min_version}"
@@ -109,8 +113,14 @@ def main():
 
     modifier = to_upper_bound if args.upper else to_lower_bound
 
-    req_files = [filename for filename in args.filename if not filename.endswith("pyproject.toml")]
-    pyp_files = [filename for filename in args.filename if filename.endswith("pyproject.toml")]
+    req_files = [
+        filename
+        for filename in args.filename
+        if not filename.endswith("pyproject.toml")
+    ]
+    pyp_files = [
+        filename for filename in args.filename if filename.endswith("pyproject.toml")
+    ]
     if req_files:
         with fileinput.input(files=req_files) as req_file:
             for line in req_file:

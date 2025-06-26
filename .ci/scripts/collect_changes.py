@@ -40,7 +40,9 @@ DATE_REGEX = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
 TITLE_REGEX = (
     "("
     + re.escape(
-        TITLE_FORMAT.format(name="NAME_REGEX", version="VERSION_REGEX", project_date="DATE_REGEX")
+        TITLE_FORMAT.format(
+            name="NAME_REGEX", version="VERSION_REGEX", project_date="DATE_REGEX"
+        )
     )
     .replace("NAME_REGEX", NAME_REGEX)
     .replace("VERSION_REGEX", VERSION_CAPTURE_REGEX, 1)
@@ -65,13 +67,17 @@ def _tokenize_changes(splits):
 def split_changelog(changelog):
     preamble, rest = changelog.split(START_STRING, maxsplit=1)
     split_rest = re.split(TITLE_REGEX, rest)
-    return preamble + START_STRING + split_rest[0], list(_tokenize_changes(split_rest[1:]))
+    return preamble + START_STRING + split_rest[0], list(
+        _tokenize_changes(split_rest[1:])
+    )
 
 
 def main():
     repo = Repo(os.getcwd())
     remote = repo.remotes[0]
-    branches = [ref for ref in remote.refs if re.match(r"^([0-9]+)\.([0-9]+)$", ref.remote_head)]
+    branches = [
+        ref for ref in remote.refs if re.match(r"^([0-9]+)\.([0-9]+)$", ref.remote_head)
+    ]
     branches.sort(key=lambda ref: parse_version(ref.remote_head), reverse=True)
     branches = [ref.name for ref in branches]
 
