@@ -1,1 +1,1 @@
-default_app_config = 'pulp_python.app.PulpPythonPluginAppConfig'
+default_app_config = "pulp_python.app.PulpPythonPluginAppConfig"

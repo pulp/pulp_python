@@ -6,24 +6,47 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0012_add_domain'),
+        ("python", "0012_add_domain"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='pythondistribution',
-            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('manage_roles_pythondistribution', 'Can manage roles on python distributions')]},
+            name="pythondistribution",
+            options={
+                "default_related_name": "%(app_label)s_%(model_name)s",
+                "permissions": [
+                    ("manage_roles_pythondistribution", "Can manage roles on python distributions")
+                ],
+            },
         ),
         migrations.AlterModelOptions(
-            name='pythonpublication',
-            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('manage_roles_pythonpublication', 'Can manage roles on python publications')]},
+            name="pythonpublication",
+            options={
+                "default_related_name": "%(app_label)s_%(model_name)s",
+                "permissions": [
+                    ("manage_roles_pythonpublication", "Can manage roles on python publications")
+                ],
+            },
         ),
         migrations.AlterModelOptions(
-            name='pythonremote',
-            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('manage_roles_pythonremote', 'Can manage roles on python remotes')]},
+            name="pythonremote",
+            options={
+                "default_related_name": "%(app_label)s_%(model_name)s",
+                "permissions": [
+                    ("manage_roles_pythonremote", "Can manage roles on python remotes")
+                ],
+            },
         ),
         migrations.AlterModelOptions(
-            name='pythonrepository',
-            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('sync_pythonrepository', 'Can start a sync task'), ('modify_pythonrepository', 'Can modify content of the repository'), ('manage_roles_pythonrepository', 'Can manage roles on python repositories'), ('repair_pythonrepository', 'Can repair repository versions')]},
+            name="pythonrepository",
+            options={
+                "default_related_name": "%(app_label)s_%(model_name)s",
+                "permissions": [
+                    ("sync_pythonrepository", "Can start a sync task"),
+                    ("modify_pythonrepository", "Can modify content of the repository"),
+                    ("manage_roles_pythonrepository", "Can manage roles on python repositories"),
+                    ("repair_pythonrepository", "Can repair repository versions"),
+                ],
+            },
         ),
     ]
