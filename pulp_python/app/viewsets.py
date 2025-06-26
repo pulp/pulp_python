@@ -188,8 +188,7 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
                 "action": ["list", "retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition":
-                    "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                "condition": "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",  # noqa: E501
             },
             {
                 "action": ["destroy"],
