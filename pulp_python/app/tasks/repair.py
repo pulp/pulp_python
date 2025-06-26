@@ -34,9 +34,9 @@ def repair(repository_pk: UUID) -> None:
     repository = PythonRepository.objects.get(pk=repository_pk)
 
     log.info(
-        _(
-            "Repairing packages' metadata for the latest version of repository {}."
-        ).format(repository.name)
+        _("Repairing packages' metadata for the latest version of repository {}.").format(
+            repository.name
+        )
     )
     content_set = repository.latest_version().content.values_list("pk", flat=True)
     content = PythonPackageContent.objects.filter(pk__in=content_set)
@@ -94,9 +94,7 @@ def repair_metadata(content: QuerySet[PythonPackageContent]) -> tuple[int, set[s
     )
     progress_report.save()
     with progress_report:
-        for package in progress_report.iter(
-            immediate_content.iterator(chunk_size=BULK_SIZE)
-        ):
+        for package in progress_report.iter(immediate_content.iterator(chunk_size=BULK_SIZE)):
             new_data = artifact_to_python_content_data(
                 package.filename, package._artifacts.get(), domain
             )

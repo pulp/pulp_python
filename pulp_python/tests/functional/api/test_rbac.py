@@ -238,7 +238,7 @@ def test_pypi_apis(
     python_distribution_factory,
     anonymous_user,
     download_python_file,
-    try_action
+    try_action,
 ):
     alice, bob, charlie = gen_users(["pythonrepository", "pythondistribution"])
     with bob:

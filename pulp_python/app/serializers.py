@@ -44,15 +44,14 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     )
     base_url = serializers.SerializerMethodField(read_only=True)
     allow_uploads = serializers.BooleanField(
-        default=True,
-        help_text=_("Allow packages to be uploaded to this index.")
+        default=True, help_text=_("Allow packages to be uploaded to this index.")
     )
     remote = core_serializers.DetailRelatedField(
         required=False,
-        help_text=_('Remote that can be used to fetch content when using pull-through caching.'),
+        help_text=_("Remote that can be used to fetch content when using pull-through caching."),
         view_name_pattern=r"remotes(-.*/.*)?-detail",
         queryset=core_models.Remote.objects.all(),
-        allow_null=True
+        allow_null=True,
     )
 
     def get_base_url(self, obj):
@@ -63,7 +62,9 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
 
     class Meta:
         fields = core_serializers.DistributionSerializer.Meta.fields + (
-            'publication', "allow_uploads", "remote"
+            "publication",
+            "allow_uploads",
+            "remote",
         )
         model = python_models.PythonDistribution
 
@@ -72,159 +73,202 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     """
     A Serializer for PythonPackageContent.
     """
+
     # Core metadata
     # Version 1.0
     author = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Text containing the author\'s name. Contact information can also be added,'
-                    ' separated with newlines.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "Text containing the author's name. Contact information can also be added,"
+            " separated with newlines."
+        ),
     )
     author_email = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('The author\'s e-mail address. ')
+        required=False, allow_blank=True, help_text=_("The author's e-mail address. ")
     )
     description = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A longer description of the package that can run to several paragraphs.')
+        required=False,
+        allow_blank=True,
+        help_text=_("A longer description of the package that can run to several paragraphs."),
     )
     home_page = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('The URL for the package\'s home page.')
+        required=False, allow_blank=True, help_text=_("The URL for the package's home page.")
     )
     keywords = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Additional keywords to be used to assist searching for the '
-                    'package in a larger catalog.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "Additional keywords to be used to assist searching for the "
+            "package in a larger catalog."
+        ),
     )
     license = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Text indicating the license covering the distribution')
+        required=False,
+        allow_blank=True,
+        help_text=_("Text indicating the license covering the distribution"),
     )
     metadata_version = serializers.CharField(
-        help_text=_('Version of the file format'),
+        help_text=_("Version of the file format"),
         read_only=True,
     )
     name = serializers.CharField(
-        help_text=_('The name of the python project.'),
+        help_text=_("The name of the python project."),
         read_only=True,
     )
     platform = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A comma-separated list of platform specifications, '
-                    'summarizing the operating systems supported by the package.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "A comma-separated list of platform specifications, "
+            "summarizing the operating systems supported by the package."
+        ),
     )
     summary = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A one-line summary of what the package does.')
+        required=False,
+        allow_blank=True,
+        help_text=_("A one-line summary of what the package does."),
     )
     version = serializers.CharField(
-        help_text=_('The packages version number.'),
+        help_text=_("The packages version number."),
         read_only=True,
     )
     # Version 1.1
     classifiers = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing classification values for a Python package.')
+        required=False,
+        default=list,
+        help_text=_("A JSON list containing classification values for a Python package."),
     )
     download_url = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Legacy field denoting the URL from which this package can be downloaded.')
+        required=False,
+        allow_blank=True,
+        help_text=_("Legacy field denoting the URL from which this package can be downloaded."),
     )
     supported_platform = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Field to specify the OS and CPU for which the binary package was compiled. ')
+        required=False,
+        allow_blank=True,
+        help_text=_("Field to specify the OS and CPU for which the binary package was compiled. "),
     )
     # Version 1.2
     maintainer = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('The maintainer\'s name at a minimum; '
-                    'additional contact information may be provided.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "The maintainer's name at a minimum; " "additional contact information may be provided."
+        ),
     )
     maintainer_email = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('The maintainer\'s e-mail address.')
+        required=False, allow_blank=True, help_text=_("The maintainer's e-mail address.")
     )
     obsoletes_dist = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of a distutils project\'s distribution which '
-                    'this distribution renders obsolete, meaning that the two projects should not '
-                    'be installed at the same time.')
+        required=False,
+        default=list,
+        help_text=_(
+            "A JSON list containing names of a distutils project's distribution which "
+            "this distribution renders obsolete, meaning that the two projects should not "
+            "be installed at the same time."
+        ),
     )
     project_url = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A browsable URL for the project and a label for it, separated by a comma.')
+        required=False,
+        allow_blank=True,
+        help_text=_("A browsable URL for the project and a label for it, separated by a comma."),
     )
     project_urls = serializers.JSONField(
-        required=False, default=dict,
-        help_text=_('A dictionary of labels and URLs for the project.')
+        required=False,
+        default=dict,
+        help_text=_("A dictionary of labels and URLs for the project."),
     )
     provides_dist = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of a Distutils project which is contained'
-                    ' within this distribution.')
+        required=False,
+        default=list,
+        help_text=_(
+            "A JSON list containing names of a Distutils project which is contained"
+            " within this distribution."
+        ),
     )
     requires_external = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing some dependency in the system that the distribution '
-                    'is to be used.')
+        required=False,
+        default=list,
+        help_text=_(
+            "A JSON list containing some dependency in the system that the distribution "
+            "is to be used."
+        ),
     )
     requires_dist = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of some other distutils project '
-                    'required by this distribution.')
+        required=False,
+        default=list,
+        help_text=_(
+            "A JSON list containing names of some other distutils project "
+            "required by this distribution."
+        ),
     )
     requires_python = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('The Python version(s) that the distribution is guaranteed to be '
-                    'compatible with.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "The Python version(s) that the distribution is guaranteed to be " "compatible with."
+        ),
     )
     # Version 2.1
     description_content_type = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('A string stating the markup syntax (if any) used in the distribution’s'
-                    ' description, so that tools can intelligently render the description.')
+        required=False,
+        allow_blank=True,
+        help_text=_(
+            "A string stating the markup syntax (if any) used in the distribution’s"
+            " description, so that tools can intelligently render the description."
+        ),
     )
     provides_extras = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of optional features provided by the package.')
+        required=False,
+        default=list,
+        help_text=_("A JSON list containing names of optional features provided by the package."),
     )
     # Version 2.2
     dynamic = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of other core metadata fields which are '
-                    'permitted to vary between sdist and bdist packages. Fields NOT marked '
-                    'dynamic MUST be the same between bdist and sdist.')
+        required=False,
+        default=list,
+        help_text=_(
+            "A JSON list containing names of other core metadata fields which are "
+            "permitted to vary between sdist and bdist packages. Fields NOT marked "
+            "dynamic MUST be the same between bdist and sdist."
+        ),
     )
     # Version 2.4
     license_expression = serializers.CharField(
-        required=False, allow_blank=True,
-        help_text=_('Text string that is a valid SPDX license expression.')
+        required=False,
+        allow_blank=True,
+        help_text=_("Text string that is a valid SPDX license expression."),
     )
     license_file = serializers.JSONField(
-        required=False, default=list,
-        help_text=_('A JSON list containing names of the paths to license-related files.')
+        required=False,
+        default=list,
+        help_text=_("A JSON list containing names of the paths to license-related files."),
     )
     # Release metadata
     filename = serializers.CharField(
-        help_text=_('The name of the distribution package, usually of the format:'
-                    ' {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}'
-                    '-{platform tag}.{packagetype}'),
+        help_text=_(
+            "The name of the distribution package, usually of the format:"
+            " {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}"
+            "-{platform tag}.{packagetype}"
+        ),
         read_only=True,
     )
     packagetype = serializers.CharField(
-        help_text=_('The type of the distribution package '
-                    '(e.g. sdist, bdist_wheel, bdist_egg, etc)'),
+        help_text=_(
+            "The type of the distribution package " "(e.g. sdist, bdist_wheel, bdist_egg, etc)"
+        ),
         read_only=True,
     )
     python_version = serializers.CharField(
         help_text=_(
-            'The tag that indicates which Python implementation or version the package requires.'
+            "The tag that indicates which Python implementation or version the package requires."
         ),
         read_only=True,
     )
     sha256 = serializers.CharField(
-        default='',
-        help_text=_('The SHA256 digest of this package.'),
+        default="",
+        help_text=_("The SHA256 digest of this package."),
     )
 
     def deferred_validate(self, data):
@@ -243,22 +287,26 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         try:
             filename = data["relative_path"]
         except KeyError:
-            raise serializers.ValidationError(detail={"relative_path": _('This field is required')})
+            raise serializers.ValidationError(detail={"relative_path": _("This field is required")})
 
         artifact = data["artifact"]
         try:
             _data = artifact_to_python_content_data(filename, artifact, domain=get_domain())
         except ValueError:
-            raise serializers.ValidationError(_(
-                "Extension on {} is not a valid python extension "
-                "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(filename)
+            raise serializers.ValidationError(
+                _(
+                    "Extension on {} is not a valid python extension "
+                    "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
+                ).format(filename)
             )
 
         if data.get("sha256") and data["sha256"] != artifact.sha256:
             raise serializers.ValidationError(
-                detail={"sha256": _(
-                    "The uploaded artifact's sha256 checksum does not match the one provided"
-                )}
+                detail={
+                    "sha256": _(
+                        "The uploaded artifact's sha256 checksum does not match the one provided"
+                    )
+                }
             )
 
         data.update(_data)
@@ -273,13 +321,38 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
-            'author', 'author_email', 'description', 'home_page', 'keywords', 'license',
-            'metadata_version', 'name', 'platform', 'summary', 'version', 'classifiers',
-            'download_url', 'supported_platform', 'maintainer', 'maintainer_email',
-            'obsoletes_dist', 'project_url', 'project_urls', 'provides_dist', 'requires_external',
-            'requires_dist', 'requires_python', 'description_content_type',
-            'provides_extras', 'dynamic', 'license_expression', 'license_file',
-            'filename', 'packagetype', 'python_version', 'sha256'
+            "author",
+            "author_email",
+            "description",
+            "home_page",
+            "keywords",
+            "license",
+            "metadata_version",
+            "name",
+            "platform",
+            "summary",
+            "version",
+            "classifiers",
+            "download_url",
+            "supported_platform",
+            "maintainer",
+            "maintainer_email",
+            "obsoletes_dist",
+            "project_url",
+            "project_urls",
+            "provides_dist",
+            "requires_external",
+            "requires_dist",
+            "requires_python",
+            "description_content_type",
+            "provides_extras",
+            "dynamic",
+            "license_expression",
+            "license_file",
+            "filename",
+            "packagetype",
+            "python_version",
+            "sha256",
         )
         model = python_models.PythonPackageContent
 
@@ -291,7 +364,11 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
-            'filename', 'packagetype', 'name', 'version', 'sha256',
+            "filename",
+            "packagetype",
+            "name",
+            "version",
+            "sha256",
         )
         model = python_models.PythonPackageContent
 
@@ -315,47 +392,49 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         child=serializers.CharField(allow_blank=False),
         required=False,
         allow_empty=True,
-        help_text=_(
-            "A list containing project specifiers for Python packages to include."
-        ),
+        help_text=_("A list containing project specifiers for Python packages to include."),
     )
     excludes = serializers.ListField(
         child=serializers.CharField(allow_blank=False),
         required=False,
         allow_empty=True,
-        help_text=_(
-            "A list containing project specifiers for Python packages to exclude."
-        ),
+        help_text=_("A list containing project specifiers for Python packages to exclude."),
     )
     prereleases = serializers.BooleanField(
-        required=False,
-        help_text=_('Whether or not to include pre-release packages in the sync.')
+        required=False, help_text=_("Whether or not to include pre-release packages in the sync.")
     )
     policy = serializers.ChoiceField(
-        help_text=_("The policy to use when downloading content. The possible values include: "
-                    "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."),
+        help_text=_(
+            "The policy to use when downloading content. The possible values include: "
+            "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."
+        ),
         choices=core_models.Remote.POLICY_CHOICES,
-        default=core_models.Remote.ON_DEMAND
+        default=core_models.Remote.ON_DEMAND,
     )
     package_types = MultipleChoiceArrayField(
         required=False,
-        help_text=_("The package types to sync for Python content. Leave blank to get every"
-                    "package type."),
+        help_text=_(
+            "The package types to sync for Python content. Leave blank to get every" "package type."
+        ),
         choices=python_models.PACKAGE_TYPES,
-        default=list
+        default=list,
     )
     keep_latest_packages = serializers.IntegerField(
         required=False,
-        help_text=_("The amount of latest versions of a package to keep on sync, includes"
-                    "pre-releases if synced. Default 0 keeps all versions."),
-        default=0
+        help_text=_(
+            "The amount of latest versions of a package to keep on sync, includes"
+            "pre-releases if synced. Default 0 keeps all versions."
+        ),
+        default=0,
     )
     exclude_platforms = MultipleChoiceArrayField(
         required=False,
-        help_text=_("List of platforms to exclude syncing Python packages for. Possible values"
-                    "include: windows, macos, freebsd, and linux."),
+        help_text=_(
+            "List of platforms to exclude syncing Python packages for. Possible values"
+            "include: windows, macos, freebsd, and linux."
+        ),
         choices=python_models.PLATFORMS,
-        default=list
+        default=list,
     )
 
     def validate_includes(self, value):
@@ -382,7 +461,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
 
     class Meta:
         fields = core_serializers.RemoteSerializer.Meta.fields + (
-            "includes", "excludes", "prereleases", "package_types", "keep_latest_packages",
+            "includes",
+            "excludes",
+            "prereleases",
+            "package_types",
+            "keep_latest_packages",
             "exclude_platforms",
         )
         model = python_models.PythonRemote
@@ -404,10 +487,12 @@ class PythonBanderRemoteSerializer(serializers.Serializer):
     )
 
     policy = serializers.ChoiceField(
-        help_text=_("The policy to use when downloading content. The possible values include: "
-                    "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."),
+        help_text=_(
+            "The policy to use when downloading content. The possible values include: "
+            "'immediate', 'on_demand', and 'streamed'. 'on_demand' is the default."
+        ),
         choices=core_models.Remote.POLICY_CHOICES,
-        default=core_models.Remote.ON_DEMAND
+        default=core_models.Remote.ON_DEMAND,
     )
 
 
@@ -417,8 +502,9 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     """
 
     distributions = core_serializers.DetailRelatedField(
-        help_text=_('This publication is currently being hosted as configured by these '
-                    'distributions.'),
+        help_text=_(
+            "This publication is currently being hosted as configured by these " "distributions."
+        ),
         source="distribution_set",
         view_name="pythondistributions-detail",
         many=True,
@@ -426,5 +512,5 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     )
 
     class Meta:
-        fields = core_serializers.PublicationSerializer.Meta.fields + ('distributions',)
+        fields = core_serializers.PublicationSerializer.Meta.fields + ("distributions",)
         model = python_models.PythonPublication

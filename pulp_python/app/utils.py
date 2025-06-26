@@ -60,10 +60,12 @@ DIST_REGEXES = {
         r"""^(?P<name>.+?)-(?P<version>.*?)
         ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
-        re.VERBOSE
+        re.VERBOSE,
     ),
     # regex based on https://setuptools.pypa.io/en/latest/deprecated/python_eggs.html#filename-embedded-metadata  # noqa: E501
-    ".egg": re.compile(r"^(?P<name>.+?)-(?P<version>.*?)(-(?P<pyver>.+?(-(?P<plat>.+?))?))?\.egg|\.egg-info$"),  # noqa: E501
+    ".egg": re.compile(
+        r"^(?P<name>.+?)-(?P<version>.*?)(-(?P<pyver>.+?(-(?P<plat>.+?))?))?\.egg|\.egg-info$"
+    ),  # noqa: E501
     # regex based on https://github.com/python/cpython/blob/v3.7.0/Lib/distutils/command/bdist_wininst.py#L292  # noqa: E501
     ".exe": re.compile(r"^(?P<name>.+?)-(?P<version>.*?)\.(?P<plat>.+?)(-(?P<pyver>.+?))?\.exe$"),
 }
@@ -90,42 +92,42 @@ def parse_project_metadata(project):
     return {
         # Core metadata
         # Version 1.0
-        'author': project.get('author') or "",
-        'author_email': project.get('author_email') or "",
-        'description': project.get('description') or "",
-        'home_page': project.get('home_page') or "",
-        'keywords': project.get('keywords') or "",
-        'license': project.get('license') or "",
-        'metadata_version': project.get('metadata_version') or "",
-        'name': project.get('name') or "",
-        'platform': project.get('platform') or "",
-        'summary': project.get('summary') or "",
-        'version': project.get('version') or "",
+        "author": project.get("author") or "",
+        "author_email": project.get("author_email") or "",
+        "description": project.get("description") or "",
+        "home_page": project.get("home_page") or "",
+        "keywords": project.get("keywords") or "",
+        "license": project.get("license") or "",
+        "metadata_version": project.get("metadata_version") or "",
+        "name": project.get("name") or "",
+        "platform": project.get("platform") or "",
+        "summary": project.get("summary") or "",
+        "version": project.get("version") or "",
         # Version 1.1
-        'classifiers': json.dumps(project.get('classifiers', [])),
-        'download_url': project.get('download_url') or "",
-        'supported_platform': project.get('supported_platform') or "",
+        "classifiers": json.dumps(project.get("classifiers", [])),
+        "download_url": project.get("download_url") or "",
+        "supported_platform": project.get("supported_platform") or "",
         # Version 1.2
-        'maintainer': project.get('maintainer') or "",
-        'maintainer_email': project.get('maintainer_email') or "",
-        'obsoletes_dist': json.dumps(project.get('obsoletes_dist', [])),
-        'project_url': project.get('project_url') or "",
-        'project_urls': json.dumps(project.get('project_urls', {})),
-        'provides_dist': json.dumps(project.get('provides_dist', [])),
-        'requires_external': json.dumps(project.get('requires_external', [])),
-        'requires_dist': json.dumps(project.get('requires_dist', [])),
-        'requires_python': project.get('requires_python') or "",
+        "maintainer": project.get("maintainer") or "",
+        "maintainer_email": project.get("maintainer_email") or "",
+        "obsoletes_dist": json.dumps(project.get("obsoletes_dist", [])),
+        "project_url": project.get("project_url") or "",
+        "project_urls": json.dumps(project.get("project_urls", {})),
+        "provides_dist": json.dumps(project.get("provides_dist", [])),
+        "requires_external": json.dumps(project.get("requires_external", [])),
+        "requires_dist": json.dumps(project.get("requires_dist", [])),
+        "requires_python": project.get("requires_python") or "",
         # Version 2.1
-        'description_content_type': project.get('description_content_type') or "",
-        'provides_extras': json.dumps(project.get('provides_extras', [])),
+        "description_content_type": project.get("description_content_type") or "",
+        "provides_extras": json.dumps(project.get("provides_extras", [])),
         # Version 2.2
-        'dynamic': json.dumps(project.get('dynamic', [])),
+        "dynamic": json.dumps(project.get("dynamic", [])),
         # Version 2.4
-        'license_expression': project.get('license_expression') or "",
-        'license_file': json.dumps(project.get('license_file', [])),
+        "license_expression": project.get("license_expression") or "",
+        "license_file": json.dumps(project.get("license_file", [])),
         # Release metadata
-        'packagetype': project.get('packagetype') or "",
-        'python_version': project.get('python_version') or "",
+        "packagetype": project.get("packagetype") or "",
+        "python_version": project.get("python_version") or "",
     }
 
 
@@ -147,13 +149,15 @@ def parse_metadata(project, version, distribution):
     """
     package = parse_project_metadata(project)
 
-    package['filename'] = distribution.get('filename') or ""
-    package['packagetype'] = distribution.get('packagetype') or ""
-    package['version'] = version
-    package['url'] = distribution.get('url') or ""
-    package['sha256'] = distribution.get('digests', {}).get('sha256') or ""
-    package['python_version'] = distribution.get('python_version') or package.get('python_version')
-    package['requires_python'] = distribution.get('requires_python') or package.get('requires_python')  # noqa: E501
+    package["filename"] = distribution.get("filename") or ""
+    package["packagetype"] = distribution.get("packagetype") or ""
+    package["version"] = version
+    package["url"] = distribution.get("url") or ""
+    package["sha256"] = distribution.get("digests", {}).get("sha256") or ""
+    package["python_version"] = distribution.get("python_version") or package.get("python_version")
+    package["requires_python"] = distribution.get("requires_python") or package.get(
+        "requires_python"
+    )  # noqa: E501
 
     return package
 
@@ -172,7 +176,7 @@ def get_project_metadata_from_artifact(filename, artifact):
     # Copy file to a temp directory under the user provided filename, we do this
     # because pkginfo validates that the filename has a valid extension before
     # reading it
-    with tempfile.NamedTemporaryFile('wb', dir=".", suffix=filename) as temp_file:
+    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
         shutil.copyfileobj(artifact.file, temp_file)
         temp_file.flush()
         metadata = DIST_TYPES[packagetype](temp_file.name)
@@ -194,10 +198,10 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     """
     metadata = get_project_metadata_from_artifact(filename, artifact)
     data = parse_project_metadata(vars(metadata))
-    data['sha256'] = artifact.sha256
-    data['filename'] = filename
-    data['pulp_domain'] = domain or artifact.pulp_domain
-    data['_pulp_domain'] = data['pulp_domain']
+    data["sha256"] = artifact.sha256
+    data["filename"] = filename
+    data["pulp_domain"] = domain or artifact.pulp_domain
+    data["_pulp_domain"] = data["pulp_domain"]
     return data
 
 
@@ -355,10 +359,12 @@ def python_content_to_download_info(content, base_path, domain=None):
     Takes in a PythonPackageContent and base path of the distribution to create a dictionary of
     download information for that content. This dictionary is used by Releases and Urls.
     """
+
     def find_artifact():
         _art = content_artifact.artifact
         if not _art:
             from pulpcore.plugin import models
+
             _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
         return _art
 
@@ -389,7 +395,7 @@ def python_content_to_download_info(content, base_path, domain=None):
         "upload_time_iso_8601": str(content.pulp_created.isoformat()),
         "url": url,
         "yanked": False,
-        "yanked_reason": None
+        "yanked_reason": None,
     }
 
 

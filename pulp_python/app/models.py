@@ -150,6 +150,7 @@ class PythonPackageContent(Content):
         https://packaging.python.org/en/latest/specifications/source-distribution-format/
         https://packaging.python.org/en/latest/specifications/binary-distribution-format/
     """
+
     # Core metadata
     # Version 1.0
     author = models.TextField()
@@ -195,9 +196,7 @@ class PythonPackageContent(Content):
     # From pulpcore
     PROTECTED_FROM_RECLAIM = False
     TYPE = "python"
-    _pulp_domain = models.ForeignKey(
-        "core.Domain", default=get_domain_pk, on_delete=models.PROTECT
-    )
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     name.register_lookup(NormalizeName)
     repo_key_fields = ("filename",)
 

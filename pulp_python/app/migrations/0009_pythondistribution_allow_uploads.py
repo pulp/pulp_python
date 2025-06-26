@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0008_pythonpackagecontent_unique_sha256'),
+        ("python", "0008_pythonpackagecontent_unique_sha256"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythondistribution',
-            name='allow_uploads',
+            model_name="pythondistribution",
+            name="allow_uploads",
             field=models.BooleanField(default=True),
         ),
     ]

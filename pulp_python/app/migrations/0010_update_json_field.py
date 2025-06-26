@@ -6,48 +6,48 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0009_pythondistribution_allow_uploads'),
+        ("python", "0009_pythondistribution_allow_uploads"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='classifiers',
+            model_name="pythonpackagecontent",
+            name="classifiers",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='obsoletes_dist',
+            model_name="pythonpackagecontent",
+            name="obsoletes_dist",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='project_urls',
+            model_name="pythonpackagecontent",
+            name="project_urls",
             field=models.JSONField(default=dict),
         ),
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='provides_dist',
+            model_name="pythonpackagecontent",
+            name="provides_dist",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='requires_dist',
+            model_name="pythonpackagecontent",
+            name="requires_dist",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonpackagecontent',
-            name='requires_external',
+            model_name="pythonpackagecontent",
+            name="requires_external",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonremote',
-            name='excludes',
+            model_name="pythonremote",
+            name="excludes",
             field=models.JSONField(default=list),
         ),
         migrations.AlterField(
-            model_name='pythonremote',
-            name='includes',
+            model_name="pythonremote",
+            name="includes",
             field=models.JSONField(default=list),
         ),
     ]

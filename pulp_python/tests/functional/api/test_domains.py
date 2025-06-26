@@ -72,7 +72,9 @@ def test_domain_object_creation(
 
     with pytest.raises(python_bindings.ApiException) as e:
         distro_body = {
-            "name": str(uuid.uuid4()), "base_path": str(uuid.uuid4()), "repository": repo.pulp_href
+            "name": str(uuid.uuid4()),
+            "base_path": str(uuid.uuid4()),
+            "repository": repo.pulp_href,
         }
         python_bindings.DistributionsPypiApi.create(distro_body)
     assert e.value.status == 400

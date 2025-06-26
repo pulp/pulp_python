@@ -5,9 +5,9 @@ import django.db.models.deletion
 
 
 def migrate_data_from_old_model_to_new_model_up(apps, schema_editor):
-    """ Move objects from PythonDistribution to NewPythonDistribution."""
-    PythonDistribution = apps.get_model('python', 'PythonDistribution')
-    NewPythonDistribution = apps.get_model('python', 'NewPythonDistribution')
+    """Move objects from PythonDistribution to NewPythonDistribution."""
+    PythonDistribution = apps.get_model("python", "PythonDistribution")
+    NewPythonDistribution = apps.get_model("python", "NewPythonDistribution")
     for python_distribution in PythonDistribution.objects.all():
         with transaction.atomic():
             NewPythonDistribution(
@@ -19,15 +19,15 @@ def migrate_data_from_old_model_to_new_model_up(apps, schema_editor):
                 base_path=python_distribution.base_path,
                 content_guard=python_distribution.content_guard,
                 remote=python_distribution.remote,
-                publication=python_distribution.publication
+                publication=python_distribution.publication,
             ).save()
             python_distribution.delete()
 
 
 def migrate_data_from_old_model_to_new_model_down(apps, schema_editor):
-    """ Move objects from NewPythonDistribution to PythonDistribution."""
-    PythonDistribution = apps.get_model('python', 'PythonDistribution')
-    NewPythonDistribution = apps.get_model('python', 'NewPythonDistribution')
+    """Move objects from NewPythonDistribution to PythonDistribution."""
+    PythonDistribution = apps.get_model("python", "PythonDistribution")
+    NewPythonDistribution = apps.get_model("python", "NewPythonDistribution")
     for python_distribution in NewPythonDistribution.objects.all():
         with transaction.atomic():
             PythonDistribution(
@@ -39,7 +39,7 @@ def migrate_data_from_old_model_to_new_model_down(apps, schema_editor):
                 base_path=python_distribution.base_path,
                 content_guard=python_distribution.content_guard,
                 remote=python_distribution.remote,
-                publication=python_distribution.publication
+                publication=python_distribution.publication,
             ).save()
             python_distribution.delete()
 
@@ -48,29 +48,40 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('python', '0003_new_sync_filters'),
+        ("python", "0003_new_sync_filters"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NewPythonDistribution',
+            name="NewPythonDistribution",
             fields=[
-                ('distribution_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, related_name='python_pythondistribution', serialize=False, to='core.Distribution')),
+                (
+                    "distribution_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        related_name="python_pythondistribution",
+                        serialize=False,
+                        to="core.Distribution",
+                    ),
+                ),
             ],
             options={
-                'default_related_name': '%(app_label)s_%(model_name)s',
+                "default_related_name": "%(app_label)s_%(model_name)s",
             },
-            bases=('core.distribution',),
+            bases=("core.distribution",),
         ),
         migrations.RunPython(
             code=migrate_data_from_old_model_to_new_model_up,
             reverse_code=migrate_data_from_old_model_to_new_model_down,
         ),
         migrations.DeleteModel(
-            name='PythonDistribution',
+            name="PythonDistribution",
         ),
         migrations.RenameModel(
-            old_name='NewPythonDistribution',
-            new_name='PythonDistribution',
+            old_name="NewPythonDistribution",
+            new_name="PythonDistribution",
         ),
     ]
