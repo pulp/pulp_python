@@ -16,6 +16,7 @@ def ensure_simple(simple_url, packages, sha_digests=None):
     in the simple index and thus be accessible from the distribution, but if one can't see it
     how would one know that it's there?*
     """
+
     def explore_links(page_url, page_name, links_found, msgs):
         legit_found_links = []
         page = html.fromstring(requests.get(page_url).text)
@@ -48,8 +49,16 @@ def ensure_simple(simple_url, packages, sha_digests=None):
             package = package_link.split("/")[-1]
             if sha_digests[package] != sha:
                 msgs += f"\nRelease has bad sha256 attached to it {package}"
-    msgs += "".join(map(lambda x: f"\nSimple link not found for {x}",
-                        [name for name, val in packages_found.items() if not val]))
-    msgs += "".join(map(lambda x: f"\nReleases link not found for {x}",
-                        [name for name, val in releases_found.items() if not val]))
+    msgs += "".join(
+        map(
+            lambda x: f"\nSimple link not found for {x}",
+            [name for name, val in packages_found.items() if not val],
+        )
+    )
+    msgs += "".join(
+        map(
+            lambda x: f"\nReleases link not found for {x}",
+            [name for name, val in releases_found.items() if not val],
+        )
+    )
     return len(msgs) == 0, msgs
