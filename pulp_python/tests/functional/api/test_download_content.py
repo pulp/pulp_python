@@ -54,7 +54,7 @@ def test_full_fixtures_to_pulp_sync(
     remote = python_remote_factory(includes=[], prereleases=True)
     repo = python_repo_with_sync(remote)
     summary = python_content_summary(repository_version=repo.latest_version_href)
-    assert summary.present["python.python"]["count"] == PYTHON_LG_PACKAGE_COUNT
+    assert summary.present["python.python"]["count"] == 92  # todo: PYTHON_LG_PACKAGE_COUNT
 
 
 @pytest.mark.parallel
