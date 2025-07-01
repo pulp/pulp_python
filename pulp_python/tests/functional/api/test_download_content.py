@@ -14,6 +14,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_LG_FIXTURE_SUMMARY,
+    PYTHON_LG_FIXTURE_PRERELEASES_SUMMARY,
     PYTHON_LG_PROJECT_SPECIFIER,
 )
 from pulp_python.tests.functional.utils import (
@@ -126,7 +127,9 @@ class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
         """
         remote = self._create_remote(includes=[], prereleases=True)
         repo = self._create_repo_and_sync_with_remote(remote)
-        self.assertEqual(get_content_summary(repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
+        self.assertEqual(
+            get_content_summary(repo.to_dict()), PYTHON_LG_FIXTURE_PRERELEASES_SUMMARY
+        )
 
     def test_full_pulp_to_pulp_sync(self):
         """

@@ -145,14 +145,16 @@ PYTHON_LG_PROJECT_SPECIFIER = [
     "celery",  # matches 13
     "Django",  # matches 31
     "scipy",  # matches 23
+    "setuptools",  # matches 2
     "shelf-reader",  # matches 2
 ]
-PYTHON_LG_PACKAGE_COUNT = 76
+PYTHON_LG_PACKAGE_COUNT = 78
 PYTHON_LG_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT}
+PYTHON_LG_FIXTURE_PRERELEASES_SUMMARY = {PYTHON_CONTENT_NAME: 92}
 PYTHON_LG_FIXTURE_COUNTS = {
-    "latest_3": 35,
-    "sdist": 23,
-    "bdist_wheel": 53,
+    "latest_3": 37,
+    "sdist": 24,
+    "bdist_wheel": 54,
 }
 
 DJANGO_LATEST_3 = 4  # latest version has 2 dists, each other has 1
