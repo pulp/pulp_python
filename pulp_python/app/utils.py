@@ -87,35 +87,40 @@ def parse_project_metadata(project):
         dictionary: of python project metadata
 
     """
-    package = {}
-    package['name'] = project.get('name') or ""
-    package['version'] = project.get('version') or ""
-    package['packagetype'] = project.get('packagetype') or ""
-    package['metadata_version'] = project.get('metadata_version') or ""
-    package['summary'] = project.get('summary') or ""
-    package['description'] = project.get('description') or ""
-    package['keywords'] = project.get('keywords') or ""
-    package['home_page'] = project.get('home_page') or ""
-    package['download_url'] = project.get('download_url') or ""
-    package['author'] = project.get('author') or ""
-    package['author_email'] = project.get('author_email') or ""
-    package['maintainer'] = project.get('maintainer') or ""
-    package['maintainer_email'] = project.get('maintainer_email') or ""
-    package['license'] = project.get('license') or ""
-    package['project_url'] = project.get('project_url') or ""
-    package['platform'] = project.get('platform') or ""
-    package['supported_platform'] = project.get('supported_platform') or ""
-    package['requires_python'] = project.get('requires_python') or ""
-    package['requires_dist'] = json.dumps(project.get('requires_dist', []))
-    package['provides_dist'] = json.dumps(project.get('provides_dist', []))
-    package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
-    package['requires_external'] = json.dumps(project.get('requires_external', []))
-    package['classifiers'] = json.dumps(project.get('classifiers', []))
-    package['project_urls'] = json.dumps(project.get('project_urls', {}))
-    package['description_content_type'] = project.get('description_content_type') or ""
-    package['python_version'] = project.get('python_version') or ""
-
-    return package
+    return {
+        # Core metadata
+        # Version 1.0
+        'author': project.get('author') or "",
+        'author_email': project.get('author_email') or "",
+        'description': project.get('description') or "",
+        'home_page': project.get('home_page') or "",
+        'keywords': project.get('keywords') or "",
+        'license': project.get('license') or "",
+        'metadata_version': project.get('metadata_version') or "",
+        'name': project.get('name') or "",
+        'platform': project.get('platform') or "",
+        'summary': project.get('summary') or "",
+        'version': project.get('version') or "",
+        # Version 1.1
+        'classifiers': json.dumps(project.get('classifiers', [])),
+        'download_url': project.get('download_url') or "",
+        'supported_platform': project.get('supported_platform') or "",
+        # Version 1.2
+        'maintainer': project.get('maintainer') or "",
+        'maintainer_email': project.get('maintainer_email') or "",
+        'obsoletes_dist': json.dumps(project.get('obsoletes_dist', [])),
+        'project_url': project.get('project_url') or "",
+        'project_urls': json.dumps(project.get('project_urls', {})),
+        'provides_dist': json.dumps(project.get('provides_dist', [])),
+        'requires_external': json.dumps(project.get('requires_external', [])),
+        'requires_dist': json.dumps(project.get('requires_dist', [])),
+        'requires_python': project.get('requires_python') or "",
+        # Version 2.1
+        'description_content_type': project.get('description_content_type') or "",
+        # Release metadata
+        'packagetype': project.get('packagetype') or "",
+        'python_version': project.get('python_version') or "",
+    }
 
 
 def parse_metadata(project, version, distribution):
