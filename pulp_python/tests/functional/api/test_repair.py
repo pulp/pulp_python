@@ -96,8 +96,6 @@ def test_metadata_repair_command(
     }
     content = create_content_direct(python_file, data)
     for field, wrong_value in data.items():
-        if field == "python_version":
-            continue
         assert getattr(content, field) == wrong_value
 
     move_to_repository(python_repo.pulp_href, [content.pulp_href])

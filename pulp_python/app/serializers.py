@@ -196,6 +196,12 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
                     '(e.g. sdist, bdist_wheel, bdist_egg, etc)'),
         read_only=True,
     )
+    python_version = serializers.CharField(
+        help_text=_(
+            'The tag that indicates which Python implementation or version the package requires.'
+        ),
+        read_only=True,
+    )
     sha256 = serializers.CharField(
         default='',
         help_text=_('The SHA256 digest of this package.'),
@@ -252,7 +258,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             'download_url', 'supported_platform', 'maintainer', 'maintainer_email',
             'obsoletes_dist', 'project_url', 'project_urls', 'provides_dist', 'requires_external',
             'requires_dist', 'requires_python', 'description_content_type',
-            'filename', 'packagetype', 'sha256'
+            'filename', 'packagetype', 'python_version', 'sha256'
         )
         model = python_models.PythonPackageContent
 
