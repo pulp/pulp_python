@@ -140,10 +140,15 @@ class PythonPackageContent(Content):
     """
     A Content Type representing Python's Distribution Package.
 
-    As defined in pep-0426 and pep-0345.
+    Core Metadata:
+        https://packaging.python.org/en/latest/specifications/core-metadata/
 
-    https://www.python.org/dev/peps/pep-0491/
-    https://www.python.org/dev/peps/pep-0345/
+    Release metadata (JSON API):
+        https://docs.pypi.org/api/json/
+
+    File Formats:
+        https://packaging.python.org/en/latest/specifications/source-distribution-format/
+        https://packaging.python.org/en/latest/specifications/binary-distribution-format/
     """
     # Core metadata
     # Version 1.0
@@ -174,6 +179,12 @@ class PythonPackageContent(Content):
     requires_python = models.TextField()
     # Version 2.1
     description_content_type = models.TextField()
+    provides_extras = models.JSONField(default=list)
+    # Version 2.2
+    dynamic = models.JSONField(default=list)
+    # Version 2.4
+    license_expression = models.TextField()
+    license_file = models.JSONField(default=list)
 
     # Release metadata
     filename = models.TextField(db_index=True)

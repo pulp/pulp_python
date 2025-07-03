@@ -117,6 +117,12 @@ def parse_project_metadata(project):
         'requires_python': project.get('requires_python') or "",
         # Version 2.1
         'description_content_type': project.get('description_content_type') or "",
+        'provides_extras': json.dumps(project.get('provides_extras', [])),
+        # Version 2.2
+        'dynamic': json.dumps(project.get('dynamic', [])),
+        # Version 2.4
+        'license_expression': project.get('license_expression') or "",
+        'license_file': json.dumps(project.get('license_file', [])),
         # Release metadata
         'packagetype': project.get('packagetype') or "",
         'python_version': project.get('python_version') or "",
@@ -316,6 +322,11 @@ def python_content_to_info(content):
         "classifiers": json_to_dict(content.classifiers) or None,
         "yanked": False,  # These are no longer used on PyPI, but are still present
         "yanked_reason": None,
+        # New core metadata (Version 2.1, 2.2, 2.4)
+        "provides_extras": json_to_dict(content.provides_extras) or None,
+        "dynamic": json_to_dict(content.dynamic) or None,
+        "license_expression": content.license_expression or "",
+        "license_file": json_to_dict(content.license_file) or None,
     }
 
 
