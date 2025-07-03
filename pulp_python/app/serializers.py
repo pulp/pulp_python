@@ -184,6 +184,26 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         help_text=_('A string stating the markup syntax (if any) used in the distribution’s'
                     ' description, so that tools can intelligently render the description.')
     )
+    provides_extras = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing names of optional features provided by the package.')
+    )
+    # Version 2.2
+    dynamic = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing names of other core metadata fields which are '
+                    'permitted to vary between sdist and bdist packages. Fields NOT marked '
+                    'dynamic MUST be the same between bdist and sdist.')
+    )
+    # Version 2.4
+    license_expression = serializers.CharField(
+        required=False, allow_blank=True,
+        help_text=_('Text string that is a valid SPDX license expression.')
+    )
+    license_file = serializers.JSONField(
+        required=False, default=list,
+        help_text=_('A JSON list containing names of the paths to license-related files.')
+    )
     # Release metadata
     filename = serializers.CharField(
         help_text=_('The name of the distribution package, usually of the format:'
@@ -258,6 +278,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             'download_url', 'supported_platform', 'maintainer', 'maintainer_email',
             'obsoletes_dist', 'project_url', 'project_urls', 'provides_dist', 'requires_external',
             'requires_dist', 'requires_python', 'description_content_type',
+            'provides_extras', 'dynamic', 'license_expression', 'license_file',
             'filename', 'packagetype', 'python_version', 'sha256'
         )
         model = python_models.PythonPackageContent
