@@ -122,3 +122,6 @@ replace = "version = \"{new_version}\""
 filename = "./pyproject.toml"
 search = "version = \"{current_version}\""
 replace = "version = \"{new_version}\""
+
+[tool.black]
+line-length = 100
