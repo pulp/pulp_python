@@ -32,15 +32,13 @@ tail -v -n +1 .ci/ansible/settings/settings.* ~/.config/pulp_smash/settings.json
 echo "Containerfile:"
 tail -v -n +1 .ci/ansible/Containerfile
 
+echo "Constraints Files:"
+# The need not even exist.
+tail -v -n +1  ../*/*constraints.txt || true
+
 # Needed for some functional tests
 cmd_prefix bash -c "echo '%wheel        ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/nopasswd"
 cmd_prefix bash -c "usermod -a -G wheel pulp"
-
-SCENARIOS=("pulp" "performance" "azure" "gcp" "s3" "stream" "generate-bindings" "lowerbounds")
-if [[ " ${SCENARIOS[*]} " =~ " ${TEST} " ]]; then
-  # Many functional tests require these
-  cmd_prefix dnf install -yq lsof which
-fi
 
 if [[ "${REDIS_DISABLED:-false}" == true ]]; then
   cmd_prefix bash -c "s6-rc -d change redis"

@@ -10,28 +10,17 @@
 set -euv
 
 # make sure this script runs at the repo root
-cd "$(dirname "$(realpath -e "$0")")"/../../..
+cd "$(dirname "$(realpath -e "$0")")/../../.."
 
-pip install twine
+VERSION="$1"
 
-export VERSION=$(ls dist | sed -rn 's/pulp_python-client-(.*)\.tar.gz/\1/p')
-
-if [[ -z "$VERSION" ]]; then
-  echo "No client package found."
-  exit
-fi
-
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-python-client/$VERSION/)
-
-if [ "$response" == "200" ];
+if [[ -z "${VERSION}" ]]
 then
-  echo "pulp_python client $VERSION has already been released. Skipping."
-  exit
+  echo "No version specified."
+  exit 1
 fi
 
-twine check dist/pulp_python_client-$VERSION-py3-none-any.whl || exit 1
-twine check dist/pulp_python-client-$VERSION.tar.gz || exit 1
-twine upload dist/pulp_python_client-$VERSION-py3-none-any.whl -u pulp -p $PYPI_PASSWORD
-twine upload dist/pulp_python-client-$VERSION.tar.gz -u pulp -p $PYPI_PASSWORD
-
-exit $?
+twine upload -u __token__ -p "${PYPI_API_TOKEN}" \
+"dist/pulp_python_client-${VERSION}-py3-none-any.whl" \
+"dist/pulp_python-client-${VERSION}.tar.gz" \
+;

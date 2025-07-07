@@ -1,7 +1,9 @@
 git+https://github.com/pulp/pulp-smash.git#egg=pulp-smash
-pytest
+pytest<9
+pytest-custom_exit_code
+pytest-xdist
 lxml
 twine
 pypi-simple
-pulpcore-client
-pulp-python-client
+trustme~=1.2.0
+pytest-timeout
