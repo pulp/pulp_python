@@ -108,21 +108,26 @@ class PullThroughMirror(TestCaseUsingBindings, TestHelpersMixin):
         remote = self._create_remote(url=PYPI_URL)
         distro = self._create_distribution(remote=remote.pulp_href)
 
-        if self.cli_client.run(("pip", "list")).stdout.find("numpy") == -1:
-            content = self.content_api.list(name="numpy")
-            self.assertEqual(content.count, 0, msg="numpy content already present in test")
+        PACKAGE = "sampleproject"
+        if self.cli_client.run(("pip", "list")).stdout.find(PACKAGE) == -1:
+            content = self.content_api.list(name=PACKAGE)
+            self.assertEqual(
+                content.count, 0, msg=f"{PACKAGE} content already present in test"
+            )
             host = urlsplit(PULP_CONTENT_BASE_URL).hostname
             url = urljoin(self.PYPI_HOST, f"{distro.base_path}/simple/")
             out = self.cli_client.run(
-                ("pip", "install", "--trusted-host", host, "-i", url, "numpy")
+                ("pip", "install", "--trusted-host", host, "-i", url, PACKAGE)
             )
             self.addCleanup(delete_orphans)
-            self.assertTrue(self.cli_client.run(("pip", "list")).stdout.find("numpy") != -1, out)
-            self.addCleanup(self.cli_client.run, ("pip", "uninstall", "numpy", "-y"))
-            content = self.content_api.list(name="numpy")
+            self.assertTrue(
+                self.cli_client.run(("pip", "list")).stdout.find(PACKAGE) != -1, out
+            )
+            self.addCleanup(self.cli_client.run, ("pip", "uninstall", PACKAGE, "-y"))
+            content = self.content_api.list(name=PACKAGE)
             self.assertEqual(content.count, 1)
         else:
-            self.skipTest("Uninstall numpy before running this test")
+            self.skipTest(f"Uninstall {PACKAGE} before running this test")
 
     def test_pull_through_simple(self):
         """Tests that the simple page is properly modified when requesting a pull-through."""

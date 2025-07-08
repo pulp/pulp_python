@@ -8,3 +8,4 @@ include functest_requirements.txt
 include test_requirements.txt
 include unittest_requirements.txt
 include pulp_python/app/webserver_snippets/*
+exclude releasing.md

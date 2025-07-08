@@ -12,27 +12,17 @@ set -euv
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 
+VERSION="$1"
 
-mkdir ~/.gem || true
+if [[ -z "${VERSION}" ]]
+then
+  echo "No version specified."
+  exit 1
+fi
+
+mkdir -p ~/.gem
 touch ~/.gem/credentials
 echo "---
-:rubygems_api_key: $RUBYGEMS_API_KEY" > ~/.gem/credentials
+:rubygems_api_key: ${RUBYGEMS_API_KEY}" > ~/.gem/credentials
 sudo chmod 600 ~/.gem/credentials
-
-export VERSION=$(ls pulp_python_client* | sed -rn 's/pulp_python_client-(.*)\.gem/\1/p')
-
-if [[ -z "$VERSION" ]]; then
-  echo "No client package found."
-  exit
-fi
-
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://rubygems.org/gems/pulp_python_client/versions/$VERSION)
-
-if [ "$response" == "200" ];
-then
-  echo "pulp_python client $VERSION has already been released. Skipping."
-  exit
-fi
-
-GEM_FILE="$(ls pulp_python_client-*)"
-gem push ${GEM_FILE}
+gem push "pulp_python_client-${VERSION}.gem"
