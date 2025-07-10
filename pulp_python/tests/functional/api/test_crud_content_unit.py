@@ -111,6 +111,34 @@ def test_content_crud(
     assert msg in e.value.task.error["description"]
 
 
+def test_content_create_new_metadata(
+    delete_orphans_pre, download_python_file, monitor_task, python_bindings
+):
+    """
+    Test the creation of python content unit with newly added core metadata (provides_extras,
+    dynamic, license_expression, license_file).
+    """
+    python_egg_filename = "setuptools-80.9.0.tar.gz"
+    python_egg_url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), python_egg_filename)
+    python_file = download_python_file(python_egg_filename, python_egg_url)
+
+    body = {"relative_path": python_egg_filename, "file": python_file}
+    response = python_bindings.ContentPackagesApi.create(**body)
+    task = monitor_task(response.task)
+    content = python_bindings.ContentPackagesApi.read(task.created_resources[0])
+
+    python_package_data = {
+        "filename": "setuptools-80.9.0.tar.gz",
+        "provides_extras":
+            '["test", "doc", "ssl", "certs", "core", "check", "cover", "enabler", "type"]',
+        "dynamic": '["license-file"]',
+        "license_expression": "MIT",
+        "license_file": '["LICENSE"]',
+    }
+    for k, v in python_package_data.items():
+        assert getattr(content, k) == v
+
+
 @pytest.mark.parallel
 def test_upload_metadata_23_spec(python_content_factory):
     """Test that packages using metadata spec 2.3 can be uploaded to pulp."""
@@ -139,11 +167,13 @@ def test_upload_requires_python(python_content_factory):
 @pytest.mark.parallel
 def test_upload_metadata_24_spec(python_content_factory):
     """Test that packages using metadata spec 2.4 can be uploaded to pulp."""
-    filename = "urllib3-2.3.0-py3-none-any.whl"
+    filename = "setuptools-80.9.0.tar.gz"
     with PyPISimple() as client:
-        page = client.get_project_page("urllib3")
+        page = client.get_project_page("setuptools")
         for package in page.packages:
             if package.filename == filename:
                 content = python_content_factory(filename, url=package.url)
                 assert content.metadata_version == "2.4"
+                assert content.license_expression == "MIT"
+                assert content.license_file == '["LICENSE"]'
                 break

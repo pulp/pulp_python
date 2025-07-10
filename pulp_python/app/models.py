@@ -140,49 +140,66 @@ class PythonPackageContent(Content):
     """
     A Content Type representing Python's Distribution Package.
 
-    As defined in pep-0426 and pep-0345.
+    Core Metadata:
+        https://packaging.python.org/en/latest/specifications/core-metadata/
 
-    https://www.python.org/dev/peps/pep-0491/
-    https://www.python.org/dev/peps/pep-0345/
+    Release metadata (JSON API):
+        https://docs.pypi.org/api/json/
+
+    File Formats:
+        https://packaging.python.org/en/latest/specifications/source-distribution-format/
+        https://packaging.python.org/en/latest/specifications/binary-distribution-format/
     """
-
-    PROTECTED_FROM_RECLAIM = False
-
-    TYPE = "python"
-    repo_key_fields = ("filename",)
-    # Required metadata
-    filename = models.TextField(db_index=True)
-    packagetype = models.TextField(choices=PACKAGE_TYPES)
-    name = models.TextField()
-    name.register_lookup(NormalizeName)
-    version = models.TextField()
-    sha256 = models.CharField(db_index=True, max_length=64)
-    # Optional metadata
-    python_version = models.TextField()
-    metadata_version = models.TextField()
-    summary = models.TextField()
-    description = models.TextField()
-    keywords = models.TextField()
-    home_page = models.TextField()
-    download_url = models.TextField()
+    # Core metadata
+    # Version 1.0
     author = models.TextField()
     author_email = models.TextField()
+    description = models.TextField()
+    home_page = models.TextField()  # Deprecated in favour of Project-URL
+    keywords = models.TextField()
+    license = models.TextField()  # Deprecated in favour of License-Expression
+    metadata_version = models.TextField()
+    name = models.TextField()
+    platform = models.TextField()
+    summary = models.TextField()
+    version = models.TextField()
+    # Version 1.1
+    classifiers = models.JSONField(default=list)
+    download_url = models.TextField()  # Deprecated in favour of Project-URL
+    supported_platform = models.TextField()
+    # Version 1.2
     maintainer = models.TextField()
     maintainer_email = models.TextField()
-    license = models.TextField()
-    requires_python = models.TextField()
-    project_url = models.TextField()
-    platform = models.TextField()
-    supported_platform = models.TextField()
-    requires_dist = models.JSONField(default=list)
-    provides_dist = models.JSONField(default=list)
     obsoletes_dist = models.JSONField(default=list)
-    requires_external = models.JSONField(default=list)
-    classifiers = models.JSONField(default=list)
+    project_url = models.TextField()
     project_urls = models.JSONField(default=dict)
+    provides_dist = models.JSONField(default=list)
+    requires_external = models.JSONField(default=list)
+    requires_dist = models.JSONField(default=list)
+    requires_python = models.TextField()
+    # Version 2.1
     description_content_type = models.TextField()
-    # Pulp Domains
-    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
+    provides_extras = models.JSONField(default=list)
+    # Version 2.2
+    dynamic = models.JSONField(default=list)
+    # Version 2.4
+    license_expression = models.TextField()
+    license_file = models.JSONField(default=list)
+
+    # Release metadata
+    filename = models.TextField(db_index=True)
+    packagetype = models.TextField(choices=PACKAGE_TYPES)
+    python_version = models.TextField()
+    sha256 = models.CharField(db_index=True, max_length=64)
+
+    # From pulpcore
+    PROTECTED_FROM_RECLAIM = False
+    TYPE = "python"
+    _pulp_domain = models.ForeignKey(
+        "core.Domain", default=get_domain_pk, on_delete=models.PROTECT
+    )
+    name.register_lookup(NormalizeName)
+    repo_key_fields = ("filename",)
 
     @staticmethod
     def init_from_artifact_and_relative_path(artifact, relative_path):
