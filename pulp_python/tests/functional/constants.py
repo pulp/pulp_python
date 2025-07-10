@@ -155,6 +155,7 @@ PYTHON_LG_FIXTURE_COUNTS = {
     "latest_3": 37,
     "sdist": 24,
     "bdist_wheel": 54,
+    "multi": 26,  # keep_latest=1, package_types="bdist_wheel", prereleases=False
 }
 
 DJANGO_LATEST_3 = 4  # latest version has 2 dists, each other has 1
