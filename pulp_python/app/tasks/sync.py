@@ -1,5 +1,7 @@
 import logging
+from typing import Optional, Any, AsyncGenerator
 
+import aiohttp
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
 from gettext import gettext as _
@@ -126,7 +128,7 @@ class PythonBanderStage(Stage):
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
         # local & global timeouts defaults to 10secs and 5 hours
-        async with Master(url) as master:
+        async with PulpMaster(url, tls=self.remote.tls_validation) as master:
             deferred_download = self.remote.policy != Remote.IMMEDIATE
             workers = self.remote.download_concurrency or self.remote.DEFAULT_DOWNLOAD_CONCURRENCY
             async with ProgressReport(
@@ -146,6 +148,25 @@ class PythonBanderStage(Stage):
                         Requirement(pkg).name for pkg in self.remote.includes
                     ]
                 await pmirror.synchronize(packages_to_sync)
+
+
+class PulpMaster(Master):
+    """
+    Pulp Master Class for Pulp specific overrides
+    """
+
+    def __init__(self, *args, tls=True, **kwargs):
+        self.tls = tls
+        super().__init__(*args, **kwargs)
+
+    async def get(
+        self, path: str, required_serial: Optional[int], **kw: Any
+    ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
+        """Support tls=false"""
+        if not self.tls:
+            kw["ssl"] = False
+        async for r in super().get(path, required_serial, **kw):
+            yield r
 
 
 class PulpMirror(Mirror):
@@ -257,4 +278,4 @@ class PulpMirror(Mirror):
         TODO
         This should have some error checking
         """
-        pass
+        logger.error("Sync encountered an error: ", exc_info=exception)
