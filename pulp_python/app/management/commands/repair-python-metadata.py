@@ -23,7 +23,7 @@ def repair_metadata(content):
     batch = []
     set_of_update_fields = set()
     total_repaired = 0
-    for package in immediate_content.prefetch_related('_artifacts').iterator(chunk_size=1000):
+    for package in immediate_content.prefetch_related("_artifacts").iterator(chunk_size=1000):
         new_data = artifact_to_python_content_data(
             package.filename, package._artifacts.get(), package.pulp_domain
         )
@@ -55,7 +55,7 @@ def href_prn_list_handler(value):
         (?:{settings.API_ROOT}(?:[-_a-zA-Z0-9]+/)?api/v3/repositories/python/python/[-a-f0-9]+/)
         |(?:prn:python\.pythonrepository:[-a-f0-9]+)
         """,
-        re.VERBOSE
+        re.VERBOSE,
     )
     values = []
     for v in value.split(","):

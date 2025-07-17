@@ -6,14 +6,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0001_initial'),
+        ("python", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='python_version',
-            field=models.TextField(default=''),
+            model_name="pythonpackagecontent",
+            name="python_version",
+            field=models.TextField(default=""),
             preserve_default=False,
         ),
     ]

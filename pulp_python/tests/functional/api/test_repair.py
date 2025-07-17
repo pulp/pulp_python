@@ -54,9 +54,7 @@ def create_content_remote(python_bindings):
                 "ra2.save(); "
             )
         commands += "print(get_url(c))"
-        process = subprocess.run(
-            ["pulpcore-manager", "shell", "-c", commands], capture_output=True
-        )
+        process = subprocess.run(["pulpcore-manager", "shell", "-c", commands], capture_output=True)
 
         assert process.returncode == 0
         content_href = process.stdout.decode().strip()
@@ -101,7 +99,7 @@ def test_metadata_repair_command(
     move_to_repository(python_repo.pulp_href, [content.pulp_href])
     process = subprocess.run(
         ["pulpcore-manager", "repair-python-metadata", "--repositories", python_repo.pulp_href],
-        capture_output=True
+        capture_output=True,
     )
     assert process.returncode == 0
     output = process.stdout.decode().strip()
@@ -136,9 +134,7 @@ def test_metadata_repair_endpoint(
 
     # Immediate content
     scipy_egg_filename = "scipy-1.1.0-cp27-none-win32.whl"
-    scipy_egg_url = urljoin(
-        urljoin(PYTHON_FIXTURES_URL, "packages/"), scipy_egg_filename
-    )
+    scipy_egg_url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), scipy_egg_filename)
     scipy_file = download_python_file(scipy_egg_filename, scipy_egg_url)
     scipy_data_0 = {
         "filename": scipy_egg_filename,
@@ -175,16 +171,12 @@ def test_metadata_repair_endpoint(
 
     scipy_data_2 = scipy_data_1.copy()
     scipy_data_2["filename"] = "scipy-1.1.0-cp36-none-win32.whl"
-    scipy_data_2["sha256"] = (
-        "0e9bb7efe5f051ea7212555b290e784b82f21ffd0f655405ac4f87e288b730b3"
-    )
+    scipy_data_2["sha256"] = "0e9bb7efe5f051ea7212555b290e784b82f21ffd0f655405ac4f87e288b730b3"
 
     # 2. Create content
     celery_content = create_content_remote(celery_data, python_remote)
     scipy_content_0 = create_content_direct(scipy_file, scipy_data_0)
-    scipy_content_1 = create_content_remote(
-        scipy_data_1, python_remote, python_remote_bad
-    )
+    scipy_content_1 = create_content_remote(scipy_data_1, python_remote, python_remote_bad)
     scipy_content_2 = create_content_remote(scipy_data_2, python_remote_bad)
 
     content_hrefs = {}
@@ -200,9 +192,7 @@ def test_metadata_repair_endpoint(
     move_to_repository(python_repo.pulp_href, list(content_hrefs.values()))
 
     # 3. Repair metadata
-    response = python_bindings.RepositoriesPythonApi.repair_metadata(
-        python_repo.pulp_href
-    )
+    response = python_bindings.RepositoriesPythonApi.repair_metadata(python_repo.pulp_href)
     monitor_task(response.task)
 
     # 4. Check new metadata

@@ -6,29 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0013_add_rbac_permissions'),
+        ("python", "0013_add_rbac_permissions"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='dynamic',
+            model_name="pythonpackagecontent",
+            name="dynamic",
             field=models.JSONField(default=list),
         ),
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='license_expression',
-            field=models.TextField(default=''),
+            model_name="pythonpackagecontent",
+            name="license_expression",
+            field=models.TextField(default=""),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='license_file',
+            model_name="pythonpackagecontent",
+            name="license_file",
             field=models.JSONField(default=list),
         ),
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='provides_extras',
+            model_name="pythonpackagecontent",
+            name="provides_extras",
             field=models.JSONField(default=list),
         ),
     ]
