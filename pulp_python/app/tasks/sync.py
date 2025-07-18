@@ -82,7 +82,7 @@ def create_bandersnatch_config(remote):
         config["plugins"]["enabled"] += "prerelease_release\n"
     if remote.package_types:
         rrfm = "regex_release_file_metadata"
-        config["plugins"]["enabled"] += rrfm
+        config["plugins"]["enabled"] += f"{rrfm}\n"
         if not config.has_section(rrfm):
             config.add_section(rrfm)
         config[rrfm]["any:release_file.packagetype"] = "\n".join(remote.package_types)
