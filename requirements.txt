@@ -2,3 +2,5 @@ pulpcore>=3.49.0,<3.70.0
 pkginfo>=1.12.0,<1.13.0
 bandersnatch>=6.1,<6.2
 pypi-simple>=0.9.0,<1.0.0
+# pinned until https://github.com/Azure/Azurite/issues/2562 is resolved
+azure-storage-blob<12.26.0
