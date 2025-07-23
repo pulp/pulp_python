@@ -10,7 +10,7 @@ with open("README.md") as f:
 
 setup(
     name="pulp-python",
-    version="3.10.1.dev",
+    version="3.10.1",
     description="pulp-python plugin for the Pulp Project",
     long_description=long_description,
     long_description_content_type="text/markdown",

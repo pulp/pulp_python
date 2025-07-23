@@ -13,6 +13,23 @@ Changelog
 
 .. towncrier release notes start
 
+3.10.1 (2025-07-23)
+
+#### Bugfixes {: #3.10.1-bugfix }
+
+- Fixed tls_validation not being disabled when set to false on the remote.
+  `#653 <https://github.com/pulp/pulp_python/issues/653>`__
+- Fixed uploads not supporting packages using metadata spec 2.3
+  `#682 <https://github.com/pulp/pulp_python/issues/682>`__
+- Fixed the `package_types` filter breaking other remote filters.
+  `#691 <https://github.com/pulp/pulp_python/issues/691>`__
+- Fixed package name normalization issue preventing syncing packages with "." or "_" in their names.
+  `#716 <https://github.com/pulp/pulp_python/issues/716>`__
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+---
+
 3.10.0 (2023-05-17)
 ===================
 
