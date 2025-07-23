@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.17.0 (2025-07-23) {: #3.17.0 }
+
+#### Features {: #3.17.0-feature }
+
+- Added full support for the latest core metadata (up to 2.4).
+  [#689](https://github.com/pulp/pulp_python/issues/689)
+
+---
+
 ## 3.16.0 (2025-06-10) {: #3.16.0 }
 
 #### Features {: #3.16.0-feature }
