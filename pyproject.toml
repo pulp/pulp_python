@@ -3,7 +3,7 @@ package = "pulp_python"
 filename = "CHANGES.rst"
 directory = "CHANGES/"
 title_format = "{version} ({project_date})"
-template = "CHANGES/.TEMPLATE.rst"
+template = "CHANGES/.TEMPLATE.md"
 issue_format = "`#{issue} <https://github.com/pulp/pulp_python/issues/{issue}>`__"
 
 [tool.check-manifest]
