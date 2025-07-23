@@ -8,6 +8,12 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.12.7 (2025-07-23) {: #3.12.7 }
+
+No significant changes.
+
+---
+
 ## 3.12.6 (2025-02-26) {: #3.12.6 }
 
 #### Misc {: #3.12.6-misc }
