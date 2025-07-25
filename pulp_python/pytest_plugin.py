@@ -35,6 +35,7 @@ def python_bindings(_api_client_set, bindings_cfg):
 @pytest.fixture
 def python_repo_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Repository with auto-cleanup."""
+
     def _gen_python_repo(remote=None, pulp_domain=None, **body):
         body.setdefault("name", str(uuid.uuid4()))
         kwargs = {}
@@ -56,6 +57,7 @@ def python_repo(python_repo_factory):
 @pytest.fixture
 def python_distribution_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Distribution with auto-cleanup."""
+
     def _gen_python_distribution(
         publication=None, repository=None, version=None, pulp_domain=None, **body
     ):
@@ -85,6 +87,7 @@ def python_distribution_factory(python_bindings, gen_object_with_cleanup):
 @pytest.fixture
 def python_publication_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Publication with auto-cleanup."""
+
     def _gen_python_publication(repository, version=None, pulp_domain=None):
         repo_href = get_href(repository)
         if version:
@@ -106,6 +109,7 @@ def python_publication_factory(python_bindings, gen_object_with_cleanup):
 @pytest.fixture
 def python_remote_factory(python_bindings, gen_object_with_cleanup):
     """A factory to generate a Python Remote with auto-cleanup."""
+
     def _gen_python_remote(url=PYTHON_FIXTURE_URL, includes=None, pulp_domain=None, **body):
         body.setdefault("name", str(uuid.uuid4()))
         body.setdefault("url", url)
@@ -125,6 +129,7 @@ def python_repo_with_sync(
     python_bindings, python_repo_factory, python_remote_factory, monitor_task
 ):
     """A factory to generate a Python Repository synced with the passed in Remote."""
+
     def _gen_python_repo_sync(remote=None, mirror=False, repository=None, **body):
         kwargs = {}
         if pulp_domain := body.get("pulp_domain"):
@@ -141,6 +146,7 @@ def python_repo_with_sync(
 @pytest.fixture
 def download_python_file(tmp_path, http_get):
     """Download a Python file and return its path."""
+
     def _download_python_file(relative_path, url):
         file_path = tmp_path / relative_path
         with open(file_path, mode="wb") as f:
@@ -159,6 +165,7 @@ def python_file(download_python_file):
 @pytest.fixture
 def python_content_factory(python_bindings, download_python_file, monitor_task):
     """A factory to create a Python Package Content."""
+
     def _gen_python_content(relative_path=PYTHON_EGG_FILENAME, url=None, **body):
         body["relative_path"] = relative_path
         if url:
@@ -191,6 +198,7 @@ def shelf_reader_cleanup():
 @pytest.fixture
 def python_content_summary(python_bindings):
     """Get a summary of the repository version's content."""
+
     def _gen_summary(repository_version=None, repository=None, version=None):
         if repository_version is None:
             repo_href = get_href(repository)

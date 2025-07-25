@@ -7,19 +7,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0006_pythonrepository_autopublish'),
+        ("python", "0006_pythonrepository_autopublish"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='description_content_type',
-            field=models.TextField(default=''),
+            model_name="pythonpackagecontent",
+            name="description_content_type",
+            field=models.TextField(default=""),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='project_urls',
+            model_name="pythonpackagecontent",
+            name="project_urls",
             field=django.contrib.postgres.fields.jsonb.JSONField(default=dict),
         ),
     ]

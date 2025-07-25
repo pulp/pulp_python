@@ -5,8 +5,8 @@ from django.db import migrations, models, transaction
 
 def add_sha256_to_current_models(apps, schema_editor):
     """Adds the sha256 to current PythonPackageContent models."""
-    PythonPackageContent = apps.get_model('python', 'PythonPackageContent')
-    RemoteArtifact = apps.get_model('core', 'RemoteArtifact')
+    PythonPackageContent = apps.get_model("python", "PythonPackageContent")
+    RemoteArtifact = apps.get_model("core", "RemoteArtifact")
     package_bulk = []
     for python_package in PythonPackageContent.objects.only("pk", "sha256").iterator():
         content_artifact = python_package.contentartifact_set.first()
@@ -18,24 +18,34 @@ def add_sha256_to_current_models(apps, schema_editor):
         package_bulk.append(python_package)
         if len(package_bulk) == 100000:
             with transaction.atomic():
-                PythonPackageContent.objects.bulk_update(package_bulk, ["sha256",])
+                PythonPackageContent.objects.bulk_update(
+                    package_bulk,
+                    [
+                        "sha256",
+                    ],
+                )
                 package_bulk = []
     with transaction.atomic():
-        PythonPackageContent.objects.bulk_update(package_bulk, ["sha256",])
+        PythonPackageContent.objects.bulk_update(
+            package_bulk,
+            [
+                "sha256",
+            ],
+        )
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('python', '0004_DATA_swap_distribution_model'),
+        ("python", "0004_DATA_swap_distribution_model"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='pythonpackagecontent',
-            name='sha256',
-            field=models.CharField(max_length=64, default=''),
+            model_name="pythonpackagecontent",
+            name="sha256",
+            field=models.CharField(max_length=64, default=""),
             preserve_default=False,
         ),
-        migrations.RunPython(add_sha256_to_current_models, migrations.RunPython.noop)
+        migrations.RunPython(add_sha256_to_current_models, migrations.RunPython.noop),
     ]
