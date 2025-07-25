@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.17.0 (2025-07-23) {: #3.17.0 }
+
+#### Features {: #3.17.0-feature }
+
+- Added full support for the latest core metadata (up to 2.4).
+  [#689](https://github.com/pulp/pulp_python/issues/689)
+
+---
+
 ## 3.16.0 (2025-06-10) {: #3.16.0 }
 
 #### Features {: #3.16.0-feature }
@@ -126,6 +135,12 @@ No significant changes.
 
 ---
 
+## 3.12.7 (2025-07-23) {: #3.12.7 }
+
+No significant changes.
+
+---
+
 ## 3.12.6 (2025-02-26) {: #3.12.6 }
 
 #### Misc {: #3.12.6-misc }
@@ -206,6 +221,12 @@ No significant changes.
 
 ---
 
+## 3.11.6 (2025-07-23) {: #3.11.6 }
+
+No significant changes.
+
+---
+
 ## 3.11.5 (2025-04-15) {: #3.11.5 }
 
 No significant changes.
@@ -261,6 +282,23 @@ No significant changes.
 -   Added pulpcore 3.40 compatibility.
 -   Added import export support of python content.
     [#579](https://github.com/pulp/pulp_python/issues/579)
+
+---
+
+## 3.10.1 (2025-07-23) {: #3.10.1 }
+
+### Bugfixes
+
+-   Fixed tls_validation not being disabled when set to false on the remote.
+    [#653](https://github.com/pulp/pulp_python/issues/653)
+-   Fixed uploads not supporting packages using metadata spec 2.3
+    [#682](https://github.com/pulp/pulp_python/issues/682)
+-   Fixed the `package_types` filter breaking other remote filters.
+    [#691](https://github.com/pulp/pulp_python/issues/691)
+-   Fixed package name normalization issue preventing syncing packages with "." or "_" in their names.
+    [#716](https://github.com/pulp/pulp_python/issues/716)
+-   Fixed the JSONField specification so it doesn't break ruby bindings.
+    See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
 
 ---
 
