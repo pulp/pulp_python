@@ -29,6 +29,7 @@ PYPI_SERIAL_CONSTANT = 1000000000
 @pytest.fixture
 def python_empty_repo_distro(python_repo_factory, python_distribution_factory):
     """Returns an empty repo with and distribution serving it."""
+
     def _generate_empty_repo_distro(repo_body=None, distro_body=None):
         repo_body = repo_body or {}
         distro_body = distro_body or {}
@@ -240,7 +241,7 @@ def test_twine_upload(
         ),
         capture_output=True,
         check=True,
-        text=True
+        text=True,
     )
     assert output.stdout.count("Skipping") == 2
 
@@ -322,9 +323,7 @@ def test_pypi_last_serial(
     repo = python_repo_with_sync(remote)
     pub = python_publication_factory(repository=repo)
     distro = python_distribution_factory(publication=pub)
-    content_url = urljoin(
-        pulp_content_url, f"{distro.base_path}/pypi/shelf-reader/json"
-    )
+    content_url = urljoin(pulp_content_url, f"{distro.base_path}/pypi/shelf-reader/json")
     pypi_url = urljoin(distro.base_url, "pypi/shelf-reader/json/")
     for url in [content_url, pypi_url]:
         response = requests.get(url)
@@ -337,9 +336,7 @@ def assert_pypi_json(package):
     assert SHELF_PYTHON_JSON["last_serial"] == package["last_serial"]
     assert SHELF_PYTHON_JSON["info"].items() <= package["info"].items()
     assert len(SHELF_PYTHON_JSON["urls"]) == len(package["urls"])
-    assert_download_info(
-        SHELF_PYTHON_JSON["urls"], package["urls"], "Failed to match URLS"
-    )
+    assert_download_info(SHELF_PYTHON_JSON["urls"], package["urls"], "Failed to match URLS")
     assert SHELF_PYTHON_JSON["releases"].keys() <= package["releases"].keys()
     for version in SHELF_PYTHON_JSON["releases"].keys():
         assert_download_info(

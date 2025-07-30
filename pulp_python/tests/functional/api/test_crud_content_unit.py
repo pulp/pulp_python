@@ -102,7 +102,9 @@ def test_content_crud(
     monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
     mismatch_sha256 = PYTHON_SM_FIXTURE_CHECKSUMS["aiohttp-3.3.0.tar.gz"]
     content_body = {
-        "relative_path": PYTHON_EGG_FILENAME, "file": python_file, "sha256": mismatch_sha256
+        "relative_path": PYTHON_EGG_FILENAME,
+        "file": python_file,
+        "sha256": mismatch_sha256,
     }
     with pytest.raises(PulpTaskError) as e:
         response = python_bindings.ContentPackagesApi.create(**content_body)
@@ -129,8 +131,8 @@ def test_content_create_new_metadata(
 
     python_package_data = {
         "filename": "setuptools-80.9.0.tar.gz",
-        "provides_extras":
-            '["test", "doc", "ssl", "certs", "core", "check", "cover", "enabler", "type"]',
+        "provides_extras": '["test", "doc", "ssl", "certs",'
+        ' "core", "check", "cover", "enabler", "type"]',
         "dynamic": '["license-file"]',
         "license_expression": "MIT",
         "license_file": '["LICENSE"]',

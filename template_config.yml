@@ -4,7 +4,7 @@
 # generated with plugin_template
 
 api_root: /pulp/
-black: false
+black: true
 check_commit_message: true
 check_gettext: true
 check_manifest: true
@@ -74,4 +74,3 @@ test_reroute: true
 test_s3: true
 test_storages_compat_layer: true
 use_issue_template: true
-

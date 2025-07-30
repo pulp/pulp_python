@@ -25,9 +25,7 @@ PYTHON_UNAVAILABLE_PROJECT_SPECIFIER = [
     "pylint",  # matches 0
 ]
 PYTHON_UNAVAILABLE_PACKAGE_COUNT = 5
-PYTHON_UNAVAILABLE_FIXTURE_SUMMARY = {
-    PYTHON_CONTENT_NAME: PYTHON_UNAVAILABLE_PACKAGE_COUNT
-}
+PYTHON_UNAVAILABLE_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_UNAVAILABLE_PACKAGE_COUNT}
 
 # no "name" field
 PYTHON_INVALID_SPECIFIER_NO_NAME = [
@@ -51,13 +49,9 @@ PYTHON_PRERELEASE_TEST_SPECIFIER = [
     "Django",
 ]
 PYTHON_WITH_PRERELEASE_COUNT = 46
-PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY = {
-    PYTHON_CONTENT_NAME: PYTHON_WITH_PRERELEASE_COUNT
-}
+PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_WITH_PRERELEASE_COUNT}
 PYTHON_WITHOUT_PRERELEASE_COUNT = 30
-PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY = {
-    PYTHON_CONTENT_NAME: PYTHON_WITHOUT_PRERELEASE_COUNT
-}
+PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_WITHOUT_PRERELEASE_COUNT}
 
 # Specifier for basic sync / publish tests.
 PYTHON_XS_PROJECT_SPECIFIER = ["shelf-reader"]  # matches 2
@@ -93,21 +87,15 @@ PYTHON_SM_FIXTURE_CHECKSUMS = {
     "aiohttp-3.2.1.tar.gz": "1b95d53f8dac13898f0a3e4af76f6f36d540fbfaefc4f4c9f43e436fa0e53d22",
     "aiohttp-3.2.0.tar.gz": "1be3903fe6a36d20492e74efb326522dd4702bf32b45ffc7acbc0fb34ab240a6",
     "Django-1.10.4.tar.gz": "fff7f062e510d812badde7cfc57745b7779edb4d209b2bc5ea8d954c22305c2b",
-    "Django-1.10.4-py2.py3-none-any.whl":
-        "a8e1a552205cda15023c39ecf17f7e525e96c5b0142e7879e8bd0c445351f2cc",
+    "Django-1.10.4-py2.py3-none-any.whl": "a8e1a552205cda15023c39ecf17f7e525e96c5b0142e7879e8bd0c445351f2cc",  # noqa: E501
     "Django-1.10.3.tar.gz": "6f92f08dee8a1bd7680e098a91bf5acd08b5cdfe74137f695b60fd79f4478c30",
-    "Django-1.10.3-py2.py3-none-any.whl":
-        "94426cc28d8721fbf13c333053f08d32427671a4ca7986f7030fc82bdf9c88c1",
+    "Django-1.10.3-py2.py3-none-any.whl": "94426cc28d8721fbf13c333053f08d32427671a4ca7986f7030fc82bdf9c88c1",  # noqa: E501
     "Django-1.10.2.tar.gz": "e127f12a0bfb34843b6e8c82f91e26fff6445a7ca91d222c0794174cf97cbce1",
-    "Django-1.10.2-py2.py3-none-any.whl":
-        "4d48ab8e84a7c8b2bc4b2f4f199bc3a8bfcc9cbdbc29e355ac5c44a501d73a1a",
+    "Django-1.10.2-py2.py3-none-any.whl": "4d48ab8e84a7c8b2bc4b2f4f199bc3a8bfcc9cbdbc29e355ac5c44a501d73a1a",  # noqa: E501
     "Django-1.10.1.tar.gz": "d6e6c5b25cb67f46afd7c82f536529b11981183423dad8932e15bce93d1a24f3",
-    "Django-1.10.1-py2.py3-none-any.whl":
-        "3d689905cd0635bbb33b87f9a5df7ca70a3db206faae4ec58cda5e7f5f47050d",
-    "celery-4.2.0-py2.py3-none-any.whl":
-        "2082cbd82effa8ac8a8a58977d70bb203a9f362817e3b66f4578117b9f93d8a9",
-    "celery-4.1.1-py2.py3-none-any.whl":
-        "6fc4678d1692af97e137b2a9f1c04efd8e7e2fb7134c5c5ad60738cdd927762f",
+    "Django-1.10.1-py2.py3-none-any.whl": "3d689905cd0635bbb33b87f9a5df7ca70a3db206faae4ec58cda5e7f5f47050d",  # noqa: E501
+    "celery-4.2.0-py2.py3-none-any.whl": "2082cbd82effa8ac8a8a58977d70bb203a9f362817e3b66f4578117b9f93d8a9",  # noqa: E501
+    "celery-4.1.1-py2.py3-none-any.whl": "6fc4678d1692af97e137b2a9f1c04efd8e7e2fb7134c5c5ad60738cdd927762f",  # noqa: E501
 }
 
 PYTHON_MD_PROJECT_SPECIFIER = [
@@ -156,9 +144,7 @@ PYTHON_EGG_SHA256 = "04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be11
 
 # Intended to be used with the XS specifier
 PYTHON_WHEEL_FILENAME = "shelf_reader-0.1-py2-none-any.whl"
-PYTHON_WHEEL_URL = urljoin(
-    urljoin(PYTHON_FIXTURES_URL, "packages/"), PYTHON_WHEEL_FILENAME
-)
+PYTHON_WHEEL_URL = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), PYTHON_WHEEL_FILENAME)
 PYTHON_WHEEL_SHA256 = "2eceb1643c10c5e4a65970baf63bde43b79cbdac7de81dae853ce47ab05197e9"
 
 PYTHON_XS_FIXTURE_CHECKSUMS = {
@@ -266,7 +252,7 @@ DEFAULT_BANDER_REMOTE_BODY = {
     "download_concurrency": 3,
     "policy": "on_demand",
     "prereleases": False,
-    "excludes": ["example1", "example2"]
+    "excludes": ["example1", "example2"],
 }
 
 BANDERSNATCH_CONF = b"""
@@ -330,7 +316,7 @@ SHELF_BDIST_PYTHON_DOWNLOAD = {
     "requires_python": None,
     "size": 22455,
     "yanked": False,
-    "yanked_reason": None
+    "yanked_reason": None,
 }
 
 SHELF_SDIST_PYTHON_DOWNLOAD = {
@@ -348,7 +334,7 @@ SHELF_SDIST_PYTHON_DOWNLOAD = {
     "requires_python": None,
     "size": 19097,
     "yanked": False,
-    "yanked_reason": None
+    "yanked_reason": None,
 }
 
 SHELF_0DOT1_RELEASE = [SHELF_BDIST_PYTHON_DOWNLOAD, SHELF_SDIST_PYTHON_DOWNLOAD]
@@ -356,9 +342,6 @@ SHELF_0DOT1_RELEASE = [SHELF_BDIST_PYTHON_DOWNLOAD, SHELF_SDIST_PYTHON_DOWNLOAD]
 SHELF_PYTHON_JSON = {
     "info": PYTHON_INFO_DATA,
     "last_serial": 0,
-    "releases": {
-        "0.1": SHELF_0DOT1_RELEASE
-    },
-    "urls": SHELF_0DOT1_RELEASE
-
+    "releases": {"0.1": SHELF_0DOT1_RELEASE},
+    "urls": SHELF_0DOT1_RELEASE,
 }
