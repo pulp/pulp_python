@@ -89,13 +89,18 @@ Each artifact in Pulp represents a file. They can be created during sync or crea
 
 ## Add content to a repository
 
-Once there is a content unit, it can be added and removed from repositories using the add and remove commands.
+Once there is a content unit, it can be added to a repository using the `add` command.
+This command requires both the `filename` and `sha256` to ensure that a specific file can be identified,
+as Pulp may contain different content units with the same name.
 
 === "Run"
 
     ```bash
-    # Add created PythonPackage content to repository
-    pulp python repository content add --repository foo --filename "$PKG"
+    # Matches shelf-reader-0.1.tar.gz
+    SHA256="04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be116398c"
+
+    # Add the created PythonPackage content to the repository
+    pulp python repository content add --repository foo --filename "$PKG" --sha256 "$SHA256"
     
     # After the task is complete, it gives us a new repository version
     pulp python repository version show --repository foo
@@ -126,6 +131,45 @@ Once there is a content unit, it can be added and removed from repositories usin
             "href": "/pulp/api/v3/content/python/packages/?repository_version=/pulp/api/v3/repositories/python/python/0196ba2d-0374-77ef-a4e0-1b5ba5b1ed20/versions/1/"
           }
         }
+      }
+    }
+    ```
+
+## Remove content from a repository
+
+A content unit can be removed from a repository using the `remove` command.
+This command requires the same options as the `add` command.
+
+=== "Run"
+
+    ```bash
+    # Remove the PythonPackage content from the repository
+    pulp python repository content remove --repository foo --filename "$PKG" --sha256 "$SHA256"
+    
+    # After the task is complete, it gives us a new repository version
+    pulp python repository version show --repository foo
+    ```
+
+=== "Output"
+
+    ```
+    {
+      "pulp_href": "/pulp/api/v3/repositories/python/python/0196ba2d-0374-77ef-a4e0-1b5ba5b1ed20/versions/2/",
+      "prn": "prn:core.repositoryversion:01987e28-c79b-7033-9d5b-8a07cddcc24c",
+      "pulp_created": "2025-08-06T06:54:18.526088Z",
+      "pulp_last_updated": "2025-08-06T06:54:18.565594Z",
+      "number": 2,
+      "repository": "/pulp/api/v3/repositories/python/python/0196ba2d-0374-77ef-a4e0-1b5ba5b1ed20/",
+      "base_version": "/pulp/api/v3/repositories/python/python/0196ba2d-0374-77ef-a4e0-1b5ba5b1ed20/versions/1/",
+      "content_summary": {
+        "added": {},
+        "removed": {
+          "python.python": {
+            "count": 1,
+            "href": "/pulp/api/v3/content/python/packages/?repository_version_removed=/pulp/api/v3/repositories/python/python/0196ba2d-0374-77ef-a4e0-1b5ba5b1ed20/versions/2/"
+          }
+        },
+        "present": {}
       }
     }
     ```
