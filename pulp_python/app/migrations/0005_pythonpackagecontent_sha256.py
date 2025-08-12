@@ -47,5 +47,7 @@ class Migration(migrations.Migration):
             field=models.CharField(max_length=64, default=""),
             preserve_default=False,
         ),
-        migrations.RunPython(add_sha256_to_current_models, migrations.RunPython.noop),
+        migrations.RunPython(
+            add_sha256_to_current_models, migrations.RunPython.noop, elidable=True
+        ),
     ]
