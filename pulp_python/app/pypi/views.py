@@ -8,7 +8,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from datetime import datetime, timezone, timedelta
 
-from rest_framework.reverse import reverse
 from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.db.utils import DatabaseError
@@ -29,7 +28,7 @@ from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
-from pulpcore.plugin.util import get_domain
+from pulpcore.plugin.util import get_domain, get_url
 from pulpcore.plugin.exceptions import TimeoutException
 from pulp_python.app.models import (
     PythonDistribution,
@@ -205,7 +204,7 @@ class PackageUploadMixin(PyPIMixin):
         cur_session["artifacts"] = [(str(artifact.sha256), filename)]
         cur_session.modified = False
         cur_session.save()
-        result = dispatch(
+        task = dispatch(
             tasks.upload_group,
             exclusive_resources=[artifact, repository],
             kwargs={
@@ -213,7 +212,7 @@ class PackageUploadMixin(PyPIMixin):
                 "repository_pk": str(repository.pk),
             },
         )
-        return reverse("tasks-detail", args=[result.pk], request=None)
+        return get_url(task)
 
 
 class SimpleView(PackageUploadMixin, ViewSet):
