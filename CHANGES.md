@@ -8,6 +8,24 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.18.0 (2025-08-13) {: #3.18.0 }
+
+#### Features {: #3.18.0-feature }
+
+- Bump pulpcore upperbound to <3.100. pulp_python is now a Python >=3.11 project.
+
+#### Bugfixes {: #3.18.0-bugfix }
+
+- Fixed PYTHON_GROUP_UPLOADS failing when domains are turned on.
+  [#929](https://github.com/pulp/pulp_python/issues/929)
+
+#### Improved Documentation {: #3.18.0-doc }
+
+- Updated docs for adding/removing repository content to handle duplicate filenames.
+  [#927](https://github.com/pulp/pulp_python/issues/927)
+
+---
+
 ## 3.17.1 (2025-08-12) {: #3.17.1 }
 
 #### Bugfixes {: #3.17.1-bugfix }
