@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.17.1 (2025-08-12) {: #3.17.1 }
+
+#### Bugfixes {: #3.17.1-bugfix }
+
+- Fixed PYTHON_GROUP_UPLOADS failing when domains are turned on.
+  [#929](https://github.com/pulp/pulp_python/issues/929)
+
+---
+
 ## 3.17.0 (2025-07-23) {: #3.17.0 }
 
 #### Features {: #3.17.0-feature }
