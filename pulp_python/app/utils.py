@@ -162,7 +162,7 @@ def parse_metadata(project, version, distribution):
     return package
 
 
-def get_project_metadata_from_artifact(filename, artifact):
+def get_project_metadata_from_file(filename):
     """
     Gets the metadata of a Python Package.
 
@@ -173,30 +173,31 @@ def get_project_metadata_from_artifact(filename, artifact):
     # If no supported extension is found, ValueError is raised here
     pkg_type_index = [filename.endswith(ext) for ext in extensions].index(True)
     packagetype = DIST_EXTENSIONS[extensions[pkg_type_index]]
-    # Copy file to a temp directory under the user provided filename, we do this
-    # because pkginfo validates that the filename has a valid extension before
-    # reading it
-    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
-        shutil.copyfileobj(artifact.file, temp_file)
-        temp_file.flush()
-        metadata = DIST_TYPES[packagetype](temp_file.name)
-        metadata.packagetype = packagetype
-        if packagetype == "sdist":
-            metadata.python_version = "source"
-        else:
-            pyver = ""
-            regex = DIST_REGEXES[extensions[pkg_type_index]]
-            if bdist_name := regex.match(filename):
-                pyver = bdist_name.group("pyver") or ""
-            metadata.python_version = pyver
-        return metadata
+
+    metadata = DIST_TYPES[packagetype](filename)
+    metadata.packagetype = packagetype
+    if packagetype == "sdist":
+        metadata.python_version = "source"
+    else:
+        pyver = ""
+        regex = DIST_REGEXES[extensions[pkg_type_index]]
+        if bdist_name := regex.match(filename):
+            pyver = bdist_name.group("pyver") or ""
+        metadata.python_version = pyver
+    return metadata
 
 
 def artifact_to_python_content_data(filename, artifact, domain=None):
     """
     Takes the artifact/filename and returns the metadata needed to create a PythonPackageContent.
     """
-    metadata = get_project_metadata_from_artifact(filename, artifact)
+    # Copy file to a temp directory under the user provided filename, we do this
+    # because pkginfo validates that the filename has a valid extension before
+    # reading it
+    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
+        shutil.copyfileobj(artifact.file, temp_file)
+        temp_file.flush()
+        metadata = get_project_metadata_from_file(temp_file.name)
     data = parse_project_metadata(vars(metadata))
     data["sha256"] = artifact.sha256
     data["filename"] = filename
