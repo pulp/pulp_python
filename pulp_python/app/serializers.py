@@ -1,5 +1,8 @@
+import logging
+import os
 from gettext import gettext as _
 from django.conf import settings
+from django.db.utils import IntegrityError
 from packaging.requirements import Requirement
 from rest_framework import serializers
 
@@ -8,7 +11,15 @@ from pulpcore.plugin import serializers as core_serializers
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
-from pulp_python.app.utils import artifact_to_python_content_data
+from pulp_python.app.utils import (
+    DIST_EXTENSIONS,
+    artifact_to_python_content_data,
+    get_project_metadata_from_file,
+    parse_project_metadata,
+)
+
+
+log = logging.getLogger(__name__)
 
 
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
@@ -207,7 +218,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "The Python version(s) that the distribution is guaranteed to be " "compatible with."
+            "The Python version(s) that the distribution is guaranteed to be compatible with."
         ),
     )
     # Version 2.1
@@ -215,7 +226,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "A string stating the markup syntax (if any) used in the distribution’s"
+            "A string stating the markup syntax (if any) used in the distribution's"
             " description, so that tools can intelligently render the description."
         ),
     )
@@ -256,7 +267,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     )
     packagetype = serializers.CharField(
         help_text=_(
-            "The type of the distribution package " "(e.g. sdist, bdist_wheel, bdist_egg, etc)"
+            "The type of the distribution package (e.g. sdist, bdist_wheel, bdist_egg, etc)"
         ),
         read_only=True,
     )
@@ -355,6 +366,70 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             "sha256",
         )
         model = python_models.PythonPackageContent
+
+
+class PythonPackageContentUploadSerializer(PythonPackageContentSerializer):
+    """
+    A serializer for requests to synchronously upload Python packages.
+    """
+
+    def validate(self, data):
+        """
+        Validates an uploaded Python package file, extracts its metadata,
+        and creates or retrieves an associated Artifact.
+
+        Returns updated data with artifact and metadata details.
+        """
+        file = data.pop("file")
+        filename = file.name
+
+        for ext, packagetype in DIST_EXTENSIONS.items():
+            if filename.endswith(ext):
+                break
+        else:
+            raise serializers.ValidationError(
+                _(
+                    "Extension on {} is not a valid python extension "
+                    "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
+                ).format(filename)
+            )
+
+        # Replace the incorrect file name in the file path with the original file name
+        original_filepath = file.file.name
+        path_to_file, tmp_str = original_filepath.rsplit("/", maxsplit=1)
+        tmp_str = tmp_str.split(".", maxsplit=1)[0]  # Remove e.g. ".upload.gz" suffix
+        new_filepath = f"{path_to_file}/{tmp_str}{filename}"
+        os.rename(original_filepath, new_filepath)
+
+        metadata = get_project_metadata_from_file(new_filepath)
+        artifact = core_models.Artifact.init_and_validate(new_filepath)
+        try:
+            artifact.save()
+        except IntegrityError:
+            artifact = core_models.Artifact.objects.get(
+                sha256=artifact.sha256, pulp_domain=get_domain()
+            )
+            artifact.touch()
+            log.info(f"Artifact for {file.name} already existed in database")
+
+        data["artifact"] = artifact
+        data["sha256"] = artifact.sha256
+        data["relative_path"] = filename
+        data.update(parse_project_metadata(vars(metadata)))
+        # Overwrite filename from metadata
+        data["filename"] = filename
+        return data
+
+    class Meta(PythonPackageContentSerializer.Meta):
+        # This API does not support uploading to a repository or using a custom relative_path
+        fields = tuple(
+            f
+            for f in PythonPackageContentSerializer.Meta.fields
+            if f not in ["repository", "relative_path"]
+        )
+        model = python_models.PythonPackageContent
+        # Name used for the OpenAPI request object
+        ref_name = "PythonPackageContentUpload"
 
 
 class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
@@ -503,7 +578,7 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
 
     distributions = core_serializers.DetailRelatedField(
         help_text=_(
-            "This publication is currently being hosted as configured by these " "distributions."
+            "This publication is currently being hosted as configured by these distributions."
         ),
         source="distribution_set",
         view_name="pythondistributions-detail",

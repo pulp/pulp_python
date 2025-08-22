@@ -1,4 +1,5 @@
 from bandersnatch.configuration import BandersnatchConfig
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
@@ -355,9 +356,48 @@ class PythonPackageSingleArtifactContentUploadViewSet(
                     "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
                 ],
             },
+            {
+                "action": ["upload"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_perms:python.upload_python_packages",
+                ],
+            },
         ],
         "queryset_scoping": {"function": "scope_queryset"},
     }
+
+    LOCKED_ROLES = {
+        "python.python_package_uploader": [
+            "python.upload_python_packages",
+        ],
+    }
+
+    @extend_schema(
+        summary="Synchronous Python package upload",
+        request=python_serializers.PythonPackageContentUploadSerializer,
+        responses={201: python_serializers.PythonPackageContentSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        serializer_class=python_serializers.PythonPackageContentUploadSerializer,
+    )
+    def upload(self, request):
+        """
+        Create a Python package.
+        """
+        serializer = self.get_serializer(data=request.data)
+
+        with transaction.atomic():
+            # Create the artifact
+            serializer.is_valid(raise_exception=True)
+            # Create the package
+            serializer.save()
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin):
