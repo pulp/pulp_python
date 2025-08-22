@@ -207,7 +207,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "The Python version(s) that the distribution is guaranteed to be " "compatible with."
+            "The Python version(s) that the distribution is guaranteed to be compatible with."
         ),
     )
     # Version 2.1
@@ -215,7 +215,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "A string stating the markup syntax (if any) used in the distribution’s"
+            "A string stating the markup syntax (if any) used in the distribution's"
             " description, so that tools can intelligently render the description."
         ),
     )
@@ -256,7 +256,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     )
     packagetype = serializers.CharField(
         help_text=_(
-            "The type of the distribution package " "(e.g. sdist, bdist_wheel, bdist_egg, etc)"
+            "The type of the distribution package (e.g. sdist, bdist_wheel, bdist_egg, etc)"
         ),
         read_only=True,
     )
@@ -503,7 +503,7 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
 
     distributions = core_serializers.DetailRelatedField(
         help_text=_(
-            "This publication is currently being hosted as configured by these " "distributions."
+            "This publication is currently being hosted as configured by these distributions."
         ),
         source="distribution_set",
         view_name="pythondistributions-detail",
