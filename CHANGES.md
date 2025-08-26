@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.19.0 (2025-08-26) {: #3.19.0 }
+
+#### Features {: #3.19.0-feature }
+
+- Added a synchronous upload API.
+  [#933](https://github.com/pulp/pulp_python/issues/933)
+
+---
+
 ## 3.18.0 (2025-08-13) {: #3.18.0 }
 
 #### Features {: #3.18.0-feature }
