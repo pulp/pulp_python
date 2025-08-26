@@ -227,6 +227,9 @@ class PythonPackageContent(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("sha256", "_pulp_domain")
+        permissions = [
+            ("upload_python_packages", "Can upload Python packages using synchronous API."),
+        ]
 
 
 class PythonPublication(Publication, AutoAddObjPermsMixin):
