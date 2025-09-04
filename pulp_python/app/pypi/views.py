@@ -3,6 +3,7 @@ import logging
 
 from aiohttp.client_exceptions import ClientError
 from rest_framework.viewsets import ViewSet
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
@@ -17,6 +18,7 @@ from django.http.response import (
     HttpResponseBadRequest,
     StreamingHttpResponse,
     HttpResponse,
+    JsonResponse,
 )
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
@@ -43,7 +45,9 @@ from pulp_python.app.pypi.serializers import (
 )
 from pulp_python.app.utils import (
     write_simple_index,
+    write_simple_index_json,
     write_simple_detail,
+    write_simple_detail_json,
     python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
@@ -56,6 +60,30 @@ log = logging.getLogger(__name__)
 
 ORIGIN_HOST = settings.CONTENT_ORIGIN if settings.CONTENT_ORIGIN else settings.PYPI_API_HOSTNAME
 BASE_CONTENT_URL = urljoin(ORIGIN_HOST, settings.CONTENT_PATH_PREFIX)
+
+PYPI_TEXT_HTML = "text/html"
+PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
+PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
+
+
+class PyPISimpleHTMLRenderer(TemplateHTMLRenderer):
+    media_type = PYPI_SIMPLE_V1_HTML
+
+
+class PyPISimpleJSONRenderer(JSONRenderer):
+    media_type = PYPI_SIMPLE_V1_JSON
+
+
+def _select_content_type(request):
+    """Select content type based on Accept header."""
+    accept_header = request.META.get("HTTP_ACCEPT", "")
+
+    for content_type in (PYPI_TEXT_HTML, PYPI_SIMPLE_V1_HTML, PYPI_SIMPLE_V1_JSON):
+        if content_type in accept_header:
+            return content_type
+    if not accept_header:
+        return PYPI_TEXT_HTML
+    return None
 
 
 class PyPIMixin:
@@ -235,14 +263,32 @@ class SimpleView(PackageUploadMixin, ViewSet):
         ],
     }
 
+    renderer_classes = [
+        TemplateHTMLRenderer,
+        PyPISimpleHTMLRenderer,
+        PyPISimpleJSONRenderer,
+    ]
+
     @extend_schema(summary="Get index simple page")
     def list(self, request, path):
         """Gets the simple api html page for the index."""
+        content_type = _select_content_type(request)
+        if content_type is None:
+            return HttpResponse("Not Acceptable Content-Type", status=406)
+
         repo_version, content = self.get_rvc()
         if self.should_redirect(repo_version=repo_version):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/"))
         names = content.order_by("name").values_list("name", flat=True).distinct().iterator()
-        return StreamingHttpResponse(write_simple_index(names, streamed=True))
+
+        if content_type == PYPI_SIMPLE_V1_JSON:
+            names_list = list(names)
+            data_dict = write_simple_index_json(names_list)
+            headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
+            response = JsonResponse(data_dict, content_type=content_type, headers=headers)
+            return response
+        else:
+            return StreamingHttpResponse(write_simple_index(names, streamed=True))
 
     def pull_through_package_simple(self, package, path, remote):
         """Gets the package's simple page from remote."""
@@ -281,6 +327,10 @@ class SimpleView(PackageUploadMixin, ViewSet):
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html page for a package."""
+        content_type = _select_content_type(request)
+        if content_type is None:
+            return HttpResponse("Not Acceptable Content-Type", status=406)
+
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
@@ -301,7 +351,15 @@ class SimpleView(PackageUploadMixin, ViewSet):
             packages = chain([present], packages)
             name = present[2]
         releases = ((f, urljoin(self.base_content_url, f"{path}/{f}"), d) for f, d, _ in packages)
-        return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
+
+        if content_type == PYPI_SIMPLE_V1_JSON:
+            releases_list = list(releases)
+            data_dict = write_simple_detail_json(name, releases_list)
+            headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
+            response = JsonResponse(data_dict, content_type=content_type, headers=headers)
+            return response
+        else:
+            return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
 
     @extend_schema(
         request=PackageUploadSerializer,

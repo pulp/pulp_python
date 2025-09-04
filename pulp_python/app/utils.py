@@ -16,6 +16,10 @@ PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
 
+# todo: update to reflect supported version
+# https://packaging.python.org/en/latest/specifications/simple-repository-api/#api-version-history
+PYPI_API_VERSION = "1.4"
+
 simple_index_template = """<!DOCTYPE html>
 <html>
   <head>
@@ -412,6 +416,46 @@ def write_simple_detail(project_name, project_packages, streamed=False):
     detail = Template(simple_detail_template)
     context = {"project_name": project_name, "project_packages": project_packages}
     return detail.stream(**context) if streamed else detail.render(**context)
+
+
+def write_simple_index_json(project_names):
+    """Writes the simple index in JSON format."""
+    projects = [{"_last-serial": PYPI_SERIAL_CONSTANT, "name": name} for name in project_names]
+
+    return {
+        "meta": {"api-version": PYPI_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "projects": projects,
+    }
+
+
+# todo: fields
+def write_simple_detail_json(project_name, project_packages):
+    """Writes the simple detail page in JSON format."""
+    files = []
+    for filename, url, sha256 in project_packages:
+        files.append(
+            {
+                "filename": filename,
+                "url": url,
+                "hashes": {"sha256": sha256},
+                # requires_python
+                # size / version 1.1
+                # upload-time / 1.1
+                # yanked
+                # data-dist-info-metadata
+                # core-metadata
+                # provenance / 1.3
+            }
+        )
+
+    return {
+        "meta": {"api-version": PYPI_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "name": project_name,  # should be normalized
+        # project-status / 1.4
+        # versions / 1.1
+        # alternate-locations
+        "files": files,
+    }
 
 
 class PackageIncludeFilter:
