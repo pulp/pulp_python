@@ -280,6 +280,40 @@ def test_simple_correctness_live(
 
 
 @pytest.mark.parallel
+def test_simple_json_api(python_remote_factory, python_repo_with_sync, python_distribution_factory):
+    remote = python_remote_factory(includes=PYTHON_SM_PROJECT_SPECIFIER)
+    repo = python_repo_with_sync(remote)
+    distro = python_distribution_factory(repository=repo)
+
+    index_url = urljoin(distro.base_url, "simple/")
+    detail_url = f"{index_url}aiohttp"
+
+    headers = {"Accept": "application/vnd.pypi.simple.v1+json"}  # ok
+    # headers = {"Accept": "application/json"}  # nok
+
+    response_index = requests.get(index_url, headers=headers)
+    data_index = response_index.json()
+    assert data_index["meta"] == {"api-version": "1.4", "_last-serial": 1000000000}
+    assert data_index["projects"]
+    for project in data_index["projects"]:
+        for i in ["_last-serial", "name"]:
+            assert project[i]
+    assert response_index.headers["Content-Type"] == "application/vnd.pypi.simple.v1+json"
+    assert response_index.headers["X-PyPI-Last-Serial"] == "1000000000"
+
+    response_detail = requests.get(detail_url, headers=headers)
+    data_detail = response_detail.json()
+    assert data_detail["meta"] == {"api-version": "1.4", "_last-serial": 1000000000}
+    assert data_detail["name"] == "aiohttp"
+    assert data_detail["files"]
+    for file in data_detail["files"]:
+        for i in ["filename", "url", "hashes"]:
+            assert file[i]
+    assert response_detail.headers["Content-Type"] == "application/vnd.pypi.simple.v1+json"
+    assert response_detail.headers["X-PyPI-Last-Serial"] == "1000000000"
+
+
+@pytest.mark.parallel
 def test_pypi_json(python_remote_factory, python_repo_with_sync, python_distribution_factory):
     """Checks the data of `pypi/{package_name}/json` endpoint."""
     remote = python_remote_factory(policy="immediate")
