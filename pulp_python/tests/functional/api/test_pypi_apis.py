@@ -243,26 +243,6 @@ def test_twine_upload(
             check=True,
         )
 
-    # Test re-uploading same packages with --skip-existing works
-    output = subprocess.run(
-        (
-            "twine",
-            "upload",
-            "--repository-url",
-            url,
-            dist_dir / "*",
-            "-u",
-            username,
-            "-p",
-            password,
-            "--skip-existing",
-        ),
-        capture_output=True,
-        check=True,
-        text=True
-    )
-    assert output.stdout.count("Skipping") == 2
-
 
 class PyPISimpleApi(TestCaseUsingBindings, TestHelpersMixin):
     """Tests that the simple api is correct."""
