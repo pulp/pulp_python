@@ -66,7 +66,7 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
     assert r.status_code == 404
-    assert r.json() == {"detail": "pulpcore does not exist."}
+    assert r.text == "404 Not Found"
 
     r = requests.get(f"{distro.base_url}simple/shelf-reader/")
     assert r.status_code == 200
@@ -86,7 +86,7 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/django/")
     assert r.status_code == 404
-    assert r.json() == {"detail": "django does not exist."}
+    assert r.text == "404 Not Found"
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
     assert r.status_code == 502
