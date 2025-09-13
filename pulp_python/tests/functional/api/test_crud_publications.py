@@ -1,5 +1,6 @@
 import pytest
 import random
+from pypi_simple import PyPISimple
 from urllib.parse import urljoin
 
 from pulp_python.tests.functional.constants import (
@@ -108,4 +109,30 @@ def test_new_content_is_published(python_publication_workflow, python_distributi
     releases = [PYTHON_EGG_FILENAME, PYTHON_WHEEL_FILENAME]
     url = urljoin(distro.base_url, "simple/")
     proper, msgs = ensure_simple(url, {"shelf-reader": releases})
+    assert proper is True, msgs
+
+
+@pytest.mark.parallel
+def test_non_matching_canonicalized_name(
+    python_repo, python_content_factory, python_publication_factory, python_distribution_factory
+):
+    """Ensures a package with dists that have non-matching canonicalized names is published."""
+    packages = []
+    filenames = ["msg_parser-1.0.0-py2.py3-none-any.whl", "msg_parser-1.0.0.tar.gz"]
+    with PyPISimple() as client:
+        page = client.get_project_page("msg-parser")
+        for pkg in page.packages:
+            if pkg.filename in filenames:
+                c = python_content_factory(pkg.filename, url=pkg.url, repository=python_repo)
+                if c.filename.endswith(".tar.gz"):
+                    # The metadata name in the SDist is not the same as the Wheel's name
+                    assert c.name == "msg_parser"
+                else:
+                    assert c.name == "msg-parser"
+                packages.append(c)
+    pub = python_publication_factory(repository=python_repo)
+    distro = python_distribution_factory(publication=pub)
+
+    url = urljoin(distro.base_url, "simple/")
+    proper, msgs = ensure_simple(url, {"msg-parser": filenames})
     assert proper is True, msgs

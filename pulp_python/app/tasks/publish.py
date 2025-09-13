@@ -59,9 +59,9 @@ def write_simple_api(publication):
         python_models.PythonPackageContent.objects.filter(
             pk__in=publication.repository_version.content, _pulp_domain=domain
         )
-        .order_by("name")
+        .order_by("name__normalize")
         .values_list("name", flat=True)
-        .distinct()
+        .distinct("name__normalize")
     )
 
     # write the root index, which lists all of the projects for which there is a package available
@@ -80,22 +80,22 @@ def write_simple_api(publication):
     packages = python_models.PythonPackageContent.objects.filter(
         pk__in=publication.repository_version.content, _pulp_domain=domain
     )
-    releases = packages.order_by("name").values("name", "filename", "sha256")
+    releases = packages.order_by("name__normalize").values("name", "filename", "sha256")
 
     ind = 0
-    current_name = project_names[ind]
+    current_name = canonicalize_name(project_names[ind])
     package_releases = []
     for release in releases.iterator():
-        if release["name"] != current_name:
+        if canonicalize_name(release["name"]) != current_name:
             write_project_page(
-                name=canonicalize_name(current_name),
+                name=current_name,
                 simple_dir=simple_dir,
                 package_releases=package_releases,
                 publication=publication,
             )
             package_releases = []
             ind += 1
-            current_name = project_names[ind]
+            current_name = canonicalize_name(project_names[ind])
         relative_path = release["filename"]
         path = f"../../{relative_path}"
         checksum = release["sha256"]
