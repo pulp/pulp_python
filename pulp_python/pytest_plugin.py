@@ -178,7 +178,7 @@ def python_content_factory(python_bindings, download_python_file, monitor_task):
 
         task = python_bindings.ContentPackagesApi.create(**body).task
         response = monitor_task(task)
-        return python_bindings.ContentPackagesApi.read(response.created_resources[0])
+        return python_bindings.ContentPackagesApi.read(response.created_resources[-1])
 
     yield _gen_python_content
 
