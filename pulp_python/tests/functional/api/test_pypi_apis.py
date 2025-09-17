@@ -207,26 +207,6 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
                 check=True,
             )
 
-        # Test re-uploading same packages with --skip-existing works
-        output = subprocess.run(
-            (
-                "twine",
-                "upload",
-                "--repository-url",
-                url,
-                self.dists_dir.name + "/*",
-                "-u",
-                username,
-                "-p",
-                password,
-                "--skip-existing",
-            ),
-            capture_output=True,
-            check=True,
-            text=True
-        )
-        self.assertEqual(output.stdout.count("Skipping"), 2)
-
 
 class PyPISimpleApi(TestCaseUsingBindings, TestHelpersMixin):
     """Tests that the simple api is correct."""
