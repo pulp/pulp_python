@@ -9,6 +9,7 @@ from pulpcore.plugin import models
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
+from pulp_python.app.serializers import PythonPublicationSerializer
 from pulp_python.app.utils import write_simple_index, write_simple_detail
 
 
@@ -36,6 +37,7 @@ def publish(repository_version_pk):
         write_simple_api(pub)
 
     log.info(_("Publication: {pk} created").format(pk=pub.pk))
+    pub = PythonPublicationSerializer(instance=pub, context={"request": None}).data
     return pub
 
 

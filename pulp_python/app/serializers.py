@@ -457,6 +457,13 @@ class MultipleChoiceArrayField(serializers.MultipleChoiceField):
         """Converts set to list."""
         return list(super().to_internal_value(data))
 
+    def to_representation(self, value):
+        """Converts set to list for JSON serialization."""
+        result = super().to_representation(value)
+        if isinstance(result, set):
+            result = list(result)
+        return result
+
 
 class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     """
