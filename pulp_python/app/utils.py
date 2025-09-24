@@ -12,9 +12,12 @@ from packaging.version import parse, InvalidVersion
 from pulpcore.plugin.models import Remote
 
 
+# todo: why upper case?
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
+
+PYPI_API_VERSION = "1.0"
 
 simple_index_template = """<!DOCTYPE html>
 <html>
@@ -38,8 +41,8 @@ simple_detail_template = """<!DOCTYPE html>
 </head>
 <body>
     <h1>Links for {{ project_name }}</h1>
-    {% for name, path, sha256 in project_packages %}
-    <a href="{{ path }}#sha256={{ sha256 }}" rel="internal">{{ name }}</a><br/>
+    {% for pkg in project_packages %}
+    <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal">{{ pkg.filename }}</a><br/>
     {% endfor %}
 </body>
 </html>
@@ -158,6 +161,9 @@ def parse_metadata(project, version, distribution):
     package["requires_python"] = distribution.get("requires_python") or package.get(
         "requires_python"
     )  # noqa: E501
+    package["yanked"] = distribution.get("yanked") or False
+    package["yanked_reason"] = distribution.get("yanked_reason") or ""
+    package["sha256_metadata"] = distribution.get("data-dist-info-metadata", {}).get("sha256") or ""
 
     return package
 
@@ -203,6 +209,10 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     data["filename"] = filename
     data["pulp_domain"] = domain or artifact.pulp_domain
     data["_pulp_domain"] = data["pulp_domain"]
+    # todo: how to get these / should they be here?
+    # data["yanked"] = False
+    # data["yanked_reason"] = ""
+    # data["sha256_metadata"] = ""
     return data
 
 
@@ -325,6 +335,7 @@ def python_content_to_info(content):
         "platform": content.platform or "",
         "requires_dist": json_to_dict(content.requires_dist) or None,
         "classifiers": json_to_dict(content.classifiers) or None,
+        # todo yanked
         "yanked": False,  # These are no longer used on PyPI, but are still present
         "yanked_reason": None,
         # New core metadata (Version 2.1, 2.2, 2.4)
@@ -395,6 +406,7 @@ def python_content_to_download_info(content, base_path, domain=None):
         "upload_time": str(content.pulp_created),
         "upload_time_iso_8601": str(content.pulp_created.isoformat()),
         "url": url,
+        # todo yanked
         "yanked": False,
         "yanked_reason": None,
     }
@@ -412,6 +424,53 @@ def write_simple_detail(project_name, project_packages, streamed=False):
     detail = Template(simple_detail_template)
     context = {"project_name": project_name, "project_packages": project_packages}
     return detail.stream(**context) if streamed else detail.render(**context)
+
+
+def write_simple_index_json(project_names):
+    """Writes the simple index in JSON format."""
+    return {
+        "meta": {"api-version": PYPI_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "projects": [
+            {"name": name, "_last-serial": PYPI_SERIAL_CONSTANT} for name in project_names
+        ],
+    }
+
+
+def write_simple_detail_json(project_name, project_packages):
+    """Writes the simple detail page in JSON format."""
+    return {
+        "meta": {"api-version": PYPI_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "name": canonicalize_name(project_name),
+        "files": [
+            {
+                # v1.0, PEP 691
+                "filename": package["filename"],
+                "url": package["url"],
+                "hashes": {"sha256": package["sha256"]},
+                "requires_python": package["requires_python"] or None,
+                # data-dist-info-metadata is deprecated alias for core-metadata
+                "data-dist-info-metadata": (
+                    {"sha256": package["sha256_metadata"]} if package["sha256_metadata"] else False
+                ),
+                "yanked": (
+                    package["yanked_reason"]
+                    if package["yanked"] and package["yanked_reason"]
+                    else package["yanked"]
+                ),
+                # gpg-sig (not in warehouse)
+                # todo (from new PEPs):
+                # size (v1.1, PEP 700)
+                # upload-time (v1.1, PEP 700)
+                # core-metadata (PEP 7.14)
+                # provenance (v1.3, PEP 740)
+            }
+            for package in project_packages
+        ],
+        # todo (from new PEPs):
+        # versions (v1.1, PEP 700)
+        # alternate-locations (v1.2, PEP 708)
+        # project-status (v1.4, PEP 792 - pypi and docs differ)
+    }
 
 
 class PackageIncludeFilter:
