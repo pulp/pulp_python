@@ -73,7 +73,7 @@ def python_distribution_factory(python_bindings, gen_object_with_cleanup):
                     ver_href = f"{repo_href}versions/{version}/"
                 else:
                     ver_href = get_href(version)
-                body = {"repository_version": ver_href}
+                body["repository_version"] = ver_href
             else:
                 body["repository"] = repo_href
         kwargs = {}

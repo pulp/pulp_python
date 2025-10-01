@@ -267,6 +267,11 @@ def test_pypi_json(python_remote_factory, python_repo_with_sync, python_distribu
     distro = python_distribution_factory(repository=repo)
     response = requests.get(urljoin(distro.base_url, "pypi/shelf-reader/json"))
     assert_pypi_json(response.json())
+    # Test serving a repository version
+    distro = python_distribution_factory(repository=repo, version="1")
+    assert distro.repository is None
+    response = requests.get(urljoin(distro.base_url, "pypi/shelf-reader/json"))
+    assert_pypi_json(response.json())
 
 
 @pytest.mark.parallel

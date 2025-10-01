@@ -104,10 +104,13 @@ class PyPIMixin:
         """Finds the repository version this distribution is serving."""
         pub = distribution.publication
         rep = distribution.repository
+        rep_version = distribution.repository_version
         if pub:
             return pub.repository_version or pub.repository.latest_version()
         elif rep:
             return rep.latest_version()
+        elif rep_version:
+            return rep_version
         else:
             raise Http404("No repository associated with this index")
 
