@@ -24,7 +24,7 @@ pushd pulp_python-client
 python setup.py sdist bdist_wheel --python-tag py3
 
 twine check "dist/pulp_python_client-"*"-py3-none-any.whl"
-twine check "dist/pulp_python-client-"*".tar.gz"
+twine check "dist/pulp_python_client-"*".tar.gz"
 
 tar cvf "../../pulp_python/python-python-client.tar" ./dist
 
