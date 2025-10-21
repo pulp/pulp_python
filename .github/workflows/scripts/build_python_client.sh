@@ -21,7 +21,7 @@ rm -rf "pulp_python-client"
 ./gen-client.sh "../pulp_python/python-api.json" "python" python "pulp_python"
 
 pushd pulp_python-client
-python setup.py sdist bdist_wheel --python-tag py3
+python -m build
 
 twine check "dist/pulp_python_client-"*"-py3-none-any.whl"
 twine check "dist/pulp_python_client-"*".tar.gz"
