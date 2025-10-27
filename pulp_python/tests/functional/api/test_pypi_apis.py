@@ -11,10 +11,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
-    PYTHON_EGG_URL,
     PYTHON_EGG_SHA256,
-    PYTHON_WHEEL_FILENAME,
-    PYTHON_WHEEL_URL,
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,
 )
@@ -24,20 +21,6 @@ from pulp_python.tests.functional.utils import ensure_simple
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
-
-
-@pytest.fixture
-def python_empty_repo_distro(python_repo_factory, python_distribution_factory):
-    """Returns an empty repo with and distribution serving it."""
-
-    def _generate_empty_repo_distro(repo_body=None, distro_body=None):
-        repo_body = repo_body or {}
-        distro_body = distro_body or {}
-        repo = python_repo_factory(**repo_body)
-        distro = python_distribution_factory(repository=repo, **distro_body)
-        return repo, distro
-
-    yield _generate_empty_repo_distro
 
 
 @pytest.mark.parallel
@@ -78,19 +61,6 @@ def test_published_index(
 
     summary = python_bindings.PypiApi.read(path=distro.base_path)
     assert summary.to_dict() == PYTHON_MD_PYPI_SUMMARY
-
-
-@pytest.fixture(scope="module")
-def python_package_dist_directory(tmp_path_factory, http_get):
-    """Creates a temp dir to hold package distros for uploading."""
-    dist_dir = tmp_path_factory.mktemp("dist")
-    egg_file = dist_dir / PYTHON_EGG_FILENAME
-    wheel_file = dist_dir / PYTHON_WHEEL_FILENAME
-    with open(egg_file, "wb") as f:
-        f.write(http_get(PYTHON_EGG_URL))
-    with open(wheel_file, "wb") as f:
-        f.write(http_get(PYTHON_WHEEL_URL))
-    yield dist_dir, egg_file, wheel_file
 
 
 @pytest.mark.parallel

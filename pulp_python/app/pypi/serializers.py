@@ -2,7 +2,7 @@ import logging
 from gettext import gettext as _
 
 from rest_framework import serializers
-from pulp_python.app.utils import DIST_EXTENSIONS
+from pulp_python.app.utils import DIST_EXTENSIONS, SUPPORTED_METADATA_VERSIONS
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
 from django.db.utils import IntegrityError
@@ -54,6 +54,22 @@ class PackageUploadSerializer(serializers.Serializer):
         min_length=64,
         max_length=64,
     )
+    protocol_version = serializers.ChoiceField(
+        help_text=_("Protocol version to use for the upload. Only version 1 is supported."),
+        required=False,
+        choices=(1,),
+        default=1,
+    )
+    filetype = serializers.ChoiceField(
+        help_text=_("Type of artifact to upload."),
+        required=False,
+        choices=("bdist_wheel", "sdist"),
+    )
+    metadata_version = serializers.ChoiceField(
+        help_text=_("Metadata version of the uploaded package."),
+        required=False,
+        choices=SUPPORTED_METADATA_VERSIONS,
+    )
 
     def validate(self, data):
         """Validates the request."""
@@ -63,14 +79,25 @@ class PackageUploadSerializer(serializers.Serializer):
         file = data.get("content")
         for ext, packagetype in DIST_EXTENSIONS.items():
             if file.name.endswith(ext):
+                if (filetype := data.get("filetype")) and filetype != packagetype:
+                    raise serializers.ValidationError(
+                        {
+                            "filetype": _(
+                                "filetype {} does not match found filetype {} for file {}"
+                            ).format(filetype, packagetype, file.name)
+                        }
+                    )
                 break
         else:
             raise serializers.ValidationError(
-                _(
-                    "Extension on {} is not a valid python extension "
-                    "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
-                ).format(file.name)
+                {
+                    "content": _(
+                        "Extension on {} is not a valid python extension "
+                        "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
+                    ).format(file.name)
+                }
             )
+
         sha256 = data.get("sha256_digest")
         digests = {"sha256": sha256} if sha256 else None
         artifact = Artifact.init_and_validate(file, expected_digests=digests)
