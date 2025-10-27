@@ -8,6 +8,9 @@ from pulp_python.tests.functional.constants import (
     PYTHON_XS_PROJECT_SPECIFIER,
     PYTHON_EGG_FILENAME,
     PYTHON_URL,
+    PYTHON_EGG_URL,
+    PYTHON_WHEEL_URL,
+    PYTHON_WHEEL_FILENAME,
 )
 
 
@@ -183,6 +186,20 @@ def python_content_factory(python_bindings, download_python_file, monitor_task):
     yield _gen_python_content
 
 
+@pytest.fixture
+def python_empty_repo_distro(python_repo_factory, python_distribution_factory):
+    """Returns an empty repo with and distribution serving it."""
+
+    def _generate_empty_repo_distro(repo_body=None, distro_body=None):
+        repo_body = repo_body or {}
+        distro_body = distro_body or {}
+        repo = python_repo_factory(**repo_body)
+        distro = python_distribution_factory(repository=repo, **distro_body)
+        return repo, distro
+
+    yield _generate_empty_repo_distro
+
+
 # Utility fixtures
 
 
@@ -217,3 +234,16 @@ def python_content_summary(python_bindings):
 def get_href(item):
     """Tries to get the href from the given item, whether it is a string or object."""
     return item if isinstance(item, str) else item.pulp_href
+
+
+@pytest.fixture(scope="session")
+def python_package_dist_directory(tmp_path_factory, http_get):
+    """Creates a temp dir to hold package distros for uploading."""
+    dist_dir = tmp_path_factory.mktemp("dist")
+    egg_file = dist_dir / PYTHON_EGG_FILENAME
+    wheel_file = dist_dir / PYTHON_WHEEL_FILENAME
+    with open(egg_file, "wb") as f:
+        f.write(http_get(PYTHON_EGG_URL))
+    with open(wheel_file, "wb") as f:
+        f.write(http_get(PYTHON_WHEEL_URL))
+    yield dist_dir, egg_file, wheel_file
