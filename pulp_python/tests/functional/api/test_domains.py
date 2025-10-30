@@ -270,6 +270,7 @@ def test_domain_pypi_apis(
             "pip",
             "install",
             "--no-deps",
+            "--no-build-isolation",
             "--trusted-host",
             urlsplit(distro.base_url).hostname,
             "-i",
