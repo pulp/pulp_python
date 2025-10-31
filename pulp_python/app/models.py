@@ -1,13 +1,16 @@
 from logging import getLogger
+from gettext import gettext as _
 
 from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
+from rest_framework.views import APIView
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     Content,
+    ContentGuard,
     Publication,
     Distribution,
     Remote,
@@ -20,6 +23,7 @@ from .utils import (
     artifact_to_python_content_data,
     canonicalize_name,
     python_content_to_json,
+    DIST_EXTENSIONS,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
 )
@@ -328,3 +332,51 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
         """
         remove_duplicates(new_version)
         validate_repo_version(new_version)
+
+
+class PackagePermissionGuard(ContentGuard, AutoAddObjPermsMixin):
+    """
+    A content guard that protects individual PyPI packages within a distribution/index.
+
+    This guard allows fine-grained control over which users/groups can download or upload
+    specific packages. Policies are stored as JSON dictionaries mapping package names to
+    lists of user/group PRNs.
+    """
+
+    TYPE = "package_permission"
+
+    download_policy = models.JSONField(
+        default=dict,
+        help_text=_(
+            "Dictionary mapping package names to lists of user/group PRNs"
+            "that are allowed to download those packages."
+        ),
+    )
+    upload_policy = models.JSONField(
+        default=dict,
+        help_text=_(
+            "Dictionary mapping package names to lists of user/group PRNs"
+            "that are allowed to upload those packages."
+        ),
+    )
+
+    def permit(self, request):
+        """
+        Check if the request can download the package. Do nothing if requesting metadata.
+        """
+        from .global_access_conditions import package_permission_check
+
+        if drequest := request.get("drf_request", None):
+            if not any(drequest.path.endswith(ext) for ext in DIST_EXTENSIONS.keys()):
+                return
+            view = APIView()
+            setattr(view, "content_guard", self)
+            if package_permission_check(drequest, view, "GET", "download"):
+                return
+        raise PermissionError("Access to the requested resource is not authorized.")
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_packagepermissionguard", "Can manage role assignments on package permission guard"),
+        ]

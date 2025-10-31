@@ -73,6 +73,88 @@ new RBACContentGuard:
 !!! warning
     The PyPI access policies do not support `creation_hooks` or `queryset_scoping`.
 
+## PackagePermissionGuard
+
+The PackagePermissionGuard provides fine-grained, package-level access control within a single distribution/index.
+Unlike RBACContentGuard which applies to all packages in a distribution, PackagePermissionGuard allows you to
+control download and upload permissions for individual PyPI packages.
+
+### Creating a PackagePermissionGuard
+
+```bash
+pulp content-guard package-permission create --name my-package-guard
+```
+
+### Managing Package Permissions
+
+PackagePermissionGuard uses two separate policies:
+- `download_policy`: Controls who can download specific packages
+- `upload_policy`: Controls who can upload specific packages
+
+Both policies map package names (normalized) to lists of user/group PRNs.
+
+#### Adding Permissions
+
+Use the `add` action to grant users/groups access to packages:
+
+```bash
+# Add download permissions for multiple packages
+pulp content-guard package-permission add \
+  --name my-package-guard \
+  --packages shelf-reader django \
+  --users-groups prn:core.user:alice prn:core.group:developers \
+  --policy-type download
+
+# Add upload permissions
+pulp content-guard package-permission add \
+  --name my-package-guard \
+  --packages shelf-reader \
+  --users-groups prn:core.user:bob \
+  --policy-type upload
+```
+
+#### Removing Permissions
+
+Use the `remove` action to revoke access:
+
+```bash
+# Remove specific users/groups from a package
+pulp content-guard package-permission remove \
+  --name my-package-guard \
+  --packages shelf-reader \
+  --users-groups prn:core.user:alice \
+  --policy-type download
+
+# Remove all permissions for a package (use '*' in users-groups)
+pulp content-guard package-permission remove \
+  --name my-package-guard \
+  --packages django \
+  --users-groups '*' \
+  --policy-type download
+
+# Remove all packages from a policy (use '*' in packages)
+pulp content-guard package-permission remove \
+  --name my-package-guard \
+  --packages '*' \
+  --users-groups '' \
+  --policy-type download
+```
+
+### How PackagePermissionGuard Works
+
+- **Downloads**: During downloads the guard's `permit()` method checks the `download_policy` to see
+  if there is a policy for the package. If no policy the download is permited. If there is one it 
+  then checks that the user of the request is in the policy list for that package.
+
+- **Uploads**: For uploads, the endpoint's access policy checks the `upload_policy` to see if the
+  user/group has permission for the package being uploaded. If the package or user is not in the 
+  policy the upload is denied.
+
+!!! note
+    For the content guard to properly protect uploads the `legacy` and `simple` AccessPolies must
+    use the `package_permission_check` condition for their `create` action. This is the current 
+    default with a fallback to `index_has_repo_perm` when there is no content guard on the distro.
+
 ## Index Specific Access Conditions
 
 Pulp Python comes with two specific access condition methods that can be used in the PyPI access policies.
@@ -89,5 +171,15 @@ the modify python repository permission.
 This access condition checks if the user has the supplied permission on the index (distribution) itself. If no 
 permission is specified for the method then it will use `python.view_pythondistribution` as its default.
 
+### `package_permission_check`
+
+This access condition checks PackagePermissionGuard for package-level permissions. It extracts the package name
+from the request (from URL path for downloads,from filename for uploads) and checks if the user/group has
+permission for that specific package in the guard's policy. This condition is used by default in PyPI upload
+endpoints to enable package-level upload control when a PackagePermissionGuard is attached to the distribution.
+
+- For downloads: Checks `download_policy` and denies only if package in policy and user/group is not.
+- For uploads: Checks `upload_policy` and denies access if package not in policy or user/group not allowed
+
 !!! note 
-    Both access condition methods are compatible with the Pulp Domains feature.
+    All access condition methods are compatible with the Pulp Domains feature.
