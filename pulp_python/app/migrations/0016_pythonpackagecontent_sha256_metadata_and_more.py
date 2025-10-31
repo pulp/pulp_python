@@ -12,8 +12,8 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="pythonpackagecontent",
-            name="sha256_metadata",
-            field=models.CharField(default="", max_length=64),
+            name="metadata_sha256",
+            field=models.CharField(null=True, max_length=64),
             preserve_default=False,
         ),
         migrations.AddField(

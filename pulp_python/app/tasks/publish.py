@@ -118,7 +118,6 @@ def write_project_page(name, simple_dir, package_releases, publication):
     metadata_relative_path = f"{project_dir}index.html"
 
     with open(metadata_relative_path, "w") as simple_metadata:
-        # todo?
         simple_metadata.write(write_simple_detail(name, package_releases))
 
     project_metadata = models.PublishedMetadata.create_from_file(
