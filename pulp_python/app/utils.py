@@ -1,7 +1,9 @@
+import hashlib
 import pkginfo
 import re
 import shutil
 import tempfile
+import zipfile
 import json
 from collections import defaultdict
 from django.conf import settings
@@ -16,15 +18,17 @@ PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
 
+SIMPLE_API_VERSION = "1.0"
+
 simple_index_template = """<!DOCTYPE html>
 <html>
   <head>
     <title>Simple Index</title>
-    <meta name="api-version" value="2" />
+    <meta name="pypi:repository-version" content="{{ SIMPLE_API_VERSION }}">
   </head>
   <body>
     {% for name, canonical_name in projects %}
-    <a href="{{ canonical_name }}/">{{ name }}</a><br/>
+      <a href="{{ canonical_name }}/">{{ name }}</a><br/>
     {% endfor %}
   </body>
 </html>
@@ -32,16 +36,16 @@ simple_index_template = """<!DOCTYPE html>
 
 simple_detail_template = """<!DOCTYPE html>
 <html>
-<head>
-  <title>Links for {{ project_name }}</title>
-  <meta name="api-version" value="2" />
-</head>
-<body>
+  <head>
+    <title>Links for {{ project_name }}</title>
+    <meta name="pypi:repository-version" content="{{ SIMPLE_API_VERSION }}">
+  </head>
+  <body>
     <h1>Links for {{ project_name }}</h1>
-    {% for name, path, sha256 in project_packages %}
-    <a href="{{ path }}#sha256={{ sha256 }}" rel="internal">{{ name }}</a><br/>
+    {% for pkg in project_packages %}
+      <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal">{{ pkg.filename }}</a><br/>
     {% endfor %}
-</body>
+  </body>
 </html>
 """
 
@@ -128,6 +132,7 @@ def parse_project_metadata(project):
         # Release metadata
         "packagetype": project.get("packagetype") or "",
         "python_version": project.get("python_version") or "",
+        "metadata_sha256": project.get("metadata_sha256"),
     }
 
 
@@ -154,10 +159,8 @@ def parse_metadata(project, version, distribution):
     package["version"] = version
     package["url"] = distribution.get("url") or ""
     package["sha256"] = distribution.get("digests", {}).get("sha256") or ""
-    package["python_version"] = distribution.get("python_version") or package.get("python_version")
-    package["requires_python"] = distribution.get("requires_python") or package.get(
-        "requires_python"
-    )  # noqa: E501
+    package["python_version"] = distribution.get("python_version") or ""
+    package["requires_python"] = distribution.get("requires_python") or ""
 
     return package
 
@@ -175,6 +178,7 @@ def get_project_metadata_from_file(filename):
     packagetype = DIST_EXTENSIONS[extensions[pkg_type_index]]
 
     metadata = DIST_TYPES[packagetype](filename)
+    metadata.metadata_sha256 = compute_metadata_sha256(filename)
     metadata.packagetype = packagetype
     if packagetype == "sdist":
         metadata.python_version = "source"
@@ -185,6 +189,25 @@ def get_project_metadata_from_file(filename):
             pyver = bdist_name.group("pyver") or ""
         metadata.python_version = pyver
     return metadata
+
+
+def compute_metadata_sha256(filename: str) -> str | None:
+    """
+    Compute SHA256 hash of the metadata file from a Python package.
+
+    Returns SHA256 hash or None if metadata cannot be extracted.
+    """
+    if not filename.endswith(".whl"):
+        return None
+    try:
+        with zipfile.ZipFile(filename, "r") as f:
+            for file_path in f.namelist():
+                if file_path.endswith(".dist-info/METADATA"):
+                    metadata_content = f.read(file_path)
+                    return hashlib.sha256(metadata_content).hexdigest()
+    except (zipfile.BadZipFile, KeyError, OSError):
+        pass
+    return None
 
 
 def artifact_to_python_content_data(filename, artifact, domain=None):
@@ -403,15 +426,63 @@ def python_content_to_download_info(content, base_path, domain=None):
 def write_simple_index(project_names, streamed=False):
     """Writes the simple index."""
     simple = Template(simple_index_template)
-    context = {"projects": ((x, canonicalize_name(x)) for x in project_names)}
+    context = {
+        "SIMPLE_API_VERSION": SIMPLE_API_VERSION,
+        "projects": ((x, canonicalize_name(x)) for x in project_names),
+    }
     return simple.stream(**context) if streamed else simple.render(**context)
 
 
 def write_simple_detail(project_name, project_packages, streamed=False):
     """Writes the simple detail page of a package."""
     detail = Template(simple_detail_template)
-    context = {"project_name": project_name, "project_packages": project_packages}
+    context = {
+        "SIMPLE_API_VERSION": SIMPLE_API_VERSION,
+        "project_name": project_name,
+        "project_packages": project_packages,
+    }
     return detail.stream(**context) if streamed else detail.render(**context)
+
+
+def write_simple_index_json(project_names):
+    """Writes the simple index in JSON format."""
+    return {
+        "meta": {"api-version": SIMPLE_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "projects": [
+            {"name": name, "_last-serial": PYPI_SERIAL_CONSTANT} for name in project_names
+        ],
+    }
+
+
+def write_simple_detail_json(project_name, project_packages):
+    """Writes the simple detail page in JSON format."""
+    return {
+        "meta": {"api-version": SIMPLE_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
+        "name": canonicalize_name(project_name),
+        "files": [
+            {
+                # v1.0, PEP 691
+                "filename": package["filename"],
+                "url": package["url"],
+                "hashes": {"sha256": package["sha256"]},
+                "requires-python": package["requires_python"] or None,
+                # data-dist-info-metadata is deprecated alias for core-metadata
+                "data-dist-info-metadata": (
+                    {"sha256": package["metadata_sha256"]} if package["metadata_sha256"] else False
+                ),
+                # yanked and yanked_reason are not implemented because they are mutable
+                # TODO in the future:
+                # size, upload-time (v1.1, PEP 700)
+                # core-metadata (PEP 7.14)
+                # provenance (v1.3, PEP 740)
+            }
+            for package in project_packages
+        ],
+        # TODO in the future:
+        # versions (v1.1, PEP 700)
+        # alternate-locations (v1.2, PEP 708)
+        # project-status (v1.4, PEP 792 - pypi and docs differ)
+    }
 
 
 class PackageIncludeFilter:

@@ -59,6 +59,24 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
 
 
 @pytest.mark.parallel
+@pytest.mark.parametrize("media_type", ["application/vnd.pypi.simple.v1+json", "text/html"])
+def test_pull_through_simple_media_types(
+    media_type, python_remote_factory, python_distribution_factory
+):
+    """Tests pull-through with different media types (JSON and HTML)."""
+    remote = python_remote_factory(url=PYPI_URL, includes=["shelf-reader"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/shelf-reader/"
+    headers = {"Accept": media_type}
+    response = requests.get(url, headers=headers)
+
+    assert response.status_code == 200
+    assert media_type in response.headers["Content-Type"]
+    assert "X-PyPI-Last-Serial" in response.headers
+
+
+@pytest.mark.parallel
 def test_pull_through_filter(python_remote_factory, python_distribution_factory):
     """Tests that pull-through respects the includes/excludes filter on the remote."""
     remote = python_remote_factory(url=PYPI_URL, includes=["shelf-reader"])
@@ -66,7 +84,7 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
     assert r.status_code == 404
-    assert r.json() == {"detail": "pulpcore does not exist."}
+    assert r.text == "404 Not Found"
 
     r = requests.get(f"{distro.base_url}simple/shelf-reader/")
     assert r.status_code == 200
@@ -86,7 +104,7 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/django/")
     assert r.status_code == 404
-    assert r.json() == {"detail": "django does not exist."}
+    assert r.text == "404 Not Found"
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
     assert r.status_code == 502
