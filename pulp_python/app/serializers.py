@@ -281,6 +281,11 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         default="",
         help_text=_("The SHA256 digest of this package."),
     )
+    metadata_sha256 = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text=_("The SHA256 digest of the package's METADATA file."),
+    )
 
     def deferred_validate(self, data):
         """
@@ -364,6 +369,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             "packagetype",
             "python_version",
             "sha256",
+            "metadata_sha256",
         )
         model = python_models.PythonPackageContent
 

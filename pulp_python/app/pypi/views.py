@@ -3,7 +3,9 @@ import logging
 
 from aiohttp.client_exceptions import ClientError
 from rest_framework.viewsets import ViewSet
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
+from rest_framework.exceptions import NotAcceptable
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from datetime import datetime, timezone, timedelta
@@ -43,7 +45,9 @@ from pulp_python.app.pypi.serializers import (
 )
 from pulp_python.app.utils import (
     write_simple_index,
+    write_simple_index_json,
     write_simple_detail,
+    write_simple_detail_json,
     python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
@@ -56,6 +60,17 @@ log = logging.getLogger(__name__)
 
 ORIGIN_HOST = settings.CONTENT_ORIGIN if settings.CONTENT_ORIGIN else settings.PYPI_API_HOSTNAME
 BASE_CONTENT_URL = urljoin(ORIGIN_HOST, settings.CONTENT_PATH_PREFIX)
+
+PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
+PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
+
+
+class PyPISimpleHTMLRenderer(TemplateHTMLRenderer):
+    media_type = PYPI_SIMPLE_V1_HTML
+
+
+class PyPISimpleJSONRenderer(JSONRenderer):
+    media_type = PYPI_SIMPLE_V1_JSON
 
 
 class PyPIMixin:
@@ -235,6 +250,25 @@ class SimpleView(PackageUploadMixin, ViewSet):
         ],
     }
 
+    def perform_content_negotiation(self, request, force=False):
+        """
+        Uses standard content negotiation, defaulting to HTML if no acceptable renderer is found.
+        """
+        try:
+            return super().perform_content_negotiation(request, force)
+        except NotAcceptable:
+            return TemplateHTMLRenderer(), TemplateHTMLRenderer.media_type  # text/html
+
+    def get_renderers(self):
+        """
+        Uses custom renderers for PyPI Simple API endpoints, defaulting to standard ones.
+        """
+        if self.action in ["list", "retrieve"]:
+            # Ordered by priority if multiple content types are present
+            return [TemplateHTMLRenderer(), PyPISimpleHTMLRenderer(), PyPISimpleJSONRenderer()]
+        else:
+            return [JSONRenderer(), BrowsableAPIRenderer()]
+
     @extend_schema(summary="Get index simple page")
     def list(self, request, path):
         """Gets the simple api html page for the index."""
@@ -242,9 +276,18 @@ class SimpleView(PackageUploadMixin, ViewSet):
         if self.should_redirect(repo_version=repo_version):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/"))
         names = content.order_by("name").values_list("name", flat=True).distinct().iterator()
-        return StreamingHttpResponse(write_simple_index(names, streamed=True))
+        media_type = request.accepted_renderer.media_type
+        headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
 
-    def pull_through_package_simple(self, package, path, remote):
+        if media_type == PYPI_SIMPLE_V1_JSON:
+            index_data = write_simple_index_json(names)
+            return Response(index_data, headers=headers)
+        else:
+            index_data = write_simple_index(names, streamed=True)
+            kwargs = {"content_type": media_type, "headers": headers}
+            return StreamingHttpResponse(index_data, **kwargs)
+
+    def pull_through_package_simple(self, package, path, remote, media_type):
         """Gets the package's simple page from remote."""
 
         def parse_package(release_package):
@@ -252,7 +295,13 @@ class SimpleView(PackageUploadMixin, ViewSet):
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
             redirect_path = f"{path}/{release_package.filename}?redirect={stripped_url}"
             d_url = urljoin(self.base_content_url, redirect_path)
-            return release_package.filename, d_url, release_package.digests.get("sha256", "")
+            return {
+                "filename": release_package.filename,
+                "url": d_url,
+                "sha256": release_package.digests.get("sha256", ""),
+                "requires_python": release_package.requires_python,
+                "metadata_sha256": (release_package.metadata_digests or {}).get("sha256"),
+            }
 
         rfilter = get_remote_package_filter(remote)
         if not rfilter.filter_project(package):
@@ -269,28 +318,40 @@ class SimpleView(PackageUploadMixin, ViewSet):
         except TimeoutException:
             return HttpResponse(f"{remote.url} timed out while fetching {package}.", status=504)
 
-        if d.headers["content-type"] == "application/vnd.pypi.simple.v1+json":
+        if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
             page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
         else:
             page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
         packages = [
             parse_package(p) for p in page.packages if rfilter.filter_release(package, p.version)
         ]
-        return HttpResponse(write_simple_detail(package, packages))
+        headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
+
+        if media_type == PYPI_SIMPLE_V1_JSON:
+            detail_data = write_simple_detail_json(package, packages)
+            return Response(detail_data, headers=headers)
+        else:
+            detail_data = write_simple_detail(package, packages)
+            kwargs = {"content_type": media_type, "headers": headers}
+            return HttpResponse(detail_data, **kwargs)
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
-        """Retrieves the simple api html page for a package."""
+        """Retrieves the simple api html/json page for a package."""
+        media_type = request.accepted_renderer.media_type
+
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
         if self.distribution.remote:
-            return self.pull_through_package_simple(normalized, path, self.distribution.remote)
+            return self.pull_through_package_simple(
+                normalized, path, self.distribution.remote, media_type
+            )
         if self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         packages = (
             content.filter(name__normalize=normalized)
-            .values_list("filename", "sha256", "name")
+            .values_list("filename", "sha256", "name", "metadata_sha256", "requires_python")
             .iterator()
         )
         try:
@@ -300,8 +361,26 @@ class SimpleView(PackageUploadMixin, ViewSet):
         else:
             packages = chain([present], packages)
             name = present[2]
-        releases = ((f, urljoin(self.base_content_url, f"{path}/{f}"), d) for f, d, _ in packages)
-        return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
+        releases = (
+            {
+                "filename": filename,
+                "url": urljoin(self.base_content_url, f"{path}/{filename}"),
+                "sha256": sha256,
+                "metadata_sha256": metadata_sha256,
+                "requires_python": requires_python,
+            }
+            for filename, sha256, _, metadata_sha256, requires_python in packages
+        )
+        media_type = request.accepted_renderer.media_type
+        headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
+
+        if media_type == PYPI_SIMPLE_V1_JSON:
+            detail_data = write_simple_detail_json(name, releases)
+            return Response(detail_data, headers=headers)
+        else:
+            detail_data = write_simple_detail(name, releases, streamed=True)
+            kwargs = {"content_type": media_type, "headers": headers}
+            return StreamingHttpResponse(detail_data, **kwargs)
 
     @extend_schema(
         request=PackageUploadSerializer,

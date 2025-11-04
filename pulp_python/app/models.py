@@ -192,6 +192,8 @@ class PythonPackageContent(Content):
     packagetype = models.TextField(choices=PACKAGE_TYPES)
     python_version = models.TextField()
     sha256 = models.CharField(db_index=True, max_length=64)
+    metadata_sha256 = models.CharField(max_length=64, null=True)
+    # yanked and yanked_reason are not implemented because they are mutable
 
     # From pulpcore
     PROTECTED_FROM_RECLAIM = False

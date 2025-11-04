@@ -101,7 +101,7 @@ def write_simple_api(publication):
         relative_path = release["filename"]
         path = f"../../{relative_path}"
         checksum = release["sha256"]
-        package_releases.append((relative_path, path, checksum))
+        package_releases.append({"filename": relative_path, "url": path, "sha256": checksum})
     # Write the final project's page
     write_project_page(
         name=canonicalize_name(current_name),
