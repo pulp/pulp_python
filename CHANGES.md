@@ -8,6 +8,22 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.20.0 (2025-11-07) {: #3.20.0 }
+
+#### Features {: #3.20.0-feature }
+
+- Added JSON-based Simple API (PEP 691).
+  [#625](https://github.com/pulp/pulp_python/issues/625)
+- Updated tasks to always return JSON-serializable value.
+  [#972](https://github.com/pulp/pulp_python/issues/972)
+
+#### Bugfixes {: #3.20.0-bugfix }
+
+- Fixed publication error when package's dists contain differing versions of its name.
+  [#907](https://github.com/pulp/pulp_python/issues/907)
+
+---
+
 ## 3.19.1 (2025-09-14) {: #3.19.1 }
 
 #### Bugfixes {: #3.19.1-bugfix }
