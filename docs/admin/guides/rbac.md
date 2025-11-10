@@ -15,7 +15,7 @@ Role based access control in Pulp Python is configured using access policies for
 
 This document will focus on describing the default access policies for the PyPI specific APIs and how they may be
 customized. The access policies for the Pulp APIs follow the same scheme as the Pulp File plugin which can be read 
-about here: [Pulp File RBAC](site:pulp_file/docs/admin/guides/01-rbac/). Use the Pulp 
+about here: [Pulp File RBAC](site:pulp_file/docs/admin/guides/rbac/). Use the Pulp 
 CLI to follow along with the examples here.
 
 !!! note 
