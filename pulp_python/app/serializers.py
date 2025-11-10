@@ -8,12 +8,13 @@ from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
-from pulpcore.plugin.util import get_domain
+from pulpcore.plugin.util import get_domain, get_prn
 
 from pulp_python.app import models as python_models
 from pulp_python.app.utils import (
     DIST_EXTENSIONS,
     artifact_to_python_content_data,
+    canonicalize_name,
     get_project_metadata_from_file,
     parse_project_metadata,
 )
@@ -602,3 +603,78 @@ class PythonPublicationSerializer(core_serializers.PublicationSerializer):
     class Meta:
         fields = core_serializers.PublicationSerializer.Meta.fields + ("distributions",)
         model = python_models.PythonPublication
+
+
+class PackagePermissionGuardSerializer(core_serializers.ContentGuardSerializer):
+    """
+    A Serializer for PackagePermissionGuard.
+    """
+
+    download_policy = serializers.JSONField(
+        help_text=_(
+            "Dictionary mapping package names to lists of user/group PRNs or hrefs "
+            "that are allowed to download those packages."
+        ),
+        default=dict,
+    )
+    upload_policy = serializers.JSONField(
+        help_text=_(
+            "Dictionary mapping package names to lists of user/group PRNs or hrefs "
+            "that are allowed to upload those packages."
+        ),
+        default=dict,
+    )
+
+    def validate_policy(self, value):
+        policy = {}
+        for package_name, prns in value.items():
+            policy[canonicalize_name(package_name)] = [get_prn(uri=prn) for prn in prns]
+        return policy
+
+    def validate_download_policy(self, value):
+        return self.validate_policy(value)
+
+    def validate_upload_policy(self, value):
+        return self.validate_policy(value)
+
+    class Meta(core_serializers.ContentGuardSerializer.Meta):
+        model = python_models.PackagePermissionGuard
+        fields = core_serializers.ContentGuardSerializer.Meta.fields + ("download_policy", "upload_policy")
+
+
+class PackagePermissionGuardAddRemoveSerializer(serializers.Serializer):
+    """
+    Serializer for add/remove operations on PackagePermissionGuard.
+    """
+
+    packages = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("List of package names to add/remove permissions for."),
+        required=True,
+    )
+    users_groups = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("List of user/group PRNs or hrefs. Use ['*'] to remove all entries."),
+        required=True,
+    )
+    policy_type = serializers.ChoiceField(
+        choices=["download", "upload"],
+        default="download",
+        help_text=_("Which policy to modify: 'download' or 'upload'."),
+        required=False,
+    )
+
+    def validate(self, data):
+        data = super().validate(data)
+        adding = self.context["action"] == "add"
+        if "*" in data["users_groups"]:
+            if (len(data["users_groups"]) > 1 or adding):
+                raise serializers.ValidationError(_("'*' can only be used when removing and should be the only item present"))
+        else:
+            data["users_groups"] = [get_prn(uri=user_group) for user_group in data["users_groups"]]
+        if "*" in data["packages"]:
+            if (len(data["packages"]) > 1 or adding):
+                raise serializers.ValidationError(_("'*' can only be used when removing and should be the only item present"))
+        else:
+            data["packages"] = [canonicalize_name(package) for package in data["packages"]]
+        return data

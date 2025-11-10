@@ -13,10 +13,12 @@ from pulpcore.plugin.serializers import (
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.util import get_prn
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
+from pulp_python.app.utils import canonicalize_name
 
 
 class PythonRepositoryViewSet(
@@ -623,3 +625,148 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet, core_viewsets.R
             kwargs={"repository_version_pk": str(repository_version.pk)},
         )
         return core_viewsets.OperationPostponedResponse(result, request)
+
+
+class PackagePermissionGuardViewSet(core_viewsets.ContentGuardViewSet, core_viewsets.RolesMixin):
+    """
+    Viewset for creating content guards that protect individual PyPI packages.
+    Has add and remove actions for managing permissions for users and groups on specific packages.
+    """
+
+    endpoint_name = "package_permission"
+    serializer_class = python_serializers.PackagePermissionGuardSerializer
+    queryset = python_models.PackagePermissionGuard.objects.all()
+    queryset_filtering_required_permission = "python.view_packagepermissionguard"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_perms:python.add_packagepermissionguard",
+            },
+            {
+                "action": ["retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.view_packagepermissionguard",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.change_packagepermissionguard",
+            },
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.delete_packagepermissionguard",
+            },
+            {
+                "action": ["add", "remove"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_domain_or_obj_perms:python.change_packagepermissionguard",
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:python.manage_roles_packagepermissionguard"
+                ],
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "python.packagepermissionguard_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+    LOCKED_ROLES = {
+        "python.packagepermissionguard_creator": ["python.add_packagepermissionguard"],
+        "python.packagepermissionguard_owner": [
+            "python.view_packagepermissionguard",
+            "python.change_packagepermissionguard",
+            "python.delete_packagepermissionguard",
+            "python.manage_roles_packagepermissionguard",
+        ],
+        "python.packagepermissionguard_viewer": ["python.view_packagepermissionguard"],
+    }
+
+    @extend_schema(
+        summary="Add package permissions",
+        request=python_serializers.PackagePermissionGuardAddRemoveSerializer,
+        responses={200: python_serializers.PackagePermissionGuardSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=python_serializers.PackagePermissionGuardAddRemoveSerializer)
+    def add(self, request, pk):
+        """
+        Add users/groups to packages in download_policy or upload_policy.
+        """
+        guard = self.get_object()
+        serializer = self.get_serializer(data=request.data, context={"action": "add"})
+        serializer.is_valid(raise_exception=True)
+        
+        packages = serializer.validated_data["packages"]
+        users_groups = serializer.validated_data["users_groups"]
+        policy_type = serializer.validated_data.get("policy_type", "download")  # 'download' or 'upload'
+        
+        policy = getattr(guard, f"{policy_type}_policy")
+        
+        for package in packages:
+            if package not in policy:
+                policy[package] = []
+            policy[package] = list(set(policy[package] + users_groups))
+        
+        setattr(guard, f"{policy_type}_policy", policy)
+        guard.save()
+        
+        serializer = python_serializers.PackagePermissionGuardSerializer(guard, context={"request": request})
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary="Remove package permissions",
+        request=python_serializers.PackagePermissionGuardAddRemoveSerializer,
+        responses={200: python_serializers.PackagePermissionGuardSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=python_serializers.PackagePermissionGuardAddRemoveSerializer)
+    def remove(self, request, pk):
+        """
+        Remove users/groups from packages in download_policy or upload_policy.
+        If packages contains ['*'], remove all entries for all packages.
+        If users_groups contains ['*'], remove all entries for the specified packages.
+        """
+        guard = self.get_object()
+        serializer = self.get_serializer(data=request.data, context={"action": "remove"})
+        serializer.is_valid(raise_exception=True)
+        
+        packages = serializer.validated_data["packages"]
+        users_groups = serializer.validated_data["users_groups"]
+        policy_type = serializer.validated_data.get("policy_type", "download")  # 'download' or 'upload'
+        
+        policy = getattr(guard, f"{policy_type}_policy")
+        
+        if "*" in packages:
+            policy = {}
+        else:
+            for package in packages:
+                if "*" in users_groups:
+                    del policy[package]
+                else:
+                    policy[package] = list(set(policy[package]) - set(users_groups))
+        
+        setattr(guard, f"{policy_type}_policy", policy)
+        guard.save()
+        
+        serializer = python_serializers.PackagePermissionGuardSerializer(guard, context={"request": request})
+        return Response(serializer.data)

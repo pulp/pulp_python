@@ -245,7 +245,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "action": ["create"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "index_has_repo_perm:python.modify_pythonrepository",
+                "condition_expression": "package_permission_check:upload or index_has_repo_perm:python.modify_pythonrepository",
             },
         ],
     }
@@ -482,7 +482,7 @@ class UploadView(PackageUploadMixin, ViewSet):
                 "action": ["create"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "index_has_repo_perm:python.modify_pythonrepository",
+                "condition_expression": "package_permission_check:upload or index_has_repo_perm:python.modify_pythonrepository",
             },
         ],
     }
