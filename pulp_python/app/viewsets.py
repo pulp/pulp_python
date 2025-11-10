@@ -428,6 +428,39 @@ class PythonPackageSingleArtifactContentUploadViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
+class PackageProvenanceViewSet(core_viewsets.NoArtifactContentUploadViewSet):
+    """
+    PackageProvenance represents a PEP 740 provenance object for a Python package.
+
+    Use ?minimal=true to get a human readable representation of the provenance.
+    """
+
+    endpoint_name = "provenance"
+    queryset = python_models.PackageProvenance.objects.all()
+    serializer_class = python_serializers.PackageProvenanceSerializer
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:python.modify_pythonrepository",
+                    "has_required_repo_perms_on_upload:python.view_pythonrepository",
+                    "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+
 class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin):
     """
     <!-- User-facing documentation, rendered as html-->
