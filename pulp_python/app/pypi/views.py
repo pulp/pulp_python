@@ -15,6 +15,7 @@ from django.db import transaction
 from django.db.utils import DatabaseError
 from django.http.response import (
     Http404,
+    HttpResponseNotFound,
     HttpResponseForbidden,
     HttpResponseBadRequest,
     StreamingHttpResponse,
@@ -287,7 +288,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
             kwargs = {"content_type": media_type, "headers": headers}
             return StreamingHttpResponse(index_data, **kwargs)
 
-    def pull_through_package_simple(self, package, path, remote, media_type):
+    def pull_through_package_simple(self, package, path, remote):
         """Gets the package's simple page from remote."""
 
         def parse_package(release_package):
@@ -305,7 +306,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
 
         rfilter = get_remote_package_filter(remote)
         if not rfilter.filter_project(package):
-            raise Http404(f"{package} does not exist.")
+            return {}
 
         url = remote.get_remote_artifact_url(f"simple/{package}/")
         remote.headers = remote.headers or []
@@ -313,27 +314,19 @@ class SimpleView(PackageUploadMixin, ViewSet):
         downloader = remote.get_downloader(url=url, max_retries=1)
         try:
             d = downloader.fetch()
-        except ClientError:
-            return HttpResponse(f"Failed to fetch {package} from {remote.url}.", status=502)
-        except TimeoutException:
-            return HttpResponse(f"{remote.url} timed out while fetching {package}.", status=504)
+        except (ClientError, TimeoutException):
+            log.info(f"Failed to fetch {package} simple page from {remote.url}")
+            return {}
 
         if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
             page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
         else:
             page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
-        packages = [
-            parse_package(p) for p in page.packages if rfilter.filter_release(package, p.version)
-        ]
-        headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
-
-        if media_type == PYPI_SIMPLE_V1_JSON:
-            detail_data = write_simple_detail_json(package, packages)
-            return Response(detail_data, headers=headers)
-        else:
-            detail_data = write_simple_detail(package, packages)
-            kwargs = {"content_type": media_type, "headers": headers}
-            return HttpResponse(detail_data, **kwargs)
+        return {
+            p.filename: parse_package(p)
+            for p in page.packages
+            if rfilter.filter_release(package, p.version)
+        }
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
@@ -343,44 +336,36 @@ class SimpleView(PackageUploadMixin, ViewSet):
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
+        releases = {}
         if self.distribution.remote:
-            return self.pull_through_package_simple(
-                normalized, path, self.distribution.remote, media_type
-            )
-        if self.should_redirect(repo_version=repo_ver):
+            releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
+        elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
-        packages = (
-            content.filter(name__normalize=normalized)
-            .values_list("filename", "sha256", "name", "metadata_sha256", "requires_python")
-            .iterator()
-        )
-        try:
-            present = next(packages)
-        except StopIteration:
-            raise Http404(f"{normalized} does not exist.")
-        else:
-            packages = chain([present], packages)
-            name = present[2]
-        releases = (
-            {
-                "filename": filename,
-                "url": urljoin(self.base_content_url, f"{path}/{filename}"),
-                "sha256": sha256,
-                "metadata_sha256": metadata_sha256,
-                "requires_python": requires_python,
+        if content:
+            packages = content.filter(name__normalize=normalized).values(
+                "filename", "sha256", "metadata_sha256", "requires_python"
+            )
+            local_releases = {
+                p["filename"]: {
+                    **p,
+                    "url": urljoin(self.base_content_url, f"{path}/{p['filename']}"),
+                }
+                for p in packages
             }
-            for filename, sha256, _, metadata_sha256, requires_python in packages
-        )
+            releases.update(local_releases)
+        if not releases:
+            return HttpResponseNotFound(f"{normalized} does not exist.")
+
         media_type = request.accepted_renderer.media_type
         headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
 
         if media_type == PYPI_SIMPLE_V1_JSON:
-            detail_data = write_simple_detail_json(name, releases)
+            detail_data = write_simple_detail_json(normalized, releases.values())
             return Response(detail_data, headers=headers)
         else:
-            detail_data = write_simple_detail(name, releases, streamed=True)
+            detail_data = write_simple_detail(normalized, releases.values())
             kwargs = {"content_type": media_type, "headers": headers}
-            return StreamingHttpResponse(detail_data, **kwargs)
+            return HttpResponse(detail_data, **kwargs)
 
     @extend_schema(
         request=PackageUploadSerializer,
