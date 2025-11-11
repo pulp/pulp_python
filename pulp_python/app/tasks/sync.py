@@ -59,9 +59,10 @@ def sync(remote_pk, repository_pk, mirror):
 
 def create_bandersnatch_config(remote):
     """Modifies the global Bandersnatch config state for this sync"""
-    config = BandersnatchConfig().config
+    config = BandersnatchConfig()
     config["mirror"]["master"] = remote.url
     config["mirror"]["workers"] = str(remote.download_concurrency)
+    config["mirror"]["allow_non_https"] = "true"
     if not config.has_section("plugins"):
         config.add_section("plugins")
     config["plugins"]["enabled"] = "blocklist_release\n"
