@@ -13,7 +13,7 @@ from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
 )
-from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.tasking import check_content, dispatch
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
@@ -206,8 +206,35 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
                     "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
                 ],
             },
+            {
+                "action": ["scan"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",
+                ],
+            },
         ],
     }
+
+    @extend_schema(
+        summary="Generate vulnerability report", responses={202: AsyncOperationResponseSerializer}
+    )
+    @action(detail=True, methods=["post"], serializer_class=None)
+    def scan(self, request, repository_pk, **kwargs):
+        """
+        Scan a repository version for vulnerabilities.
+        """
+        repository_version = self.get_object()
+        func = (
+            f"{tasks.get_repo_version_content.__module__}.{tasks.get_repo_version_content.__name__}"
+        )
+        task = dispatch(
+            check_content,
+            shared_resources=[repository_version.repository],
+            args=[func, [repository_version.pk]],
+        )
+        return core_viewsets.OperationPostponedResponse(task, request)
 
 
 class PythonDistributionViewSet(core_viewsets.DistributionViewSet, core_viewsets.RolesMixin):

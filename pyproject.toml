@@ -26,7 +26,7 @@ classifiers=[
 ]
 requires-python = ">=3.11"
 dependencies = [
-  "pulpcore>=3.85.0,<3.100",
+  "pulpcore>=3.85.3,<3.100",
   "pkginfo>=1.12.0,<1.13.0",
   "bandersnatch>=6.6.0,<6.7",
   "pypi-simple>=1.5.0,<2.0",
