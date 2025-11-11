@@ -84,7 +84,7 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
     assert r.status_code == 404
-    assert r.text == "404 Not Found"
+    assert r.text == "pulpcore does not exist."
 
     r = requests.get(f"{distro.base_url}simple/shelf-reader/")
     assert r.status_code == 200
@@ -104,11 +104,11 @@ def test_pull_through_filter(python_remote_factory, python_distribution_factory)
 
     r = requests.get(f"{distro.base_url}simple/django/")
     assert r.status_code == 404
-    assert r.text == "404 Not Found"
+    assert r.text == "django does not exist."
 
     r = requests.get(f"{distro.base_url}simple/pulpcore/")
-    assert r.status_code == 502
-    assert r.text == f"Failed to fetch pulpcore from {remote.url}."
+    assert r.status_code == 404
+    assert r.text == "pulpcore does not exist."
 
     r = requests.get(f"{distro.base_url}simple/shelf-reader/")
     assert r.status_code == 200
@@ -156,3 +156,29 @@ def test_pull_through_with_repo(
     assert r.status_code == 200
     tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.prn)
     assert tasks.count == 3
+
+
+@pytest.mark.parallel
+def test_pull_through_local_only(
+    python_remote_factory, python_distribution_factory, python_repo_with_sync
+):
+    """Tests that pull-through checks the repository if the package is not present on the remote."""
+    remote = python_remote_factory(url=PYPI_URL, includes=["pulpcore"])
+    repo = python_repo_with_sync(remote=remote)
+    remote2 = python_remote_factory(includes=[])  # Fixtures does not have pulpcore
+    distro = python_distribution_factory(repository=repo.pulp_href, remote=remote2.pulp_href)
+
+    url = f"{distro.base_url}simple/pulpcore/"
+    r = requests.get(url)
+    assert r.status_code == 200
+    assert "?redirect=" not in r.text
+
+    url = f"{distro.base_url}simple/shelf-reader/"
+    r = requests.get(url)
+    assert r.status_code == 200
+    assert "?redirect=" in r.text
+
+    url = f"{distro.base_url}simple/pulp_python/"
+    r = requests.get(url)
+    assert r.status_code == 404
+    assert r.text == "pulp-python does not exist."
