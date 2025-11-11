@@ -11,7 +11,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_URL,
 )
 
-API_VERSION = "1.0"
+API_VERSION = "1.1"
 PYPI_SERIAL_CONSTANT = 1000000000
 
 PYPI_TEXT_HTML = "text/html"
@@ -69,6 +69,7 @@ def test_simple_json_detail_api(
     assert data["meta"] == {"api-version": API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT}
     assert data["name"] == "shelf-reader"
     assert data["files"]
+    assert data["versions"] == ["0.1"]
 
     # Check data of a wheel
     file_whl = next(
@@ -83,7 +84,8 @@ def test_simple_json_detail_api(
     assert file_whl["data-dist-info-metadata"] == {
         "sha256": "ed333f0db05d77e933a157b7225b403ada9a2f93318d77b41b662eba78bac350"
     }
-
+    assert file_whl["size"] == 22455
+    assert file_whl["upload-time"] is not None
     # Check data of a tarball
     file_tar = next((i for i in data["files"] if i["filename"] == "shelf-reader-0.1.tar.gz"), None)
     assert file_tar is not None, "tar file not found"
@@ -93,6 +95,8 @@ def test_simple_json_detail_api(
     }
     assert file_tar["requires-python"] is None
     assert file_tar["data-dist-info-metadata"] is False
+    assert file_tar["size"] == 19097
+    assert file_tar["upload-time"] is not None
 
 
 @pytest.mark.parallel

@@ -302,6 +302,9 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "sha256": release_package.digests.get("sha256", ""),
                 "requires_python": release_package.requires_python,
                 "metadata_sha256": (release_package.metadata_digests or {}).get("sha256"),
+                "size": release_package.size,
+                "upload_time": release_package.upload_time,
+                "version": release_package.version,
             }
 
         rfilter = get_remote_package_filter(remote)
@@ -343,12 +346,19 @@ class SimpleView(PackageUploadMixin, ViewSet):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content:
             packages = content.filter(name__normalize=normalized).values(
-                "filename", "sha256", "metadata_sha256", "requires_python"
+                "filename",
+                "sha256",
+                "metadata_sha256",
+                "requires_python",
+                "size",
+                "pulp_created",
+                "version",
             )
             local_releases = {
                 p["filename"]: {
                     **p,
                     "url": urljoin(self.base_content_url, f"{path}/{p['filename']}"),
+                    "upload_time": p["pulp_created"],
                 }
                 for p in packages
             }

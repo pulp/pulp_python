@@ -277,6 +277,10 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         ),
         read_only=True,
     )
+    size = serializers.IntegerField(
+        help_text=_("The size of the package in bytes."),
+        read_only=True,
+    )
     sha256 = serializers.CharField(
         default="",
         help_text=_("The SHA256 digest of this package."),
@@ -368,6 +372,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             "filename",
             "packagetype",
             "python_version",
+            "size",
             "sha256",
             "metadata_sha256",
         )
@@ -421,6 +426,7 @@ class PythonPackageContentUploadSerializer(PythonPackageContentSerializer):
         data["artifact"] = artifact
         data["sha256"] = artifact.sha256
         data["relative_path"] = filename
+        data["size"] = artifact.size
         data.update(parse_project_metadata(vars(metadata)))
         # Overwrite filename from metadata
         data["filename"] = filename
