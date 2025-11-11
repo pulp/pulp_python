@@ -1,6 +1,7 @@
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
+from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -496,7 +497,7 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin)
         bander_config_file = serializer.validated_data.get("config")
         name = serializer.validated_data.get("name")
         policy = serializer.validated_data.get("policy")
-        bander_config = BandersnatchConfig(bander_config_file.file.name).config
+        bander_config = BandersnatchConfig(Path(bander_config_file.file.name))
         data = {
             "name": name,
             "policy": policy,

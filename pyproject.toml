@@ -28,7 +28,7 @@ requires-python = ">=3.11"
 dependencies = [
   "pulpcore>=3.81.0,<3.100",
   "pkginfo>=1.12.0,<1.13.0",
-  "bandersnatch>=6.3.0,<6.6", # 6.6 has breaking changes
+  "bandersnatch>=6.6.0,<6.7",
   "pypi-simple>=1.5.0,<2.0",
 ]
 
