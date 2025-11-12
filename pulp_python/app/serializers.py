@@ -53,6 +53,9 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         queryset=core_models.Publication.objects.exclude(complete=False),
         allow_null=True,
     )
+    repository_version = core_serializers.RepositoryVersionRelatedField(
+        required=False, help_text=_("RepositoryVersion to be served."), allow_null=True
+    )
     base_url = serializers.SerializerMethodField(read_only=True)
     allow_uploads = serializers.BooleanField(
         default=True, help_text=_("Allow packages to be uploaded to this index.")
@@ -74,6 +77,7 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     class Meta:
         fields = core_serializers.DistributionSerializer.Meta.fields + (
             "publication",
+            "repository_version",
             "allow_uploads",
             "remote",
         )
