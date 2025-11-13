@@ -7,6 +7,7 @@ import zipfile
 import json
 from collections import defaultdict
 from django.conf import settings
+from django.utils import timezone
 from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
@@ -18,7 +19,7 @@ PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
 
-SIMPLE_API_VERSION = "1.0"
+SIMPLE_API_VERSION = "1.1"
 
 simple_index_template = """<!DOCTYPE html>
 <html>
@@ -161,6 +162,7 @@ def parse_metadata(project, version, distribution):
     package["sha256"] = distribution.get("digests", {}).get("sha256") or ""
     package["python_version"] = distribution.get("python_version") or ""
     package["requires_python"] = distribution.get("requires_python") or ""
+    package["size"] = distribution.get("size") or 0
 
     return package
 
@@ -223,6 +225,7 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
         metadata = get_project_metadata_from_file(temp_file.name)
     data = parse_project_metadata(vars(metadata))
     data["sha256"] = artifact.sha256
+    data["size"] = artifact.size
     data["filename"] = filename
     data["pulp_domain"] = domain or artifact.pulp_domain
     data["_pulp_domain"] = data["pulp_domain"]
@@ -403,7 +406,6 @@ def python_content_to_download_info(content, base_path, domain=None):
         components.insert(2, domain.name)
     url = "/".join(components)
     md5 = artifact.md5 if artifact and artifact.md5 else ""
-    size = artifact.size if artifact and artifact.size else 0
     return {
         "comment_text": "",
         "digests": {"md5": md5, "sha256": content.sha256},
@@ -414,7 +416,7 @@ def python_content_to_download_info(content, base_path, domain=None):
         "packagetype": content.packagetype,
         "python_version": content.python_version,
         "requires_python": content.requires_python or None,
-        "size": size,
+        "size": content.size,
         "upload_time": str(content.pulp_created),
         "upload_time_iso_8601": str(content.pulp_created.isoformat()),
         "url": url,
@@ -471,18 +473,30 @@ def write_simple_detail_json(project_name, project_packages):
                     {"sha256": package["metadata_sha256"]} if package["metadata_sha256"] else False
                 ),
                 # yanked and yanked_reason are not implemented because they are mutable
+                # (v1.1, PEP 700)
+                "size": package["size"],
+                "upload-time": format_upload_time(package["upload_time"]),
                 # TODO in the future:
-                # size, upload-time (v1.1, PEP 700)
                 # core-metadata (PEP 7.14)
                 # provenance (v1.3, PEP 740)
             }
             for package in project_packages
         ],
+        # (v1.1, PEP 700)
+        "versions": sorted(set(package["version"] for package in project_packages)),
         # TODO in the future:
-        # versions (v1.1, PEP 700)
         # alternate-locations (v1.2, PEP 708)
         # project-status (v1.4, PEP 792 - pypi and docs differ)
     }
+
+
+def format_upload_time(upload_time):
+    """Formats the upload time to be in Zulu time. UTC with Z suffix"""
+    if upload_time:
+        if upload_time.tzinfo:
+            dt = upload_time.astimezone(timezone.utc)
+            return dt.isoformat().replace("+00:00", "Z")
+    return None
 
 
 class PackageIncludeFilter:
