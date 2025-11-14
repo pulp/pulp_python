@@ -1,3 +1,5 @@
+import hashlib
+import json
 from logging import getLogger
 
 from aiohttp.web import json_response
@@ -5,6 +7,10 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
+from django_lifecycle import (
+    BEFORE_SAVE,
+    hook,
+)
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     Content,
@@ -15,6 +21,7 @@ from pulpcore.plugin.models import (
 )
 from pulpcore.plugin.responses import ArtifactResponse
 
+from pypi_attestations import Provenance
 from pathlib import PurePath
 from .utils import (
     artifact_to_python_content_data,
@@ -235,6 +242,43 @@ class PythonPackageContent(Content):
         ]
 
 
+class PackageProvenance(Content):
+    """
+    PEP 740 provenance objects.
+    """
+
+    TYPE = "provenance"
+    repo_key_fields = ("package_id",)
+
+    package = models.ForeignKey(
+        PythonPackageContent, on_delete=models.CASCADE, related_name="provenances"
+    )
+    provenance = models.JSONField(null=False)
+    sha256 = models.CharField(max_length=64, null=False)
+
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
+
+    @staticmethod
+    def calculate_sha256(provenance):
+        """Calculates the sha256 from the provenance."""
+        provenance_json = json.dumps(provenance, sort_keys=True).encode("utf-8")
+        hasher = hashlib.sha256(provenance_json)
+        return hasher.hexdigest()
+
+    @hook(BEFORE_SAVE)
+    def set_sha256_hook(self):
+        """Ensure that sha256 is set before saving."""
+        self.sha256 = self.calculate_sha256(self.provenance)
+
+    @property
+    def as_model(self):
+        return Provenance.model_validate(self.provenance)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("sha256", "_pulp_domain")
+
+
 class PythonPublication(Publication, AutoAddObjPermsMixin):
     """
     A Publication for PythonContent.
@@ -295,7 +339,7 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
     """
 
     TYPE = "python"
-    CONTENT_TYPES = [PythonPackageContent]
+    CONTENT_TYPES = [PythonPackageContent, PackageProvenance]
     REMOTE_TYPES = [PythonRemote]
     PULL_THROUGH_SUPPORTED = True
 

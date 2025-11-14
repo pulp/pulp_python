@@ -345,3 +345,44 @@ SHELF_PYTHON_JSON = {
     "releases": {"0.1": SHELF_0DOT1_RELEASE},
     "urls": SHELF_0DOT1_RELEASE,
 }
+
+
+TWINE_READABLE_PROVENANCE = {
+    "attestation_bundles": [
+        {
+            "attestations": [
+                {
+                    "certificate": {
+                        "Issuer": "CN=sigstore-intermediate,O=sigstore.dev",
+                        "Subjects": [
+                            "https://github.com/pypa/twine/.github/workflows/release.yml@refs/tags/6.2.0"  # noqa: E501
+                        ],
+                        "Validity": "2025-09-04 15:53:14+00:00",
+                    },
+                    "statement": {
+                        "_type": "https://in-toto.io/Statement/v1",
+                        "predicate": None,
+                        "predicateType": "https://docs.pypi.org/attestations/publish/v1",
+                        "subject": [
+                            {
+                                "digest": {
+                                    "sha256": "418ebf08ccda9a8caaebe414433b0ba5e25eb5e4a927667122fbe8f829f985d8"  # noqa: E501
+                                },
+                                "name": "twine-6.2.0-py3-none-any.whl",
+                            }
+                        ],
+                    },
+                    "transparency_log": {"Log Indexes": ["469757066"]},
+                    "version": 1,
+                }
+            ],
+            "publisher": {
+                "environment": None,
+                "kind": "GitHub",
+                "repository": "pypa/twine",
+                "workflow": "release.yml",
+            },
+        }
+    ],
+    "version": 1,
+}
