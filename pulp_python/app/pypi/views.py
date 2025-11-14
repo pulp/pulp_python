@@ -1,7 +1,5 @@
-import json
 import logging
 
-from aiohttp.client_exceptions import ClientError
 from rest_framework.viewsets import ViewSet
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
@@ -27,13 +25,12 @@ from itertools import chain
 from packaging.utils import canonicalize_name
 from urllib.parse import urljoin, urlparse, urlunsplit
 from pathlib import PurePath
-from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
-from pulpcore.plugin.exceptions import TimeoutException
 from pulp_python.app.models import (
+    ProjectMetadataContent,
     PythonDistribution,
     PythonPackageContent,
     PythonPublication,
@@ -54,6 +51,7 @@ from pulp_python.app.utils import (
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
     get_remote_package_filter,
+    get_remote_simple_page,
 )
 
 from pulp_python.app import tasks
@@ -127,6 +125,11 @@ class PyPIMixin:
         """Returns queryset of the provenance for this repository version."""
         return PackageProvenance.objects.filter(pk__in=repository_version.content)
 
+    @staticmethod
+    def get_projects_metadata(repository_version):
+        """Returns queryset of the project metadata in this repository version."""
+        return ProjectMetadataContent.objects.filter(pk__in=repository_version.content)
+
     def should_redirect(self, repo_version=None):
         """Checks if there is a publication the content app can serve."""
         if self.distribution.publication:
@@ -142,6 +145,12 @@ class PyPIMixin:
         repo_ver = self.get_repository_version(self.distribution)
         content = self.get_content(repo_ver)
         return repo_ver, content
+
+    def get_rvcm(self):
+        """Takes the base_path and returns the repository_version, content, and project metadata."""
+        repo_ver, content = self.get_rvc()
+        project_metadata = self.get_projects_metadata(repo_ver) if repo_ver else None
+        return repo_ver, content, project_metadata
 
     def initial(self, request, *args, **kwargs):
         """Perform common initialization tasks for PyPI endpoints."""
@@ -330,42 +339,37 @@ class SimpleView(PackageUploadMixin, ViewSet):
 
         rfilter = get_remote_package_filter(remote)
         if not rfilter.filter_project(package):
-            return {}
+            return {}, {}
 
-        url = remote.get_remote_artifact_url(f"simple/{package}/")
-        remote.headers = remote.headers or []
-        remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
-        downloader = remote.get_downloader(url=url, max_retries=1)
-        try:
-            d = downloader.fetch()
-        except (ClientError, TimeoutException):
+        page = get_remote_simple_page(package, remote)
+        if not page:
             log.info(f"Failed to fetch {package} simple page from {remote.url}")
-            return {}
+            return {}, {}
 
-        if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
-            page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
-        else:
-            page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
-        return {
+        releases = {
             p.filename: parse_package(p)
             for p in page.packages
             if rfilter.filter_release(package, p.version)
         }
+        return releases, ProjectMetadataContent.from_simple_page(page).to_metadata()
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html/json page for a package."""
         media_type = request.accepted_renderer.media_type
 
-        repo_ver, content = self.get_rvc()
+        repo_ver, content, metadatas = self.get_rvcm()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
         releases = {}
+        project_metadata = {}
         if self.distribution.remote:
-            releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
+            releases, project_metadata = self.pull_through_package_simple(
+                normalized, path, self.distribution.remote
+            )
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
-        if content:
+        if content is not None:
             local_packages = content.filter(name__normalize=normalized)
             packages = local_packages.values(
                 "filename",
@@ -393,17 +397,25 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 for p in packages
             }
             releases.update(local_releases)
-        if not releases:
+        if metadatas is not None:
+            local_project_metadata = (
+                metadatas.filter(project_name=normalized)
+                .values("tracks", "alternate_locations")
+                .first()
+            )
+            if local_project_metadata:
+                project_metadata.update(local_project_metadata)
+        if not (releases or project_metadata):
             return HttpResponseNotFound(f"{normalized} does not exist.")
 
         media_type = request.accepted_renderer.media_type
         headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
 
         if media_type == PYPI_SIMPLE_V1_JSON:
-            detail_data = write_simple_detail_json(normalized, releases.values())
+            detail_data = write_simple_detail_json(normalized, releases.values(), project_metadata)
             return Response(detail_data, headers=headers)
         else:
-            detail_data = write_simple_detail(normalized, releases.values())
+            detail_data = write_simple_detail(normalized, releases.values(), project_metadata)
             kwargs = {"content_type": media_type, "headers": headers}
             return HttpResponse(detail_data, **kwargs)
 
