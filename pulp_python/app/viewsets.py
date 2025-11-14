@@ -13,7 +13,8 @@ from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
 )
-from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.tasking import dispatch, general_create
+from pulpcore.plugin.util import get_prn
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
@@ -85,7 +86,7 @@ class PythonRepositoryViewSet(
                 ],
             },
             {
-                "action": ["modify", "repair_metadata"],
+                "action": ["modify", "repair_metadata", "update_project"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
@@ -169,6 +170,41 @@ class PythonRepositoryViewSet(
                 "repository_pk": str(repository.pk),
                 "mirror": mirror,
             },
+        )
+        return core_viewsets.OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        summary="Update project metadata", responses={202: AsyncOperationResponseSerializer}
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        serializer_class=python_serializers.ProjectMetadataContentSerializer,
+    )
+    def update_project(self, request, pk):
+        """
+        Update the metadata for a project in the `Repository`.
+        """
+        repository = self.get_object()
+        serializer = python_serializers.ProjectMetadataContentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        project_metadata = python_models.ProjectMetadataContent.objects.filter(
+            project_name=serializer.validated_data["project_name"],
+            pk__in=repository.latest_version().content,
+        ).first()
+        if project_metadata:
+            data = project_metadata.to_metadata() | data
+
+        app_label = python_models.ProjectMetadataContent._meta.app_label
+        serializer_name = python_serializers.ProjectMetadataContentSerializer.__name__
+        data["repository"] = get_prn(repository)
+        result = dispatch(
+            general_create,
+            exclusive_resources=[repository],
+            args=(app_label, serializer_name),
+            kwargs={"data": data},
         )
         return core_viewsets.OperationPostponedResponse(result, request)
 
@@ -399,6 +435,27 @@ class PythonPackageSingleArtifactContentUploadViewSet(
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class ProjectMetadataContentViewSet(core_viewsets.ReadOnlyContentViewSet):
+    """
+    A ViewSet for ProjectMetadataContent.
+    """
+
+    endpoint_name = "project_metadata"
+    queryset = python_models.ProjectMetadataContent.objects.all()
+    serializer_class = python_serializers.ProjectMetadataContentSerializer
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
 
 
 class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin):
