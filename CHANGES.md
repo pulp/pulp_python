@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.20.1 (2025-11-18) {: #3.20.1 }
+
+#### Bugfixes {: #3.20.1-bugfix }
+
+- Fixed pull-through caching not checking the repository if package was not present on remote.
+  [#1004](https://github.com/pulp/pulp_python/issues/1004)
+
+---
+
 ## 3.20.0 (2025-11-07) {: #3.20.0 }
 
 #### Features {: #3.20.0-feature }
