@@ -8,6 +8,33 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.21.0 (2025-11-18) {: #3.21.0 }
+
+#### Features {: #3.21.0-feature }
+
+- Added ability to serve a specific repository version of a PyPI index.
+  [#982](https://github.com/pulp/pulp_python/issues/982)
+- Implemented PEP 700 support, adding `versions`, `size` and `upload-time` to the Simple JSON API.
+  [#996](https://github.com/pulp/pulp_python/issues/996)
+- Added the new /scan endpoint to the RepositoryVersion viewset to generate vulnerability reports.
+  [#1012](https://github.com/pulp/pulp_python/issues/1012)
+
+#### Bugfixes {: #3.21.0-bugfix }
+
+- Fixed pull-through caching not checking the repository if package was not present on remote.
+  [#1004](https://github.com/pulp/pulp_python/issues/1004)
+
+---
+
+## 3.20.1 (2025-11-18) {: #3.20.1 }
+
+#### Bugfixes {: #3.20.1-bugfix }
+
+- Fixed pull-through caching not checking the repository if package was not present on remote.
+  [#1004](https://github.com/pulp/pulp_python/issues/1004)
+
+---
+
 ## 3.20.0 (2025-11-07) {: #3.20.0 }
 
 #### Features {: #3.20.0-feature }
@@ -196,6 +223,12 @@ No significant changes.
 
 ---
 
+## 3.12.8 (2025-11-18) {: #3.12.8 }
+
+No significant changes.
+
+---
+
 ## 3.12.7 (2025-07-23) {: #3.12.7 }
 
 No significant changes.
@@ -279,6 +312,12 @@ No significant changes.
 #### Misc {: #3.12.0-misc }
 
 - 
+
+---
+
+## 3.11.7 (2025-11-18) {: #3.11.7 }
+
+No significant changes.
 
 ---
 
