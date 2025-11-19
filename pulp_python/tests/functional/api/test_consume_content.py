@@ -122,6 +122,7 @@ class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
                 "pip",
                 "install",
                 "--no-deps",
+                "--no-build-isolation",
                 "--trusted-host",
                 urlsplit(host).hostname,
                 "--trusted-host",
