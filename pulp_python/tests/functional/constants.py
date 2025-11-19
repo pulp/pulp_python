@@ -142,6 +142,7 @@ PYTHON_MD_PYPI_SUMMARY = {"projects": 4, "releases": 17, "files": 26}
 
 PYTHON_LG_PROJECT_SPECIFIER = [
     "aiohttp",  # matches 7
+    "bcrypt",  # matches 8
     "celery",  # matches 13
     "crane",  # matches 0
     "Django",  # matches 31
@@ -154,7 +155,7 @@ PYTHON_LG_PROJECT_SPECIFIER = [
 ]
 PYTHON_LG_PACKAGE_COUNT = 108
 PYTHON_LG_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT}
-PYTHON_LG_FIXTURE_PRERELEASES_SUMMARY = {PYTHON_CONTENT_NAME: 92}
+PYTHON_LG_FIXTURE_PRERELEASES_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT}
 PYTHON_LG_FIXTURE_COUNTS = {
     "latest_3": 59,
     "sdist": 36,
