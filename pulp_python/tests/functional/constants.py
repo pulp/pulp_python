@@ -124,19 +124,22 @@ PYTHON_LG_PROJECT_SPECIFIER = [
     "aiohttp",  # matches 7
     "bcrypt",  # matches 8
     "celery",  # matches 13
+    "crane",  # matches 0
     "Django",  # matches 31
+    "pulp-2to3-migration",  # matches 2
     "pytz",  # matches 6
     "scipy",  # matches 23
     "setuptools",  # matches 2
     "shelf-reader",  # matches 2
+    "twine",  # matches 14
 ]
-PYTHON_LG_PACKAGE_COUNT = 92
+PYTHON_LG_PACKAGE_COUNT = 108
 PYTHON_LG_FIXTURE_SUMMARY = {PYTHON_CONTENT_NAME: PYTHON_LG_PACKAGE_COUNT}
 PYTHON_LG_FIXTURE_COUNTS = {
-    "latest_3": 51,
-    "sdist": 28,
-    "bdist_wheel": 64,
-    "multi": 34,  # keep_latest=1, package_types="bdist_wheel", prereleases=False
+    "latest_3": 59,
+    "sdist": 36,
+    "bdist_wheel": 72,
+    "multi": 36,  # keep_latest=1, package_types="bdist_wheel", prereleases=False
 }
 
 DJANGO_LATEST_3 = 4  # latest version has 2 dists, each other has 1
