@@ -1,10 +1,14 @@
 import pytest
+import requests
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_URL,
+    PYTHON_EGG_SHA256,
+    PYTHON_WHEEL_SHA256,
 )
+from urllib.parse import urljoin
 
 
 @pytest.mark.parametrize(
@@ -42,3 +46,79 @@ def test_synchronous_package_upload(
         with pytest.raises(python_bindings.ApiException) as ctx:
             python_bindings.ContentPackagesApi.upload(**content_body)
         assert ctx.value.status == 403
+
+
+@pytest.mark.parallel
+def test_legacy_upload_invalid_protocol_version(
+    python_empty_repo_distro, python_package_dist_directory
+):
+    _, egg_file, _ = python_package_dist_directory
+    _, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "legacy/")
+    with open(egg_file, "rb") as f:
+        response = requests.post(
+            url,
+            data={"sha256_digest": PYTHON_EGG_SHA256, "protocol_version": 2},
+            files={"content": f},
+            auth=("admin", "password"),
+        )
+    assert response.status_code == 400
+    assert response.json()["protocol_version"] == ['"2" is not a valid choice.']
+
+    with open(egg_file, "rb") as f:
+        response = requests.post(
+            url,
+            data={"sha256_digest": PYTHON_EGG_SHA256, "protocol_version": 0},
+            files={"content": f},
+            auth=("admin", "password"),
+        )
+    assert response.status_code == 400
+    assert response.json()["protocol_version"] == ['"0" is not a valid choice.']
+
+
+@pytest.mark.parallel
+def test_legacy_upload_invalid_filetype(python_empty_repo_distro, python_package_dist_directory):
+    _, egg_file, wheel_file = python_package_dist_directory
+    _, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "legacy/")
+    with open(egg_file, "rb") as f:
+        response = requests.post(
+            url,
+            data={"sha256_digest": PYTHON_EGG_SHA256, "filetype": "bdist_wheel"},
+            files={"content": f},
+            auth=("admin", "password"),
+        )
+    assert response.status_code == 400
+    assert response.json()["filetype"] == [
+        "filetype bdist_wheel does not match found filetype sdist for file shelf-reader-0.1.tar.gz"
+    ]
+
+    with open(wheel_file, "rb") as f:
+        response = requests.post(
+            url,
+            data={"sha256_digest": PYTHON_WHEEL_SHA256, "filetype": "sdist"},
+            files={"content": f},
+            auth=("admin", "password"),
+        )
+    assert response.status_code == 400
+    assert response.json()["filetype"] == [
+        "filetype sdist does not match found filetype bdist_wheel for file shelf_reader-0.1-py2-none-any.whl"  # noqa: E501
+    ]
+
+
+@pytest.mark.parallel
+def test_legacy_upload_invalid_metadata_version(
+    python_empty_repo_distro, python_package_dist_directory
+):
+    _, egg_file, _ = python_package_dist_directory
+    _, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "legacy/")
+    with open(egg_file, "rb") as f:
+        response = requests.post(
+            url,
+            data={"sha256_digest": PYTHON_EGG_SHA256, "metadata_version": "3.0"},
+            files={"content": f},
+            auth=("admin", "password"),
+        )
+    assert response.status_code == 400
+    assert response.json()["metadata_version"] == ['"3.0" is not a valid choice.']
