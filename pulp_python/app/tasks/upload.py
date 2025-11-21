@@ -7,7 +7,7 @@ from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
-from pulp_python.app.utils import artifact_to_python_content_data
+from pulp_python.app.utils import artifact_to_metadata_artifact, artifact_to_python_content_data
 
 
 def upload(artifact_sha256, filename, repository_pk=None):
@@ -77,11 +77,16 @@ def create_content(artifact_sha256, filename, domain):
     """
     artifact = Artifact.objects.get(sha256=artifact_sha256, pulp_domain=domain)
     data = artifact_to_python_content_data(filename, artifact, domain)
+    metadata_artifact = artifact_to_metadata_artifact(filename, artifact)
 
     @transaction.atomic()
     def create():
         content = PythonPackageContent.objects.create(**data)
         ContentArtifact.objects.create(artifact=artifact, content=content, relative_path=filename)
+        if metadata_artifact:
+            ContentArtifact.objects.create(
+                artifact=metadata_artifact, content=content, relative_path=f"{filename}.metadata"
+            )
         return content
 
     new_content = create()

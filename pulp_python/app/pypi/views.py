@@ -33,6 +33,7 @@ from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
 from pulpcore.plugin.exceptions import TimeoutException
+from pulpcore.plugin.models import ContentArtifact
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
@@ -241,7 +242,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
     DEFAULT_ACCESS_POLICY = {
         "statements": [
             {
-                "action": ["list", "retrieve"],
+                "action": ["list", "retrieve", "retrieve_metadata"],
                 "principal": "*",
                 "effect": "allow",
             },
@@ -337,8 +338,6 @@ class SimpleView(PackageUploadMixin, ViewSet):
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html/json page for a package."""
-        media_type = request.accepted_renderer.media_type
-
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
@@ -379,6 +378,29 @@ class SimpleView(PackageUploadMixin, ViewSet):
             detail_data = write_simple_detail(normalized, releases.values())
             kwargs = {"content_type": media_type, "headers": headers}
             return HttpResponse(detail_data, **kwargs)
+
+    # TODO now: extend schema
+    def retrieve_metadata(self, request, path, filename):
+        """Retrieves content of metadata file for a wheel package."""
+        domain = get_domain()
+        _, content = self.get_rvc()
+
+        try:
+            package_content = content.get(filename=filename, _pulp_domain=domain)
+            metadata_ca = ContentArtifact.objects.filter(
+                content=package_content, relative_path=f"{filename}.metadata"
+            ).first()
+
+            if metadata_ca and metadata_ca.artifact:
+                headers = {"Content-Type": "text/plain; charset=utf-8"}
+                with metadata_ca.artifact.file.open("rb") as f:
+                    content = f.read()
+                return HttpResponse(content, headers=headers)
+            else:
+                return HttpResponseNotFound(f"Metadata for {filename} not found")
+
+        except ObjectDoesNotExist:
+            return HttpResponseNotFound(f"Package {filename} not found")
 
     @extend_schema(
         request=PackageUploadSerializer,
