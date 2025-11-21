@@ -385,6 +385,12 @@ No significant changes.
 
 ---
 
+## 3.10.2 (2025-11-18) {: #3.10.2 }
+
+No significant changes
+
+---
+
 ## 3.10.1 (2025-07-23) {: #3.10.1 }
 
 ### Bugfixes
