@@ -168,6 +168,38 @@ def test_package_upload_simple(
 
 
 @pytest.mark.parallel
+def test_wheel_package_upload_with_metadata(
+    python_content_summary,
+    python_empty_repo_distro,
+    python_package_dist_directory,
+    monitor_task,
+):
+    """Tests that the wheel metadata artifact is created during upload."""
+    repo, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "simple/")
+    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    response = requests.post(
+        url,
+        data={"sha256_digest": PYTHON_WHEEL_SHA256},
+        files={"content": open(wheel_file, "rb")},
+        auth=("admin", "password"),
+    )
+    assert response.status_code == 202
+    monitor_task(response.json()["task"])
+    summary = python_content_summary(repository=repo)
+    assert summary.added["python.python"]["count"] == 1
+
+    # Test that metadata is accessible
+    metadata_url = urljoin(distro.base_url, f"{PYTHON_WHEEL_FILENAME}.metadata")
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert metadata_response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert len(metadata_response.content) > 0
+    metadata_text = metadata_response.text
+    assert "Name: shelf-reader" in metadata_text
+
+
+@pytest.mark.parallel
 def test_twine_upload(
     pulpcore_bindings,
     python_content_summary,

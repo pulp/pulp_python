@@ -28,5 +28,10 @@ urlpatterns = [
         SimpleView.as_view({"get": "list", "post": "create"}),
         name="simple-detail",
     ),
+    path(
+        PYPI_API_URL + "<str:filename>.metadata",
+        SimpleView.as_view({"get": "retrieve_metadata"}),
+        name="simple-metadata",
+    ),
     path(PYPI_API_URL, PyPIView.as_view({"get": "retrieve"}), name="pypi-detail"),
 ]
