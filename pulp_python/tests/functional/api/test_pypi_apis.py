@@ -167,8 +167,8 @@ def test_package_upload_simple(
     assert summary.added["python.python"]["count"] == 1
 
 
-@pytest.mark.parallel
 def test_wheel_package_upload_with_metadata(
+    delete_orphans_pre,
     python_content_summary,
     python_empty_repo_distro,
     python_package_dist_directory,
