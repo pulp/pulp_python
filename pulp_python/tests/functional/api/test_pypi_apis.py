@@ -5,6 +5,7 @@ import subprocess
 from urllib.parse import urljoin
 
 from pulp_python.tests.functional.constants import (
+    PYPI_SERIAL_CONSTANT,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_FIXTURE_RELEASES,
     PYTHON_SM_FIXTURE_CHECKSUMS,
@@ -20,7 +21,6 @@ from pulp_python.tests.functional.utils import ensure_simple
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
-PYPI_SERIAL_CONSTANT = 1000000000
 
 
 @pytest.mark.parallel
