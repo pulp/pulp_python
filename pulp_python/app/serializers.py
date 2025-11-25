@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from packaging.requirements import Requirement
 from rest_framework import serializers
+from pydantic import ValidationError
+from pypi_attestations import Distribution, Provenance, VerificationError
 
 from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
@@ -462,6 +464,65 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
             "sha256",
         )
         model = python_models.PythonPackageContent
+
+
+class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerializer):
+    """
+    A Serializer for PackageProvenance.
+    """
+
+    package = core_serializers.DetailRelatedField(
+        help_text=_("The package that the provenance is for."),
+        view_name_pattern=r"content(-.*/.*)-detail",
+        queryset=python_models.PythonPackageContent.objects.all(),
+    )
+    provenance = serializers.JSONField(read_only=True, default=dict)
+    sha256 = serializers.CharField(read_only=True)
+    verify = serializers.BooleanField(
+        default=True,
+        write_only=True,
+        help_text=_("Verify each attestation in the provenance."),
+    )
+
+    def deferred_validate(self, data):
+        """
+        Validate that the provenance is valid and pointing to the correct package.
+        """
+        data = super().deferred_validate(data)
+        try:
+            provenance = Provenance.model_validate_json(data["file"].read())
+            data["provenance"] = provenance.model_dump(mode="json")
+        except ValidationError as e:
+            raise serializers.ValidationError(
+                _("The uploaded provenance is not valid: {}".format(e))
+            )
+        if data.pop("verify"):
+            dist = Distribution(name=data["package"].filename, digest=data["package"].sha256)
+            try:
+                for attestation_bundle in provenance.attestation_bundles:
+                    publisher = attestation_bundle.publisher
+                    policy = publisher._as_policy()
+                    for attestation in attestation_bundle.attestations:
+                        attestation.verify(policy, dist)
+            except VerificationError as e:
+                raise serializers.ValidationError(_("Provenance verification failed: {}".format(e)))
+        return data
+
+    def retrieve(self, validated_data):
+        sha256 = python_models.PackageProvenance.calculate_sha256(validated_data["provenance"])
+        content = python_models.PackageProvenance.objects.filter(
+            sha256=sha256, _pulp_domain=get_domain()
+        ).first()
+        return content
+
+    class Meta:
+        fields = core_serializers.NoArtifactContentUploadSerializer.Meta.fields + (
+            "package",
+            "provenance",
+            "sha256",
+            "verify",
+        )
+        model = python_models.PackageProvenance
 
 
 class MultipleChoiceArrayField(serializers.MultipleChoiceField):
