@@ -44,7 +44,8 @@ simple_detail_template = """<!DOCTYPE html>
   <body>
     <h1>Links for {{ project_name }}</h1>
     {% for pkg in project_packages %}
-      <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal">{{ pkg.filename }}</a><br/>
+      <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal" {% if pkg.provenance -%}
+      data-provenance="{{ pkg.provenance }}"{% endif %}>{{ pkg.filename }}</a><br/>
     {% endfor %}
   </body>
 </html>
@@ -478,7 +479,8 @@ def write_simple_detail_json(project_name, project_packages):
                 "upload-time": format_upload_time(package["upload_time"]),
                 # TODO in the future:
                 # core-metadata (PEP 7.14)
-                # provenance (v1.3, PEP 740)
+                # (v1.3, PEP 740)
+                "provenance": package.get("provenance", None),
             }
             for package in project_packages
         ],
