@@ -1,7 +1,13 @@
 from django.conf import settings
 from django.urls import path
 
-from pulp_python.app.pypi.views import SimpleView, MetadataView, PyPIView, UploadView
+from pulp_python.app.pypi.views import (
+    SimpleView,
+    MetadataView,
+    PyPIView,
+    UploadView,
+    ProvenanceView,
+)
 
 if settings.DOMAIN_ENABLED:
     PYPI_API_URL = "pypi/<slug:pulp_domain>/<path:path>/"
@@ -13,6 +19,11 @@ else:
 
 urlpatterns = [
     path(PYPI_API_URL + "legacy/", UploadView.as_view({"post": "create"}), name="upload"),
+    path(
+        PYPI_API_URL + "integrity/<str:package>/<str:version>/<str:filename>/provenance/",
+        ProvenanceView.as_view({"get": "retrieve"}),
+        name="integrity-provenance",
+    ),
     path(
         PYPI_API_URL + "pypi/<path:meta>/",
         MetadataView.as_view({"get": "retrieve"}),

@@ -37,6 +37,7 @@ from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
     PythonPublication,
+    PackageProvenance,
 )
 from pulp_python.app.pypi.serializers import (
     SummarySerializer,
@@ -61,6 +62,7 @@ log = logging.getLogger(__name__)
 
 ORIGIN_HOST = settings.CONTENT_ORIGIN if settings.CONTENT_ORIGIN else settings.PYPI_API_HOSTNAME
 BASE_CONTENT_URL = urljoin(ORIGIN_HOST, settings.CONTENT_PATH_PREFIX)
+BASE_API_URL = urljoin(settings.PYPI_API_HOSTNAME, "pypi/")
 
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
@@ -120,6 +122,11 @@ class PyPIMixin:
         """Returns queryset of the content in this repository version."""
         return PythonPackageContent.objects.filter(pk__in=repository_version.content)
 
+    @staticmethod
+    def get_provenances(repository_version):
+        """Returns queryset of the provenance for this repository version."""
+        return PackageProvenance.objects.filter(pk__in=repository_version.content)
+
     def should_redirect(self, repo_version=None):
         """Checks if there is a publication the content app can serve."""
         if self.distribution.publication:
@@ -139,10 +146,13 @@ class PyPIMixin:
     def initial(self, request, *args, **kwargs):
         """Perform common initialization tasks for PyPI endpoints."""
         super().initial(request, *args, **kwargs)
+        domain_name = get_domain().name
         if settings.DOMAIN_ENABLED:
-            self.base_content_url = urljoin(BASE_CONTENT_URL, f"{get_domain().name}/")
+            self.base_content_url = urljoin(BASE_CONTENT_URL, f"{domain_name}/")
+            self.base_api_url = urljoin(BASE_API_URL, f"{domain_name}/")
         else:
             self.base_content_url = BASE_CONTENT_URL
+            self.base_api_url = BASE_API_URL
 
     @classmethod
     def urlpattern(cls):
@@ -273,6 +283,13 @@ class SimpleView(PackageUploadMixin, ViewSet):
         else:
             return [JSONRenderer(), BrowsableAPIRenderer()]
 
+    def get_provenance_url(self, package, version, filename):
+        """Gets the provenance url for a package."""
+        base_path = self.distribution.base_path
+        return urljoin(
+            self.base_api_url, f"{base_path}/integrity/{package}/{version}/{filename}/provenance/"
+        )
+
     @extend_schema(summary="Get index simple page")
     def list(self, request, path):
         """Gets the simple api html page for the index."""
@@ -308,6 +325,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "size": release_package.size,
                 "upload_time": release_package.upload_time,
                 "version": release_package.version,
+                "provenance": release_package.provenance_url,
             }
 
         rfilter = get_remote_package_filter(remote)
@@ -348,7 +366,8 @@ class SimpleView(PackageUploadMixin, ViewSet):
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content:
-            packages = content.filter(name__normalize=normalized).values(
+            local_packages = content.filter(name__normalize=normalized)
+            packages = local_packages.values(
                 "filename",
                 "sha256",
                 "metadata_sha256",
@@ -357,11 +376,19 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "pulp_created",
                 "version",
             )
+            provenances = PackageProvenance.objects.filter(package__in=local_packages).values_list(
+                "package__filename", flat=True
+            )
             local_releases = {
                 p["filename"]: {
                     **p,
                     "url": urljoin(self.base_content_url, f"{path}/{p['filename']}"),
                     "upload_time": p["pulp_created"],
+                    "provenance": (
+                        self.get_provenance_url(normalized, p["version"], p["filename"])
+                        if p["filename"] in provenances
+                        else None
+                    ),
                 }
                 for p in packages
             }
@@ -497,3 +524,32 @@ class UploadView(PackageUploadMixin, ViewSet):
         This is the endpoint that tools like Twine and Poetry use for their upload commands.
         """
         return self.upload(request, path)
+
+
+class ProvenanceView(PyPIMixin, ViewSet):
+    """View for the PyPI provenance endpoint."""
+
+    endpoint_name = "integrity"
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["retrieve"],
+                "principal": "*",
+                "effect": "allow",
+            },
+        ],
+    }
+
+    @extend_schema(summary="Get package provenance")
+    def retrieve(self, request, path, package, version, filename):
+        """Gets the provenance for a package."""
+        repo_ver, content = self.get_rvc()
+        if content:
+            package_content = content.filter(
+                name__normalize=package, version=version, filename=filename
+            ).first()
+            if package_content:
+                provenance = PackageProvenance.objects.filter(package=package_content).first()
+                if provenance:
+                    return Response(data=provenance.provenance)
+        return HttpResponseNotFound(f"{package} {version} {filename} provenance does not exist.")

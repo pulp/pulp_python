@@ -97,6 +97,7 @@ def test_simple_json_detail_api(
     assert file_tar["data-dist-info-metadata"] is False
     assert file_tar["size"] == 19097
     assert file_tar["upload-time"] is not None
+    assert file_tar["provenance"] is None
 
 
 @pytest.mark.parallel
