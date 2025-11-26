@@ -324,3 +324,26 @@ def test_proxy_auth_sync(
 
     content = python_bindings.ContentPackagesApi.list(repository_version=repo.latest_version_href)
     assert content.count == 2
+
+
+@pytest.mark.parallel
+def test_sync_project_metadata(
+    python_bindings, python_repo_with_sync, python_remote_factory, python_content_summary
+):
+    """Test syncing with project metadata."""
+    remote = python_remote_factory(project_metadata=True)
+    repo = python_repo_with_sync(remote)
+    assert repo.latest_version_href[-2] == "1"
+
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.project_metadata"]["count"] == 1
+    assert summary.present["python.python"]["count"] == 2
+
+    metadata = python_bindings.ContentProjectMetadataApi.list(
+        repository_version=repo.latest_version_href
+    )
+    assert metadata.count == 1
+    assert metadata.results[0].project_name == "shelf-reader"
+    assert metadata.results[0].tracks == []
+    assert metadata.results[0].alternate_locations == ["https://pypi.org/simple/shelf-reader/"]
+    assert metadata.results[0].sha256 is not None

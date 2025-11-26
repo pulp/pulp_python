@@ -11,7 +11,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_URL,
 )
 
-API_VERSION = "1.1"
+API_VERSION = "1.2"
 PYPI_SERIAL_CONSTANT = 1000000000
 
 PYPI_TEXT_HTML = "text/html"
@@ -70,6 +70,11 @@ def test_simple_json_detail_api(
     assert data["name"] == "shelf-reader"
     assert data["files"]
     assert data["versions"] == ["0.1"]
+
+    # Alternate locations is always present even if no metadata is in repository
+    # Tracks is not present if no metadata is in repository
+    assert data["alternate-locations"] == []
+    assert "tracks" not in data
 
     # Check data of a wheel
     file_whl = next(

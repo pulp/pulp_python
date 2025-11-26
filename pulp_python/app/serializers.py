@@ -18,6 +18,7 @@ from pulp_python.app.utils import (
     artifact_to_python_content_data,
     get_project_metadata_from_file,
     parse_project_metadata,
+    canonicalize_name,
 )
 
 
@@ -525,6 +526,52 @@ class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerial
         model = python_models.PackageProvenance
 
 
+class ProjectMetadataContentSerializer(core_serializers.NoArtifactContentSerializer):
+    """
+    A Serializer for ProjectMetadataContent.
+    """
+
+    project_name = serializers.CharField(
+        required=True,
+        help_text=_("The name of the python project."),
+    )
+    tracks = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
+        required=False,
+        allow_empty=True,
+    )
+    alternate_locations = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
+        required=False,
+        allow_empty=True,
+    )
+    sha256 = serializers.CharField(
+        read_only=True,
+        help_text=_("The SHA256 digest of the project metadata."),
+    )
+
+    def validate_project_name(self, value):
+        """Ensures name is normalized."""
+        return canonicalize_name(value)
+
+    def retrieve(self, validated_data):
+        """Retrieves the project metadata for a project."""
+        md = python_models.ProjectMetadataContent(**validated_data)
+        md.calculate_sha256()
+        return python_models.ProjectMetadataContent.objects.filter(
+            sha256=md.sha256, _pulp_domain=get_domain()
+        ).first()
+
+    class Meta:
+        fields = core_serializers.NoArtifactContentSerializer.Meta.fields + (
+            "project_name",
+            "tracks",
+            "alternate_locations",
+            "sha256",
+        )
+        model = python_models.ProjectMetadataContent
+
+
 class MultipleChoiceArrayField(serializers.MultipleChoiceField):
     """
     A wrapper to make sure this DRF serializer works properly with ArrayFields.
@@ -595,6 +642,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         choices=python_models.PLATFORMS,
         default=list,
     )
+    project_metadata = serializers.BooleanField(
+        required=False,
+        help_text=_("Whether to sync project metadata."),
+        default=False,
+    )
 
     def validate_includes(self, value):
         """Validates the includes"""
@@ -626,6 +678,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             "package_types",
             "keep_latest_packages",
             "exclude_platforms",
+            "project_metadata",
         )
         model = python_models.PythonRemote
 

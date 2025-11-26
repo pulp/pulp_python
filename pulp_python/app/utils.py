@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import zipfile
 import json
+from aiohttp.client_exceptions import ClientError
 from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
@@ -12,14 +13,18 @@ from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
 from packaging.version import parse, InvalidVersion
+from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 from pulpcore.plugin.models import Remote
+from pulpcore.plugin.exceptions import TimeoutException
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
 
-SIMPLE_API_VERSION = "1.1"
+SIMPLE_API_VERSION = "1.2"
+PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
+PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
 
 simple_index_template = """<!DOCTYPE html>
 <html>
@@ -40,6 +45,16 @@ simple_detail_template = """<!DOCTYPE html>
   <head>
     <title>Links for {{ project_name }}</title>
     <meta name="pypi:repository-version" content="{{ SIMPLE_API_VERSION }}">
+    {% if project_metadata.tracks is defined -%}
+      {%- for url in project_metadata.tracks %}
+    <meta name="pypi:tracks" content="{{ url }}">
+      {%- endfor -%}
+    {% endif -%}
+    {% if project_metadata.alternate_locations is defined -%}
+      {%- for url in project_metadata.alternate_locations %}
+    <meta name="pypi:alternate-locations" content="{{ url }}">
+      {%- endfor -%}
+    {% endif %}
   </head>
   <body>
     <h1>Links for {{ project_name }}</h1>
@@ -436,13 +451,15 @@ def write_simple_index(project_names, streamed=False):
     return simple.stream(**context) if streamed else simple.render(**context)
 
 
-def write_simple_detail(project_name, project_packages, streamed=False):
+def write_simple_detail(project_name, project_packages, project_metadata=None, streamed=False):
     """Writes the simple detail page of a package."""
     detail = Template(simple_detail_template)
+    project_metadata = project_metadata or {}
     context = {
         "SIMPLE_API_VERSION": SIMPLE_API_VERSION,
         "project_name": project_name,
         "project_packages": project_packages,
+        "project_metadata": project_metadata,
     }
     return detail.stream(**context) if streamed else detail.render(**context)
 
@@ -457,7 +474,7 @@ def write_simple_index_json(project_names):
     }
 
 
-def write_simple_detail_json(project_name, project_packages):
+def write_simple_detail_json(project_name, project_packages, project_metadata):
     """Writes the simple detail page in JSON format."""
     return {
         "meta": {"api-version": SIMPLE_API_VERSION, "_last-serial": PYPI_SERIAL_CONSTANT},
@@ -486,8 +503,11 @@ def write_simple_detail_json(project_name, project_packages):
         ],
         # (v1.1, PEP 700)
         "versions": sorted(set(package["version"] for package in project_packages)),
+        # (v1.2, PEP 708)
+        "alternate-locations": project_metadata.get("alternate_locations", []),
+        # tracks is only present when there are actual values, else the field is not included
+        **({"tracks": project_metadata.get("tracks")} if project_metadata.get("tracks") else {}),
         # TODO in the future:
-        # alternate-locations (v1.2, PEP 708)
         # project-status (v1.4, PEP 792 - pypi and docs differ)
     }
 
@@ -576,3 +596,39 @@ def get_remote_package_filter(remote):
     rfilter = PackageIncludeFilter(remote)
     _remote_filters[remote.pulp_id] = (remote.pulp_last_updated, rfilter)
     return rfilter
+
+
+def get_remote_simple_page(package, remote, max_retries=1):
+    """Gets the simple page for a package from a remote."""
+    url = remote.get_remote_artifact_url(f"simple/{package}/")
+    remote.headers = remote.headers or []
+    remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
+    downloader = remote.get_downloader(url=url, max_retries=max_retries)
+    try:
+        d = downloader.fetch()
+    except (ClientError, TimeoutException):
+        return None
+
+    if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
+        page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
+    else:
+        page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
+    return page
+
+
+async def aget_remote_simple_page(package, remote, max_retries=1):
+    """Gets the simple page for a package from a remote."""
+    url = remote.get_remote_artifact_url(f"simple/{package}/")
+    remote.headers = remote.headers or []
+    remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
+    downloader = remote.get_downloader(url=url, max_retries=max_retries)
+    try:
+        d = await downloader.run()
+    except (ClientError, TimeoutException):
+        return None
+
+    if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
+        page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
+    else:
+        page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
+    return page
