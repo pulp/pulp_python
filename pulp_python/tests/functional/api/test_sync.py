@@ -324,3 +324,15 @@ def test_proxy_auth_sync(
 
     content = python_bindings.ContentPackagesApi.list(repository_version=repo.latest_version_href)
     assert content.count == 2
+
+
+@pytest.mark.parallel
+def test_sync_provenance(python_repo_with_sync, python_remote_factory, python_content_summary):
+    """Test syncing with provenance."""
+    remote = python_remote_factory(provenance=True, includes=["twine==6.0.0"])
+    repo = python_repo_with_sync(remote)
+    assert repo.latest_version_href[-2] == "1"
+
+    summary = python_content_summary(repository_version=repo.latest_version_href)
+    assert summary.present["python.python"]["count"] == 2
+    assert summary.present["python.provenance"]["count"] == 2

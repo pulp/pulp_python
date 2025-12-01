@@ -1,7 +1,5 @@
-import json
 import logging
 
-from aiohttp.client_exceptions import ClientError
 from rest_framework.viewsets import ViewSet
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
@@ -27,12 +25,10 @@ from itertools import chain
 from packaging.utils import canonicalize_name
 from urllib.parse import urljoin, urlparse, urlunsplit
 from pathlib import PurePath
-from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
-from pulpcore.plugin.exceptions import TimeoutException
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
@@ -54,6 +50,7 @@ from pulp_python.app.utils import (
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
     get_remote_package_filter,
+    get_remote_simple_page,
 )
 
 from pulp_python.app import tasks
@@ -332,20 +329,10 @@ class SimpleView(PackageUploadMixin, ViewSet):
         if not rfilter.filter_project(package):
             return {}
 
-        url = remote.get_remote_artifact_url(f"simple/{package}/")
-        remote.headers = remote.headers or []
-        remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
-        downloader = remote.get_downloader(url=url, max_retries=1)
-        try:
-            d = downloader.fetch()
-        except (ClientError, TimeoutException):
+        page = get_remote_simple_page(package, remote)
+        if not page:
             log.info(f"Failed to fetch {package} simple page from {remote.url}")
             return {}
-
-        if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
-            page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
-        else:
-            page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
         return {
             p.filename: parse_package(p)
             for p in page.packages

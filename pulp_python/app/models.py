@@ -314,6 +314,7 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
     exclude_platforms = ArrayField(
         models.CharField(max_length=10, blank=True), choices=PLATFORMS, default=list
     )
+    provenance = models.BooleanField(default=False)
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
         """Get url for remote_artifact"""

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import zipfile
 import json
+from aiohttp.client_exceptions import ClientError
 from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
@@ -12,7 +13,9 @@ from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
 from packaging.version import parse, InvalidVersion
+from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 from pulpcore.plugin.models import Remote
+from pulpcore.plugin.exceptions import TimeoutException
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -20,6 +23,8 @@ PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
 
 SIMPLE_API_VERSION = "1.1"
+PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
+PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
 
 simple_index_template = """<!DOCTYPE html>
 <html>
@@ -576,3 +581,39 @@ def get_remote_package_filter(remote):
     rfilter = PackageIncludeFilter(remote)
     _remote_filters[remote.pulp_id] = (remote.pulp_last_updated, rfilter)
     return rfilter
+
+
+def get_remote_simple_page(package, remote, max_retries=1):
+    """Gets the simple page for a package from a remote."""
+    url = remote.get_remote_artifact_url(f"simple/{package}/")
+    remote.headers = remote.headers or []
+    remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
+    downloader = remote.get_downloader(url=url, max_retries=max_retries)
+    try:
+        d = downloader.fetch()
+    except (ClientError, TimeoutException):
+        return None
+
+    if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
+        page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
+    else:
+        page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
+    return page
+
+
+async def aget_remote_simple_page(package, remote, max_retries=1):
+    """Gets the simple page for a package from a remote."""
+    url = remote.get_remote_artifact_url(f"simple/{package}/")
+    remote.headers = remote.headers or []
+    remote.headers.append({"Accept": ACCEPT_JSON_PREFERRED})
+    downloader = remote.get_downloader(url=url, max_retries=max_retries)
+    try:
+        d = await downloader.run()
+    except (ClientError, TimeoutException):
+        return None
+
+    if d.headers["content-type"] == PYPI_SIMPLE_V1_JSON:
+        page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
+    else:
+        page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
+    return page

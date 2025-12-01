@@ -595,6 +595,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         choices=python_models.PLATFORMS,
         default=list,
     )
+    provenance = serializers.BooleanField(
+        required=False,
+        help_text=_("Whether to sync available provenances for Python packages."),
+        default=False,
+    )
 
     def validate_includes(self, value):
         """Validates the includes"""
@@ -626,6 +631,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             "package_types",
             "keep_latest_packages",
             "exclude_platforms",
+            "provenance",
         )
         model = python_models.PythonRemote
 

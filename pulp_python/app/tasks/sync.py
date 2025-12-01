@@ -1,4 +1,5 @@
 import logging
+import asyncio
 
 from aiohttp import ClientResponseError, ClientError
 from lxml.etree import LxmlError
@@ -19,9 +20,11 @@ from pulpcore.plugin.stages import (
 from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
+    PackageProvenance,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
+from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL, aget_remote_simple_page
 from pypi_simple import IndexPage
+from pypi_attestations import Provenance
 
 from bandersnatch.mirror import Mirror
 from bandersnatch.master import Master
@@ -163,6 +166,7 @@ class PulpMirror(Mirror):
         self.python_stage = python_stage
         self.progress_report = progress_report
         self.deferred_download = deferred_download
+        self.remote = self.python_stage.remote
 
     async def determine_packages_to_sync(self):
         """
@@ -194,8 +198,8 @@ class PulpMirror(Mirror):
                 continue
         else:
             logger.info("Failed to get package list using XMLRPC, trying parse simple page.")
-            url = urljoin(self.python_stage.remote.url, "simple/")
-            downloader = self.python_stage.remote.get_downloader(url=url)
+            url = urljoin(self.remote.url, "simple/")
+            downloader = self.remote.get_downloader(url=url)
             result = await downloader.run()
             with open(result.path) as f:
                 index = IndexPage.from_html(f.read())
@@ -224,6 +228,7 @@ class PulpMirror(Mirror):
         Take the filtered package, separate into releases and
         create a Content Unit to put into the pipeline
         """
+        declared_contents = {}
         for version, dists in pkg.releases.items():
             for package in dists:
                 entry = parse_metadata(pkg.info, version, package)
@@ -237,12 +242,43 @@ class PulpMirror(Mirror):
                     artifact=artifact,
                     url=url,
                     relative_path=entry["filename"],
-                    remote=self.python_stage.remote,
+                    remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])
-
+                declared_contents[entry["filename"]] = dc
                 await self.python_stage.put(dc)
+
+        if pkg.releases and (page := await aget_remote_simple_page(pkg.name, self.remote)):
+            if self.remote.provenance:
+                await self.sync_provenance(page, declared_contents)
+
+    async def sync_provenance(self, page, declared_contents):
+        """Sync the provenance for the package"""
+
+        async def _create_provenance(filename, provenance_url):
+            downloader = self.remote.get_downloader(
+                url=provenance_url, silence_errors_for_response_codes={404}
+            )
+            try:
+                result = await downloader.run()
+            except FileNotFoundError:
+                pass
+            else:
+                package_content = await declared_contents[filename].resolution()
+                with open(result.path) as f:
+                    provenance = Provenance.model_validate_json(f.read())
+                    prov_content = PackageProvenance(
+                        package=package_content, provenance=provenance.model_dump(mode="json")
+                    )
+                    prov_content.set_sha256_hook()
+                    await self.python_stage.put(DeclarativeContent(content=prov_content))
+
+        tasks = []
+        for package in page.packages:
+            if package.filename in declared_contents and package.provenance_url:
+                tasks.append(_create_provenance(package.filename, package.provenance_url))
+        await asyncio.gather(*tasks)
 
     def finalize_sync(self, *args, **kwargs):
         """No work to be done currently"""
