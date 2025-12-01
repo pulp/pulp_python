@@ -131,10 +131,11 @@ def python_repo_with_sync(
     """A factory to generate a Python Repository synced with the passed in Remote."""
 
     def _gen_python_repo_sync(remote=None, mirror=False, repository=None, **body):
-        kwargs = {}
-        if pulp_domain := body.get("pulp_domain"):
-            kwargs["pulp_domain"] = pulp_domain
-        remote = remote or python_remote_factory(**kwargs)
+        remote = remote or {}
+        if not hasattr(remote, "pulp_href"):
+            if pulp_domain := body.get("pulp_domain"):
+                remote["pulp_domain"] = pulp_domain
+            remote = python_remote_factory(**remote)
         repo = repository or python_repo_factory(**body)
         sync_body = {"mirror": mirror, "remote": remote.pulp_href}
         monitor_task(python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, sync_body).task)

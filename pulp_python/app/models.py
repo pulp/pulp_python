@@ -279,6 +279,69 @@ class PackageProvenance(Content):
         unique_together = ("sha256", "_pulp_domain")
 
 
+class ProjectMetadataContent(Content):
+    """
+    A Content Type representing metadata at the project level.
+
+    Currently used to implement PEP 708.
+    # TODO: Implement PEP 792
+    Fields:
+        project_name (models.TextField): The name of the project (normalized)
+        tracks (models.ArrayField): Array of external repository urls that extend the project's
+            available files (PEP 708)
+        alternate_locations (models.ArrayField): Array of external repository urls that extends the
+            project's namespace (PEP 708)
+
+        sha256 (models.CharField): Digest of all the fields above
+    """
+
+    TYPE = "project_metadata"
+    repo_key_fields = ("project_name",)
+
+    project_name = models.TextField()
+    tracks = ArrayField(models.TextField(), default=list)
+    alternate_locations = ArrayField(models.TextField(), default=list)
+
+    sha256 = models.CharField(max_length=64, null=False)
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
+
+    @classmethod
+    def from_simple_page(cls, page):
+        """Creates a ProjectMetadataContent from a pypi_simple.ProjectPage."""
+        metadata_fields = ("alternate_locations", "tracks")
+        project_metadata = {k: getattr(page, k) for k in metadata_fields if getattr(page, k)}
+        metadata = cls(
+            project_name=page.project,
+            **project_metadata,
+        )
+        metadata.calculate_sha256()
+        return metadata
+
+    def to_metadata(self):
+        """Converts model to dict of present fields."""
+        return {
+            "tracks": self.tracks,
+            "alternate_locations": self.alternate_locations,
+        }
+
+    @hook(BEFORE_SAVE)
+    def calculate_sha256(self):
+        """Calculates the sha256 from the other metadata fields."""
+        data = {
+            "project_name": self.project_name,
+            "tracks": self.tracks,
+            "alternate_locations": self.alternate_locations,
+        }
+
+        metadata_json = json.dumps(data, sort_keys=True).encode("utf-8")
+        hasher = hashlib.sha256(metadata_json)
+        self.sha256 = hasher.hexdigest()
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("sha256", "_pulp_domain")
+
+
 class PythonPublication(Publication, AutoAddObjPermsMixin):
     """
     A Publication for PythonContent.
@@ -314,6 +377,7 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
     exclude_platforms = ArrayField(
         models.CharField(max_length=10, blank=True), choices=PLATFORMS, default=list
     )
+    project_metadata = models.BooleanField(default=False)
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
         """Get url for remote_artifact"""
@@ -339,7 +403,7 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
     """
 
     TYPE = "python"
-    CONTENT_TYPES = [PythonPackageContent, PackageProvenance]
+    CONTENT_TYPES = [PythonPackageContent, PackageProvenance, ProjectMetadataContent]
     REMOTE_TYPES = [PythonRemote]
     PULL_THROUGH_SUPPORTED = True
 

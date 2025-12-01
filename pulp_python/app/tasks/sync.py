@@ -19,8 +19,14 @@ from pulpcore.plugin.stages import (
 from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
+    ProjectMetadataContent,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
+from pulp_python.app.utils import (
+    parse_metadata,
+    PYPI_LAST_SERIAL,
+    canonicalize_name,
+    aget_remote_simple_page,
+)
 from pypi_simple import IndexPage
 
 from bandersnatch.mirror import Mirror
@@ -163,6 +169,7 @@ class PulpMirror(Mirror):
         self.python_stage = python_stage
         self.progress_report = progress_report
         self.deferred_download = deferred_download
+        self.remote = python_stage.remote
 
     async def determine_packages_to_sync(self):
         """
@@ -237,12 +244,21 @@ class PulpMirror(Mirror):
                     artifact=artifact,
                     url=url,
                     relative_path=entry["filename"],
-                    remote=self.python_stage.remote,
+                    remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])
 
                 await self.python_stage.put(dc)
+
+        # Create project metadata content if enabled
+        if self.remote.project_metadata and pkg.releases:
+            name = canonicalize_name(pkg.name)
+            if page := await aget_remote_simple_page(name, self.remote):
+                if project_metadata_content := ProjectMetadataContent.from_simple_page(page):
+                    await self.python_stage.put(
+                        DeclarativeContent(content=project_metadata_content)
+                    )
 
     def finalize_sync(self, *args, **kwargs):
         """No work to be done currently"""
