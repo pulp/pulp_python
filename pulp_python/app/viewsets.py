@@ -348,6 +348,7 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
         }
 
 
+# TODO now: create metadata artifact for sync upload
 class PythonPackageSingleArtifactContentUploadViewSet(
     core_viewsets.SingleArtifactContentUploadViewSet
 ):
