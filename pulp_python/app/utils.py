@@ -21,6 +21,7 @@ from pulpcore.plugin.exceptions import TimeoutException
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
+SUPPORTED_METADATA_VERSIONS = ("1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3", "2.4")
 
 SIMPLE_API_VERSION = "1.1"
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
