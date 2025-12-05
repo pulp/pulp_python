@@ -21,8 +21,8 @@ from pulpcore.plugin.models import (
 )
 from pulpcore.plugin.responses import ArtifactResponse
 
-from pypi_attestations import Provenance
 from pathlib import PurePath
+from .provenance import Provenance
 from .utils import (
     artifact_to_python_content_data,
     canonicalize_name,
