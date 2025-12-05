@@ -10,3 +10,4 @@ The following features are currently being released as part of a tech preview
 - Create pull-through caches of remote sources.
 - Pulp Domain Support
 - RBAC support
+- PEP 740 attestations upload and provenance syncing/serving.
