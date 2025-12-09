@@ -2,6 +2,8 @@ import logging
 from gettext import gettext as _
 
 from rest_framework import serializers
+from pydantic import TypeAdapter, ValidationError
+from pulp_python.app.provenance import Attestation
 from pulp_python.app.utils import DIST_EXTENSIONS, SUPPORTED_METADATA_VERSIONS
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
@@ -70,6 +72,11 @@ class PackageUploadSerializer(serializers.Serializer):
         required=False,
         choices=SUPPORTED_METADATA_VERSIONS,
     )
+    attestations = serializers.JSONField(
+        required=False,
+        help_text=_("A JSON list containing attestations for the package."),
+        write_only=True,
+    )
 
     def validate(self, data):
         """Validates the request."""
@@ -97,6 +104,14 @@ class PackageUploadSerializer(serializers.Serializer):
                     ).format(file.name)
                 }
             )
+
+        if attestations := data.get("attestations"):
+            try:
+                attestations = TypeAdapter(list[Attestation]).validate_python(attestations)
+            except ValidationError as e:
+                raise serializers.ValidationError(
+                    {"attestations": _("The uploaded attestations are not valid: {}".format(e))}
+                )
 
         sha256 = data.get("sha256_digest")
         digests = {"sha256": sha256} if sha256 else None

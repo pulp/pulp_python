@@ -181,12 +181,15 @@ class PackageUploadMixin(PyPIMixin):
         serializer = PackageUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         artifact, filename = serializer.validated_data["content"]
+        attestations = serializer.validated_data.get("attestations", None)
         repo_content = self.get_content(self.get_repository_version(self.distribution))
         if repo_content.filter(filename=filename).exists():
             return HttpResponseBadRequest(reason=f"Package {filename} already exists in index")
 
         if settings.PYTHON_GROUP_UPLOADS:
-            return self.upload_package_group(repo, artifact, filename, request.session)
+            return self.upload_package_group(
+                repo, artifact, filename, attestations, request.session
+            )
 
         result = dispatch(
             tasks.upload,
@@ -194,17 +197,20 @@ class PackageUploadMixin(PyPIMixin):
             kwargs={
                 "artifact_sha256": artifact.sha256,
                 "filename": filename,
+                "attestations": attestations,
                 "repository_pk": str(repo.pk),
             },
         )
         return OperationPostponedResponse(result, request)
 
-    def upload_package_group(self, repo, artifact, filename, session):
+    def upload_package_group(self, repo, artifact, filename, attestations, session):
         """Steps 4 & 5, spawns tasks to add packages to index."""
         start_time = datetime.now(tz=timezone.utc) + timedelta(seconds=5)
         task = "updated"
         if not session.get("start"):
-            task = self.create_group_upload_task(session, repo, artifact, filename, start_time)
+            task = self.create_group_upload_task(
+                session, repo, artifact, filename, attestations, start_time
+            )
         else:
             sq = Session.objects.select_for_update(nowait=True).filter(pk=session.session_key)
             try:
@@ -212,7 +218,7 @@ class PackageUploadMixin(PyPIMixin):
                     sq.first()
                     current_start = datetime.fromisoformat(session["start"])
                     if current_start >= datetime.now(tz=timezone.utc):
-                        session["artifacts"].append((str(artifact.sha256), filename))
+                        session["artifacts"].append((str(artifact.sha256), filename, attestations))
                         session["start"] = str(start_time)
                         session.modified = False
                         session.save()
@@ -220,14 +226,18 @@ class PackageUploadMixin(PyPIMixin):
                         raise DatabaseError
             except DatabaseError:
                 session.cycle_key()
-                task = self.create_group_upload_task(session, repo, artifact, filename, start_time)
+                task = self.create_group_upload_task(
+                    session, repo, artifact, filename, attestations, start_time
+                )
         data = {"session": session.session_key, "task": task, "task_start_time": start_time}
         return Response(data=data)
 
-    def create_group_upload_task(self, cur_session, repository, artifact, filename, start_time):
+    def create_group_upload_task(
+        self, cur_session, repository, artifact, filename, attestations, start_time
+    ):
         """Creates the actual task that adds the packages to the index."""
         cur_session["start"] = str(start_time)
-        cur_session["artifacts"] = [(str(artifact.sha256), filename)]
+        cur_session["artifacts"] = [(str(artifact.sha256), filename, attestations)]
         cur_session.modified = False
         cur_session.save()
         task = dispatch(
@@ -536,7 +546,7 @@ class ProvenanceView(PyPIMixin, ViewSet):
                 name__normalize=package, version=version, filename=filename
             ).first()
             if package_content:
-                provenance = PackageProvenance.objects.filter(package=package_content).first()
+                provenance = self.get_provenances(repo_ver).filter(package=package_content).first()
                 if provenance:
                     return Response(data=provenance.provenance)
         return HttpResponseNotFound(f"{package} {version} {filename} provenance does not exist.")
