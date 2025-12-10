@@ -14,7 +14,7 @@ def add_size_to_current_models(apps, schema_editor):
             artifact = content_artifact.artifact
         else:
             artifact = RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
-        python_package.size = artifact.size or 0
+        python_package.size = artifact and artifact.size or 0
         package_bulk.append(python_package)
         if len(package_bulk) == 100000:
             with transaction.atomic():
