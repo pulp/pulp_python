@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.22.0 (2025-12-09) {: #3.22.0 }
+
+#### Features {: #3.22.0-feature }
+
+- Added attestations field to package upload that will create a PEP 740 Provenance object for that content.
+  [#984](https://github.com/pulp/pulp_python/issues/984)
+- Added the ability to upload PEP 740 Provenance files to repositories.
+
+#### Bugfixes {: #3.22.0-bugfix }
+
+- Added some sanity validation checks to twine upload endpoint.
+
+---
+
 ## 3.21.0 (2025-11-18) {: #3.21.0 }
 
 #### Features {: #3.21.0-feature }
