@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.22.1 (2025-12-10) {: #3.22.1 }
+
+#### Bugfixes {: #3.22.1-bugfix }
+
+- Fixed edge-case migration error in 0017_pythonpackagecontent_size.
+  [#1042](https://github.com/pulp/pulp_python/issues/1042)
+
+---
+
 ## 3.22.0 (2025-12-09) {: #3.22.0 }
 
 #### Features {: #3.22.0-feature }
