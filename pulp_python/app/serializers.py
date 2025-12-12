@@ -22,6 +22,7 @@ from pulp_python.app.provenance import (
 )
 from pulp_python.app.utils import (
     DIST_EXTENSIONS,
+    artifact_to_metadata_artifact,
     artifact_to_python_content_data,
     get_project_metadata_from_file,
     parse_project_metadata,
@@ -93,10 +94,34 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         model = python_models.PythonDistribution
 
 
+class PythonSingleContentArtifactField(core_serializers.SingleContentArtifactField):
+    """
+    Custom field with overridden get_attribute method. Meant to be used only in
+    PythonPackageContentSerializer to handle possible existence of metadata artifact.
+    """
+
+    def get_attribute(self, instance):
+        if instance._artifacts.count() == 0:
+            return None
+        elif instance._artifacts.count() == 1:
+            return instance._artifacts.all()[0]
+        else:
+            main_content_artifacts = instance.contentartifact_set.exclude(
+                relative_path__endswith=".metadata"
+            )
+            if main_content_artifacts.exists():
+                return main_content_artifacts.first().artifact
+            return instance._artifacts.all()[0]
+
+
 class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploadSerializer):
     """
     A Serializer for PythonPackageContent.
     """
+
+    artifact = PythonSingleContentArtifactField(
+        help_text=_("Artifact file representing the physical content"),
+    )
 
     # Core metadata
     # Version 1.0
@@ -386,7 +411,20 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         if attestations := data.pop("attestations", None):
             data["provenance"] = self.handle_attestations(filename, data["sha256"], attestations)
 
+        # Create metadata artifact for wheel files
+        if filename.endswith(".whl"):
+            if metadata_artifact := artifact_to_metadata_artifact(filename, artifact):
+                data["metadata_artifact"] = metadata_artifact
+                data["metadata_sha256"] = metadata_artifact.sha256
+
         return data
+
+    def get_artifacts(self, validated_data):
+        artifacts = super().get_artifacts(validated_data)
+        if metadata_artifact := validated_data.pop("metadata_artifact", None):
+            relative_path = f"{validated_data['filename']}.metadata"
+            artifacts[relative_path] = metadata_artifact
+        return artifacts
 
     def retrieve(self, validated_data):
         content = python_models.PythonPackageContent.objects.filter(
