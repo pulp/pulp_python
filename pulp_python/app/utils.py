@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import pkginfo
 import re
 import shutil
@@ -14,8 +15,11 @@ from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
 from packaging.version import parse, InvalidVersion
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
-from pulpcore.plugin.models import Remote
+from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.exceptions import TimeoutException
+
+
+log = logging.getLogger(__name__)
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -206,11 +210,11 @@ def get_project_metadata_from_file(filename):
     return metadata
 
 
-def compute_metadata_sha256(filename: str) -> str | None:
+def extract_wheel_metadata(filename: str) -> bytes | None:
     """
-    Compute SHA256 hash of the metadata file from a Python package.
+    Extract the metadata file content from a wheel file.
 
-    Returns SHA256 hash or None if metadata cannot be extracted.
+    Returns the raw metadata content as bytes or None if metadata cannot be extracted.
     """
     if not filename.endswith(".whl"):
         return None
@@ -218,11 +222,20 @@ def compute_metadata_sha256(filename: str) -> str | None:
         with zipfile.ZipFile(filename, "r") as f:
             for file_path in f.namelist():
                 if file_path.endswith(".dist-info/METADATA"):
-                    metadata_content = f.read(file_path)
-                    return hashlib.sha256(metadata_content).hexdigest()
-    except (zipfile.BadZipFile, KeyError, OSError):
-        pass
+                    return f.read(file_path)
+    except (zipfile.BadZipFile, KeyError, OSError) as e:
+        log.warning(f"Failed to extract metadata file from {filename}: {e}")
     return None
+
+
+def compute_metadata_sha256(filename: str) -> str | None:
+    """
+    Compute SHA256 hash of the metadata file from a Python package.
+
+    Returns SHA256 hash or None if metadata cannot be extracted.
+    """
+    metadata_content = extract_wheel_metadata(filename)
+    return hashlib.sha256(metadata_content).hexdigest() if metadata_content else None
 
 
 def artifact_to_python_content_data(filename, artifact, domain=None):
@@ -233,6 +246,7 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     # because pkginfo validates that the filename has a valid extension before
     # reading it
     with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
+        artifact.file.seek(0)
         shutil.copyfileobj(artifact.file, temp_file)
         temp_file.flush()
         metadata = get_project_metadata_from_file(temp_file.name)
@@ -243,6 +257,28 @@ def artifact_to_python_content_data(filename, artifact, domain=None):
     data["pulp_domain"] = domain or artifact.pulp_domain
     data["_pulp_domain"] = data["pulp_domain"]
     return data
+
+
+def artifact_to_metadata_artifact(filename: str, artifact: Artifact) -> Artifact | None:
+    """
+    Creates artifact for metadata from the provided wheel artifact.
+    """
+    if not filename.endswith(".whl"):
+        return None
+
+    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
+        artifact.file.seek(0)
+        shutil.copyfileobj(artifact.file, temp_file)
+        temp_file.flush()
+        metadata_content = extract_wheel_metadata(temp_file.name)
+        if not metadata_content:
+            return None
+        with tempfile.NamedTemporaryFile(suffix=".metadata") as metadata_temp:
+            metadata_temp.write(metadata_content)
+            metadata_temp.flush()
+            metadata_artifact = Artifact.init_and_validate(metadata_temp.name)
+            metadata_artifact.save()
+            return metadata_artifact
 
 
 def fetch_json_release_metadata(name: str, version: str, remotes: set[Remote]) -> dict:
@@ -408,6 +444,7 @@ def python_content_to_download_info(content, base_path, domain=None):
             _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
         return _art
 
+    # todo: fix .first()
     content_artifact = content.contentartifact_set.first()
     artifact = find_artifact()
     origin = settings.CONTENT_ORIGIN or settings.PYPI_API_HOSTNAME or ""

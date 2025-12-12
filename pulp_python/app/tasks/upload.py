@@ -15,7 +15,7 @@ from pulp_python.app.provenance import (
     Provenance,
     verify_provenance,
 )
-from pulp_python.app.utils import artifact_to_python_content_data
+from pulp_python.app.utils import artifact_to_metadata_artifact, artifact_to_python_content_data
 
 
 def upload(artifact_sha256, filename, attestations=None, repository_pk=None):
@@ -97,6 +97,11 @@ def create_content(artifact_sha256, filename, domain):
     def create():
         content = PythonPackageContent.objects.create(**data)
         ContentArtifact.objects.create(artifact=artifact, content=content, relative_path=filename)
+
+        if metadata_artifact := artifact_to_metadata_artifact(filename, artifact):
+            ContentArtifact.objects.create(
+                artifact=metadata_artifact, content=content, relative_path=f"{filename}.metadata"
+            )
         return content
 
     new_content = create()

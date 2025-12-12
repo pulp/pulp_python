@@ -10,7 +10,10 @@ from pulp_python.tests.functional.constants import (
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
+    PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
+    PYTHON_WHEEL_URL,
+    PYTHON_XS_PROJECT_SPECIFIER,
     SHELF_PYTHON_JSON,
 )
 
@@ -135,6 +138,110 @@ def test_package_upload_simple(
     monitor_task(response.json()["task"])
     summary = python_content_summary(repository=repo)
     assert summary.added["python.python"]["count"] == 1
+
+
+# todo: tests + moving
+# PythonPackageSingleArtifactContentUploadViewSet - create
+def test_wheel_package_upload_with_metadata_1(
+    delete_orphans_pre,
+    pulp_content_url,
+    python_content_factory,
+    python_distribution_factory,
+    python_repo,
+):
+    # pdb.set_trace()
+    python_content_factory(
+        repository=python_repo, relative_path=PYTHON_WHEEL_FILENAME, url=PYTHON_WHEEL_URL
+    )
+    distro = python_distribution_factory(repository=python_repo)
+
+    # Test that metadata is accessible
+    relative_path = f"{distro.base_path}/{PYTHON_WHEEL_FILENAME}.metadata"
+    metadata_url = urljoin(pulp_content_url, relative_path)
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert len(metadata_response.content) > 0
+    assert "Name: shelf-reader" in metadata_response.text
+
+
+# PythonPackageSingleArtifactContentUploadViewSet - upload
+def test_wheel_package_upload_with_metadata_2(
+    delete_orphans_pre,
+    download_python_file,
+    monitor_task,
+    pulp_content_url,
+    python_bindings,
+    python_distribution_factory,
+    python_repo,
+):
+    python_file = download_python_file(PYTHON_WHEEL_FILENAME, PYTHON_WHEEL_URL)
+    content_body = {"file": python_file}
+    content = python_bindings.ContentPackagesApi.upload(**content_body)
+
+    body = {"add_content_units": [content.pulp_href]}
+    monitor_task(python_bindings.RepositoriesPythonApi.modify(python_repo.pulp_href, body).task)
+    distro = python_distribution_factory(repository=python_repo)
+
+    # Test that metadata is accessible
+    relative_path = f"{distro.base_path}/{PYTHON_WHEEL_FILENAME}.metadata"
+    metadata_url = urljoin(pulp_content_url, relative_path)
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert len(metadata_response.content) > 0
+    assert "Name: shelf-reader" in metadata_response.text
+
+
+# PythonRepositoryViewSet - sync
+def test_wheel_package_upload_with_metadata_3(
+    delete_orphans_pre,
+    pulp_content_url,
+    python_distribution_factory,
+    python_remote_factory,
+    python_repo_with_sync,
+):
+    remote = python_remote_factory(includes=PYTHON_XS_PROJECT_SPECIFIER)
+    repo = python_repo_with_sync(remote)
+    distro = python_distribution_factory(repository=repo)
+
+    # Test that metadata is accessible
+    relative_path = f"{distro.base_path}/{PYTHON_WHEEL_FILENAME}.metadata"
+    metadata_url = urljoin(pulp_content_url, relative_path)
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert len(metadata_response.content) > 0
+    assert "Name: shelf-reader" in metadata_response.text
+
+
+# SimpleView - create
+def test_wheel_package_upload_with_metadata_4(
+    delete_orphans_pre,
+    monitor_task,
+    pulp_content_url,
+    python_content_summary,
+    python_empty_repo_distro,
+    python_package_dist_directory,
+):
+    repo, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "simple/")
+    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    response = requests.post(
+        url,
+        data={"sha256_digest": PYTHON_WHEEL_SHA256},
+        files={"content": open(wheel_file, "rb")},
+        auth=("admin", "password"),
+    )
+    assert response.status_code == 202
+    monitor_task(response.json()["task"])
+    summary = python_content_summary(repository=repo)
+    assert summary.added["python.python"]["count"] == 1
+
+    # Test that metadata is accessible
+    relative_path = f"{distro.base_path}/{PYTHON_WHEEL_FILENAME}.metadata"
+    metadata_url = urljoin(pulp_content_url, relative_path)
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert len(metadata_response.content) > 0
+    assert "Name: shelf-reader" in metadata_response.text
 
 
 @pytest.mark.parallel
