@@ -10,9 +10,11 @@ from pulp_python.tests.functional.constants import (
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
+    PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,
 )
+from pulp_python.tests.functional.utils import ensure_metadata
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -135,6 +137,35 @@ def test_package_upload_simple(
     monitor_task(response.json()["task"])
     summary = python_content_summary(repository=repo)
     assert summary.added["python.python"]["count"] == 1
+
+
+@pytest.mark.parallel
+def test_package_upload_with_metadata(
+    monitor_task,
+    pulp_content_url,
+    python_content_summary,
+    python_empty_repo_distro,
+    python_package_dist_directory,
+):
+    """
+    Test that the upload of a Python wheel package creates a metadata artifact.
+    """
+    repo, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "simple/")
+    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    response = requests.post(
+        url,
+        data={"sha256_digest": PYTHON_WHEEL_SHA256},
+        files={"content": open(wheel_file, "rb")},
+        auth=("admin", "password"),
+    )
+    assert response.status_code == 202
+    monitor_task(response.json()["task"])
+    summary = python_content_summary(repository=repo)
+    assert summary.added["python.python"]["count"] == 1
+
+    # Test that metadata is accessible
+    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
 
 
 @pytest.mark.parallel

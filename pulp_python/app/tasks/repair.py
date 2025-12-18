@@ -95,9 +95,13 @@ def repair_metadata(content: QuerySet[PythonPackageContent]) -> tuple[int, set[s
     progress_report.save()
     with progress_report:
         for package in progress_report.iter(immediate_content.iterator(chunk_size=BULK_SIZE)):
-            new_data = artifact_to_python_content_data(
-                package.filename, package._artifacts.get(), domain
+            # Get the main artifact
+            main_artifact = (
+                package.contentartifact_set.exclude(relative_path__endswith=".metadata")
+                .first()
+                .artifact
             )
+            new_data = artifact_to_python_content_data(package.filename, main_artifact, domain)
             total_repaired += update_package_if_needed(
                 package, new_data, batch, set_of_update_fields
             )
@@ -113,7 +117,11 @@ def repair_metadata(content: QuerySet[PythonPackageContent]) -> tuple[int, set[s
             grouped_by_url = defaultdict(list)
 
             for package in group_set:
-                for ra in package.contentartifact_set.get().remoteartifact_set.all():
+                for ra in (
+                    package.contentartifact_set.exclude(relative_path__endswith=".metadata")
+                    .first()
+                    .remoteartifact_set.all()
+                ):
                     grouped_by_url[ra.remote.url].append((package, ra))
 
             # Prioritize the URL that can serve the most packages

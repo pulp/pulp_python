@@ -18,6 +18,7 @@ from pulp_python.tests.functional.constants import (
     DJANGO_LATEST_3,
     SCIPY_COUNTS,
 )
+from pulp_python.tests.functional.utils import ensure_metadata
 
 
 @pytest.mark.parallel
@@ -336,3 +337,21 @@ def test_sync_provenance(python_repo_with_sync, python_remote_factory, python_co
     summary = python_content_summary(repository_version=repo.latest_version_href)
     assert summary.present["python.python"]["count"] == 2
     assert summary.present["python.provenance"]["count"] == 2
+
+
+@pytest.mark.parallel
+def test_package_sync_with_metadata(
+    pulp_content_url,
+    python_distribution_factory,
+    python_remote_factory,
+    python_repo_with_sync,
+):
+    """
+    Test that the sync of a Python wheel package creates a metadata artifact.
+    """
+    remote = python_remote_factory(includes=["pytz"])
+    repo = python_repo_with_sync(remote)
+    distro = python_distribution_factory(repository=repo)
+
+    # Test that metadata is accessible
+    ensure_metadata(pulp_content_url, distro.base_path, "pytz-2023.2-py2.py3-none-any.whl")
