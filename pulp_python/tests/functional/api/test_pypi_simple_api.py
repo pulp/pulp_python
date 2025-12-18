@@ -4,15 +4,18 @@ import pytest
 import requests
 
 from pulp_python.tests.functional.constants import (
+    PYPI_SERIAL_CONSTANT,
     PYTHON_EGG_FILENAME,
+    PYTHON_EGG_SHA256,
     PYTHON_EGG_URL,
     PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
+    PYTHON_WHEEL_METADATA_SHA256,
+    PYTHON_WHEEL_SHA256,
     PYTHON_WHEEL_URL,
 )
 
 API_VERSION = "1.1"
-PYPI_SERIAL_CONSTANT = 1000000000
 
 PYPI_TEXT_HTML = "text/html"
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
@@ -72,27 +75,19 @@ def test_simple_json_detail_api(
     assert data["versions"] == ["0.1"]
 
     # Check data of a wheel
-    file_whl = next(
-        (i for i in data["files"] if i["filename"] == "shelf_reader-0.1-py2-none-any.whl"), None
-    )
+    file_whl = next((i for i in data["files"] if i["filename"] == PYTHON_WHEEL_FILENAME), None)
     assert file_whl is not None, "wheel file not found"
     assert file_whl["url"]
-    assert file_whl["hashes"] == {
-        "sha256": "2eceb1643c10c5e4a65970baf63bde43b79cbdac7de81dae853ce47ab05197e9"
-    }
+    assert file_whl["hashes"] == {"sha256": PYTHON_WHEEL_SHA256}
     assert file_whl["requires-python"] is None
-    assert file_whl["data-dist-info-metadata"] == {
-        "sha256": "ed333f0db05d77e933a157b7225b403ada9a2f93318d77b41b662eba78bac350"
-    }
+    assert file_whl["data-dist-info-metadata"] == {"sha256": PYTHON_WHEEL_METADATA_SHA256}
     assert file_whl["size"] == 22455
     assert file_whl["upload-time"] is not None
     # Check data of a tarball
-    file_tar = next((i for i in data["files"] if i["filename"] == "shelf-reader-0.1.tar.gz"), None)
+    file_tar = next((i for i in data["files"] if i["filename"] == PYTHON_EGG_FILENAME), None)
     assert file_tar is not None, "tar file not found"
     assert file_tar["url"]
-    assert file_tar["hashes"] == {
-        "sha256": "04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be116398c"
-    }
+    assert file_tar["hashes"] == {"sha256": PYTHON_EGG_SHA256}
     assert file_tar["requires-python"] is None
     assert file_tar["data-dist-info-metadata"] is False
     assert file_tar["size"] == 19097
