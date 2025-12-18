@@ -41,6 +41,7 @@ simple_index_template = """<!DOCTYPE html>
 </html>
 """
 
+# TODO in the future: data-requires-python (PEP 503)
 simple_detail_template = """<!DOCTYPE html>
 <html>
   <head>
@@ -49,10 +50,12 @@ simple_detail_template = """<!DOCTYPE html>
   </head>
   <body>
     <h1>Links for {{ project_name }}</h1>
-    {% for pkg in project_packages %}
-      <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal" {% if pkg.provenance -%}
+    {%- for pkg in project_packages %}
+      <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal"
+      {%- if pkg.metadata_sha256 %} data-dist-info-metadata="sha256={{ pkg.metadata_sha256 }}"
+      {%- endif %} {% if pkg.provenance -%}
       data-provenance="{{ pkg.provenance }}"{% endif %}>{{ pkg.filename }}</a><br/>
-    {% endfor %}
+    {%- endfor %}
   </body>
 </html>
 """

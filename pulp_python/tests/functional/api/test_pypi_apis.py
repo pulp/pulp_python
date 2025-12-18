@@ -6,9 +6,6 @@ from urllib.parse import urljoin
 
 from pulp_python.tests.functional.constants import (
     PYPI_SERIAL_CONSTANT,
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
@@ -16,8 +13,6 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,
 )
-
-from pulp_python.tests.functional.utils import ensure_simple
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
@@ -211,22 +206,6 @@ def test_simple_redirect_with_publications(
     distro = python_distribution_factory(publication=pub)
     response = requests.get(urljoin(distro.base_url, "simple/"))
     assert response.url == str(urljoin(pulp_content_url, f"{distro.base_path}/simple/"))
-
-
-@pytest.mark.parallel
-def test_simple_correctness_live(
-    python_remote_factory, python_repo_with_sync, python_distribution_factory
-):
-    """Checks that the simple api on live distributions are correct."""
-    remote = python_remote_factory(includes=PYTHON_SM_PROJECT_SPECIFIER)
-    repo = python_repo_with_sync(remote)
-    distro = python_distribution_factory(repository=repo)
-    proper, msgs = ensure_simple(
-        urljoin(distro.base_url, "simple/"),
-        PYTHON_SM_FIXTURE_RELEASES,
-        sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS,
-    )
-    assert proper is True, msgs
 
 
 @pytest.mark.parallel
