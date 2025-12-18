@@ -8,6 +8,7 @@ from pulp_python.tests.functional.constants import (
     PYTHON_EGG_SHA256,
     PYTHON_WHEEL_SHA256,
 )
+from pulp_python.tests.functional.utils import ensure_metadata
 from urllib.parse import urljoin
 
 
@@ -46,6 +47,30 @@ def test_synchronous_package_upload(
         with pytest.raises(python_bindings.ApiException) as ctx:
             python_bindings.ContentPackagesApi.upload(**content_body)
         assert ctx.value.status == 403
+
+
+@pytest.mark.parallel
+def test_synchronous_package_upload_with_metadata(
+    download_python_file,
+    monitor_task,
+    pulp_content_url,
+    python_bindings,
+    python_distribution_factory,
+    python_repo,
+):
+    """
+    Test that the synchronous upload of a Python wheel package creates a metadata artifact.
+    """
+    python_file = download_python_file(PYTHON_WHEEL_FILENAME, PYTHON_WHEEL_URL)
+    content_body = {"file": python_file}
+    content = python_bindings.ContentPackagesApi.upload(**content_body)
+
+    body = {"add_content_units": [content.pulp_href]}
+    monitor_task(python_bindings.RepositoriesPythonApi.modify(python_repo.pulp_href, body).task)
+    distro = python_distribution_factory(repository=python_repo)
+
+    # Test that metadata is accessible
+    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
 
 
 @pytest.mark.parallel
