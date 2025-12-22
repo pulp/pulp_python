@@ -428,6 +428,19 @@ class PythonPackageSingleArtifactContentUploadViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
+class PackageProvenanceFilter(core_viewsets.ContentFilter):
+    """
+    FilterSet for PackageProvenance.
+    """
+
+    class Meta:
+        model = python_models.PackageProvenance
+        fields = {
+            "package": ["exact", "in"],
+            "sha256": ["exact", "in"],
+        }
+
+
 class PackageProvenanceViewSet(core_viewsets.NoArtifactContentUploadViewSet):
     """
     PackageProvenance represents a PEP 740 provenance object for a Python package.
@@ -438,6 +451,7 @@ class PackageProvenanceViewSet(core_viewsets.NoArtifactContentUploadViewSet):
     endpoint_name = "provenance"
     queryset = python_models.PackageProvenance.objects.all()
     serializer_class = python_serializers.PackageProvenanceSerializer
+    filterset_class = PackageProvenanceFilter
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
