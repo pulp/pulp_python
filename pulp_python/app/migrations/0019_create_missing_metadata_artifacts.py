@@ -49,18 +49,20 @@ def init_and_validate(file, artifact_model, expected_digests):
         size = file.size
         hashers = file.hashers
 
+    mismatched_sha256 = None
     for algorithm, expected_digest in expected_digests.items():
         if algorithm not in hashers:
             return None
         actual_digest = hashers[algorithm].hexdigest()
         if expected_digest != actual_digest:
-            return None
+            # Store the actual value for later fixing if it differs from the package value
+            mismatched_sha256 = actual_digest
 
     attributes = {"size": size, "file": file}
     for algorithm in digest_fields:
         attributes[algorithm] = hashers[algorithm].hexdigest()
 
-    return artifact_model(**attributes)
+    return artifact_model(**attributes), mismatched_sha256
 
 
 def extract_wheel_metadata(filename):
@@ -104,8 +106,7 @@ def artifact_to_metadata_artifact(filename, artifact, md_digests, tmp_dir, artif
         temp_md.write(metadata_content)
         temp_md.flush()
 
-    metadata_artifact = init_and_validate(temp_metadata_path, artifact_model, md_digests)
-    return metadata_artifact
+    return init_and_validate(temp_metadata_path, artifact_model, md_digests)
 
 
 def create_missing_metadata_artifacts(apps, schema_editor):
@@ -148,12 +149,16 @@ def create_missing_metadata_artifacts(apps, schema_editor):
                 continue
 
             metadata_digests = {"sha256": package.metadata_sha256}
-            metadata_artifact = artifact_to_metadata_artifact(
+            metadata_artifact, mismatched_sha256 = artifact_to_metadata_artifact(
                 filename, main_artifact, metadata_digests, temp_dir, Artifact
             )
             if not metadata_artifact:
                 # Failed to build metadata artifact
                 continue
+            if mismatched_sha256:
+                # Fix the package if its metadata_sha256 differs from the actual value
+                package.metadata_sha256 = mismatched_sha256
+                package.save()
 
             contentartifact = ContentArtifact(
                 artifact=metadata_artifact,
