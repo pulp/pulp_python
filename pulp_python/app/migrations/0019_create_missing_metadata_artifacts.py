@@ -116,6 +116,7 @@ def create_missing_metadata_artifacts(apps, schema_editor):
     """
     import tempfile
     from django.conf import settings
+    from django.db import models
 
     PythonPackageContent = apps.get_model("python", "PythonPackageContent")
     ContentArtifact = apps.get_model("core", "ContentArtifact")
@@ -123,7 +124,10 @@ def create_missing_metadata_artifacts(apps, schema_editor):
 
     packages = (
         PythonPackageContent.objects.filter(
-            metadata_sha256__isnull=False, filename__endswith=".whl"
+            metadata_sha256__isnull=False,
+            filename__endswith=".whl",
+            contentartifact__artifact__isnull=False,
+            contentartifact__relative_path=models.F("filename"),
         )
         .exclude(metadata_sha256="")
         .prefetch_related("contentartifact_set")
@@ -135,18 +139,9 @@ def create_missing_metadata_artifacts(apps, schema_editor):
     with tempfile.TemporaryDirectory(dir=settings.WORKING_DIRECTORY) as temp_dir:
         for package in packages:
             filename = package.filename
-            content_artifacts = list(package.contentartifact_set.all())
 
             # Get the main artifact for package
-            main_artifact = None
-            for ca in content_artifacts:
-                if ca.relative_path == filename and ca.artifact:
-                    main_artifact = ca.artifact
-                    break
-
-            if not main_artifact:
-                # Main artifact does not exist
-                continue
+            main_artifact = package.contentartifact_set.get().artifact
 
             metadata_digests = {"sha256": package.metadata_sha256}
             metadata_artifact, mismatched_sha256 = artifact_to_metadata_artifact(
