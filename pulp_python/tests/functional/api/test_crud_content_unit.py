@@ -10,7 +10,10 @@ from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,
     PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_WHEEL_FILENAME,
+    PYTHON_WHEEL_URL,
 )
+from pulp_python.tests.functional.utils import ensure_metadata
 
 
 def test_content_crud(
@@ -179,3 +182,22 @@ def test_upload_metadata_24_spec(python_content_factory):
                 assert content.license_expression == "MIT"
                 assert content.license_file == '["LICENSE"]'
                 break
+
+
+@pytest.mark.parallel
+def test_package_creation_with_metadata(
+    pulp_content_url,
+    python_content_factory,
+    python_distribution_factory,
+    python_repo,
+):
+    """
+    Test that the creation of a Python wheel package creates a metadata artifact.
+    """
+    python_content_factory(
+        repository=python_repo, relative_path=PYTHON_WHEEL_FILENAME, url=PYTHON_WHEEL_URL
+    )
+    distro = python_distribution_factory(repository=python_repo)
+
+    # Test that metadata is accessible
+    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)

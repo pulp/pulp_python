@@ -4,7 +4,29 @@ from urllib.parse import urljoin
 from lxml import html
 
 
-def ensure_simple(simple_url, packages, sha_digests=None):
+def _validate_metadata_sha_digest(link, filename, metadata_sha_digests):
+    """
+    Validate data-dist-info-metadata attribute for a release link.
+    """
+    data_dist_info_metadata = link.get("data-dist-info-metadata")
+
+    if expected_metadata_sha := metadata_sha_digests.get(filename):
+        expected_attr = f"sha256={expected_metadata_sha}"
+        if data_dist_info_metadata != expected_attr:
+            return (
+                f"\nFile {filename} has incorrect data-dist-info-metadata: "
+                f"expected '{expected_attr}', got '{data_dist_info_metadata}'"
+            )
+    else:
+        if data_dist_info_metadata:
+            return (
+                f"\nFile {filename} should not have data-dist-info-metadata "
+                f"but has '{data_dist_info_metadata}'"
+            )
+    return ""
+
+
+def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=None):
     """
     Tests that the simple api at `url` matches the packages supplied.
     `packages`: dictionary of form {package_name: [release_filenames]}
@@ -28,6 +50,9 @@ def ensure_simple(simple_url, packages, sha_digests=None):
                 links_found[link.text] = True
                 if link.get("href"):
                     legit_found_links.append(link.get("href"))
+                    # Check metadata SHA digest if provided
+                    if metadata_sha_digests and page_name == "release":
+                        msgs += _validate_metadata_sha_digest(link, link.text, metadata_sha_digests)
                 else:
                     msgs += f"\nFound {page_name} link without href {link.text}"
             else:
@@ -62,3 +87,15 @@ def ensure_simple(simple_url, packages, sha_digests=None):
         )
     )
     return len(msgs) == 0, msgs
+
+
+def ensure_metadata(pulp_content_url, distro_base_path, filename):
+    """
+    Tests that metadata is accessible for a given wheel package filename.
+    """
+    relative_path = f"{distro_base_path}/{filename}.metadata"
+    metadata_url = urljoin(pulp_content_url, relative_path)
+    metadata_response = requests.get(metadata_url)
+    assert metadata_response.status_code == 200
+    assert len(metadata_response.content) > 0
+    assert "Name: " in metadata_response.text

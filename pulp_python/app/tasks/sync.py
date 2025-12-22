@@ -229,11 +229,15 @@ class PulpMirror(Mirror):
         create a Content Unit to put into the pipeline
         """
         declared_contents = {}
+        page = await aget_remote_simple_page(pkg.name, self.remote)
+        upstream_pkgs = {pkg.filename: pkg for pkg in page.packages}
+
         for version, dists in pkg.releases.items():
             for package in dists:
                 entry = parse_metadata(pkg.info, version, package)
                 url = entry.pop("url")
                 size = package["size"] or None
+                d_artifacts = []
 
                 artifact = Artifact(sha256=entry["sha256"], size=size)
                 package = PythonPackageContent(**entry)
@@ -245,11 +249,29 @@ class PulpMirror(Mirror):
                     remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
-                dc = DeclarativeContent(content=package, d_artifacts=[da])
+                d_artifacts.append(da)
+
+                if upstream_pkg := upstream_pkgs.get(entry["filename"]):
+                    if upstream_pkg.has_metadata:
+                        url = upstream_pkg.metadata_url
+                        md_sha256 = upstream_pkg.metadata_digests.get("sha256")
+                        package.metadata_sha256 = md_sha256
+                        artifact = Artifact(sha256=md_sha256)
+
+                        metadata_artifact = DeclarativeArtifact(
+                            artifact=artifact,
+                            url=url,
+                            relative_path=f"{entry['filename']}.metadata",
+                            remote=self.remote,
+                            deferred_download=self.deferred_download,
+                        )
+                        d_artifacts.append(metadata_artifact)
+
+                dc = DeclarativeContent(content=package, d_artifacts=d_artifacts)
                 declared_contents[entry["filename"]] = dc
                 await self.python_stage.put(dc)
 
-        if pkg.releases and (page := await aget_remote_simple_page(pkg.name, self.remote)):
+        if pkg.releases and page:
             if self.remote.provenance:
                 await self.sync_provenance(page, declared_contents)
 
