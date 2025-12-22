@@ -133,6 +133,7 @@ def create_missing_metadata_artifacts(apps, schema_editor):
         .prefetch_related("contentartifact_set")
         .only("filename", "metadata_sha256")
     )
+    skipped_pkgs = []
     artifact_batch = []
     contentartifact_batch = []
 
@@ -149,6 +150,7 @@ def create_missing_metadata_artifacts(apps, schema_editor):
             )
             if not metadata_artifact:
                 # Failed to build metadata artifact
+                skipped_pkgs.append(package.pk)
                 continue
             if mismatched_sha256:
                 # Fix the package if its metadata_sha256 differs from the actual value
@@ -172,6 +174,10 @@ def create_missing_metadata_artifacts(apps, schema_editor):
         if artifact_batch:
             Artifact.objects.bulk_create(artifact_batch, batch_size=BATCH_SIZE)
             ContentArtifact.objects.bulk_create(contentartifact_batch, batch_size=BATCH_SIZE)
+
+    print(
+        f"Skipped creation of missing metadata artifacts for the following packages: {skipped_pkgs}"
+    )
 
 
 class Migration(migrations.Migration):
