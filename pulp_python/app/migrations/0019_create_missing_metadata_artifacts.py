@@ -68,7 +68,7 @@ def init_and_validate(file, artifact_model, expected_digests):
 def extract_wheel_metadata(filename):
     """
     Extract the metadata file content from a wheel file.
-    Returns the raw metadata content as bytes or None if metadata cannot be extracted.
+    Return the raw metadata content as bytes or None if metadata cannot be extracted.
     """
     import zipfile
 
@@ -84,7 +84,9 @@ def extract_wheel_metadata(filename):
 
 def artifact_to_metadata_artifact(filename, artifact, md_digests, tmp_dir, artifact_model):
     """
-    Creates artifact for metadata from the provided wheel artifact.
+    Create artifact for metadata from the provided wheel artifact.
+    Return (artifact, mismatched_sha256) on success, "extraction_failed" when metadata extraction
+    fails, or None on init_and_validate failure.
     """
     import shutil
     import tempfile
@@ -97,7 +99,7 @@ def artifact_to_metadata_artifact(filename, artifact, md_digests, tmp_dir, artif
 
     metadata_content = extract_wheel_metadata(temp_wheel_path)
     if not metadata_content:
-        return None
+        return "extraction_failed"
 
     with tempfile.NamedTemporaryFile(
         "wb", dir=tmp_dir, suffix=".metadata", delete=False
@@ -130,32 +132,39 @@ def create_missing_metadata_artifacts(apps, schema_editor):
             contentartifact__relative_path=models.F("filename"),
         )
         .exclude(metadata_sha256="")
-        .prefetch_related("contentartifact_set")
+        .prefetch_related("_artifacts")
         .only("filename", "metadata_sha256")
     )
-    skipped_pkgs = []
+    skipped_pkgs = 0
     artifact_batch = []
     contentartifact_batch = []
+    packages_batch = []
 
     with tempfile.TemporaryDirectory(dir=settings.WORKING_DIRECTORY) as temp_dir:
         for package in packages:
-            filename = package.filename
-
             # Get the main artifact for package
-            main_artifact = package.contentartifact_set.get().artifact
+            main_artifact = package._artifacts.get()
 
+            filename = package.filename
             metadata_digests = {"sha256": package.metadata_sha256}
-            metadata_artifact, mismatched_sha256 = artifact_to_metadata_artifact(
+            result = artifact_to_metadata_artifact(
                 filename, main_artifact, metadata_digests, temp_dir, Artifact
             )
-            if not metadata_artifact:
-                # Failed to build metadata artifact
-                skipped_pkgs.append(package.pk)
+            if result == "extraction_failed":
+                # Unset metadata_sha256 when metadata extraction fails
+                package.metadata_sha256 = None
+                packages_batch.append(package)
+                skipped_pkgs += 1
                 continue
+            if result is None:
+                # Failed to build metadata artifact (init_and_validate failed)
+                skipped_pkgs += 1
+                continue
+            metadata_artifact, mismatched_sha256 = result
             if mismatched_sha256:
                 # Fix the package if its metadata_sha256 differs from the actual value
                 package.metadata_sha256 = mismatched_sha256
-                package.save()
+                packages_batch.append(package)
 
             contentartifact = ContentArtifact(
                 artifact=metadata_artifact,
@@ -170,14 +179,22 @@ def create_missing_metadata_artifacts(apps, schema_editor):
                 ContentArtifact.objects.bulk_create(contentartifact_batch, batch_size=BATCH_SIZE)
                 artifact_batch.clear()
                 contentartifact_batch.clear()
+            if len(packages_batch) == BATCH_SIZE:
+                PythonPackageContent.objects.bulk_update(
+                    packages_batch, ["metadata_sha256"], batch_size=BATCH_SIZE
+                )
+                packages_batch.clear()
 
         if artifact_batch:
             Artifact.objects.bulk_create(artifact_batch, batch_size=BATCH_SIZE)
             ContentArtifact.objects.bulk_create(contentartifact_batch, batch_size=BATCH_SIZE)
+        if packages_batch:
+            PythonPackageContent.objects.bulk_update(
+                packages_batch, ["metadata_sha256"], batch_size=BATCH_SIZE
+            )
 
-    print(
-        f"Skipped creation of missing metadata artifacts for the following packages: {skipped_pkgs}"
-    )
+    if skipped_pkgs > 0:
+        print(f"Skipped creation of missing metadata artifacts for {skipped_pkgs} packages")
 
 
 class Migration(migrations.Migration):
