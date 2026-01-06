@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 from gettext import gettext as _
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -22,6 +23,7 @@ from pulp_python.app.provenance import (
 )
 from pulp_python.app.utils import (
     DIST_EXTENSIONS,
+    artifact_to_metadata_artifact,
     artifact_to_python_content_data,
     get_project_metadata_from_file,
     parse_project_metadata,
@@ -93,10 +95,30 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
         model = python_models.PythonDistribution
 
 
+class PythonSingleContentArtifactField(core_serializers.SingleContentArtifactField):
+    """
+    Custom field with overridden get_attribute method. Meant to be used only in
+    PythonPackageContentSerializer to handle possible existence of metadata artifact.
+    """
+
+    def get_attribute(self, instance):
+        # When content has multiple artifacts (wheel + metadata), return the main one
+        if instance._artifacts.count() > 1:
+            for ca in instance.contentartifact_set.all():
+                if not ca.relative_path.endswith(".metadata"):
+                    return ca.artifact
+
+        return super().get_attribute(instance)
+
+
 class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploadSerializer):
     """
     A Serializer for PythonPackageContent.
     """
+
+    artifact = PythonSingleContentArtifactField(
+        help_text=_("Artifact file representing the physical content"),
+    )
 
     # Core metadata
     # Version 1.0
@@ -386,7 +408,20 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         if attestations := data.pop("attestations", None):
             data["provenance"] = self.handle_attestations(filename, data["sha256"], attestations)
 
+        # Create metadata artifact for wheel files
+        if filename.endswith(".whl"):
+            if metadata_artifact := artifact_to_metadata_artifact(filename, artifact):
+                data["metadata_artifact"] = metadata_artifact
+                data["metadata_sha256"] = metadata_artifact.sha256
+
         return data
+
+    def get_artifacts(self, validated_data):
+        artifacts = super().get_artifacts(validated_data)
+        if metadata_artifact := validated_data.pop("metadata_artifact", None):
+            relative_path = f"{validated_data['filename']}.metadata"
+            artifacts[relative_path] = metadata_artifact
+        return artifacts
 
     def retrieve(self, validated_data):
         content = python_models.PythonPackageContent.objects.filter(
@@ -419,6 +454,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
 
     class Meta:
         fields = core_serializers.SingleArtifactContentUploadSerializer.Meta.fields + (
+            "artifact",
             "author",
             "author_email",
             "description",
@@ -514,6 +550,15 @@ class PythonPackageContentUploadSerializer(PythonPackageContentSerializer):
             data["provenance"] = self.handle_attestations(
                 filename, data["sha256"], attestations, offline=True
             )
+        # Create metadata artifact for wheel files
+        if filename.endswith(".whl"):
+            with tempfile.TemporaryDirectory(dir=settings.WORKING_DIRECTORY) as temp_dir:
+                if metadata_artifact := artifact_to_metadata_artifact(
+                    filename, artifact, tmp_dir=temp_dir
+                ):
+                    data["metadata_artifact"] = metadata_artifact
+                    data["metadata_sha256"] = metadata_artifact.sha256
+
         return data
 
     class Meta(PythonPackageContentSerializer.Meta):

@@ -352,8 +352,6 @@ class SimpleView(PackageUploadMixin, ViewSet):
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
         """Retrieves the simple api html/json page for a package."""
-        media_type = request.accepted_renderer.media_type
-
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)

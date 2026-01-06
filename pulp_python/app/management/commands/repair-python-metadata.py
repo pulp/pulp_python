@@ -24,8 +24,14 @@ def repair_metadata(content):
     set_of_update_fields = set()
     total_repaired = 0
     for package in immediate_content.prefetch_related("_artifacts").iterator(chunk_size=1000):
+        # Get the main artifact
+        main_artifact = (
+            package.contentartifact_set.exclude(relative_path__endswith=".metadata")
+            .first()
+            .artifact
+        )
         new_data = artifact_to_python_content_data(
-            package.filename, package._artifacts.get(), package.pulp_domain
+            package.filename, main_artifact, package.pulp_domain
         )
         changed = False
         for field, value in new_data.items():

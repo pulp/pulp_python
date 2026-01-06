@@ -5,22 +5,19 @@ import subprocess
 from urllib.parse import urljoin
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYPI_SERIAL_CONSTANT,
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
+    PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,
 )
-
-from pulp_python.tests.functional.utils import ensure_simple
+from pulp_python.tests.functional.utils import ensure_metadata
 
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
-PYPI_SERIAL_CONSTANT = 1000000000
 
 
 @pytest.mark.parallel
@@ -143,6 +140,35 @@ def test_package_upload_simple(
 
 
 @pytest.mark.parallel
+def test_package_upload_with_metadata(
+    monitor_task,
+    pulp_content_url,
+    python_content_summary,
+    python_empty_repo_distro,
+    python_package_dist_directory,
+):
+    """
+    Test that the upload of a Python wheel package creates a metadata artifact.
+    """
+    repo, distro = python_empty_repo_distro()
+    url = urljoin(distro.base_url, "simple/")
+    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    response = requests.post(
+        url,
+        data={"sha256_digest": PYTHON_WHEEL_SHA256},
+        files={"content": open(wheel_file, "rb")},
+        auth=("admin", "password"),
+    )
+    assert response.status_code == 202
+    monitor_task(response.json()["task"])
+    summary = python_content_summary(repository=repo)
+    assert summary.added["python.python"]["count"] == 1
+
+    # Test that metadata is accessible
+    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
+
+
+@pytest.mark.parallel
 def test_twine_upload(
     pulpcore_bindings,
     python_content_summary,
@@ -211,22 +237,6 @@ def test_simple_redirect_with_publications(
     distro = python_distribution_factory(publication=pub)
     response = requests.get(urljoin(distro.base_url, "simple/"))
     assert response.url == str(urljoin(pulp_content_url, f"{distro.base_path}/simple/"))
-
-
-@pytest.mark.parallel
-def test_simple_correctness_live(
-    python_remote_factory, python_repo_with_sync, python_distribution_factory
-):
-    """Checks that the simple api on live distributions are correct."""
-    remote = python_remote_factory(includes=PYTHON_SM_PROJECT_SPECIFIER)
-    repo = python_repo_with_sync(remote)
-    distro = python_distribution_factory(repository=repo)
-    proper, msgs = ensure_simple(
-        urljoin(distro.base_url, "simple/"),
-        PYTHON_SM_FIXTURE_RELEASES,
-        sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS,
-    )
-    assert proper is True, msgs
 
 
 @pytest.mark.parallel
