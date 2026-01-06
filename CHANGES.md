@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.22.2 (2026-01-06) {: #3.22.2 }
+
+#### Bugfixes {: #3.22.2-bugfix }
+
+- Added missing Provenance content `package` and `sha256` filters.
+
+---
+
 ## 3.22.1 (2025-12-10) {: #3.22.1 }
 
 #### Bugfixes {: #3.22.1-bugfix }
