@@ -8,9 +8,9 @@ import zipfile
 import json
 from aiohttp.client_exceptions import ClientError
 from collections import defaultdict
+from datetime import timezone
 from django.conf import settings
 from django.db.utils import IntegrityError
-from django.utils import timezone
 from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
