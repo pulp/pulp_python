@@ -8,6 +8,30 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.23.0 (2026-01-06) {: #3.23.0 }
+
+#### Features {: #3.23.0-feature }
+
+- Added exposure of metadata file to Simple API (PEP 658)
+  [#1047](https://github.com/pulp/pulp_python/issues/1047)
+- Bump pulpcore upperbound to <3.115.
+
+#### Bugfixes {: #3.23.0-bugfix }
+
+- Fixed edge-case migration error in 0017_pythonpackagecontent_size.
+  [#1042](https://github.com/pulp/pulp_python/issues/1042)
+- Added missing Provenance content `package` and `sha256` filters.
+
+---
+
+## 3.22.2 (2026-01-06) {: #3.22.2 }
+
+#### Bugfixes {: #3.22.2-bugfix }
+
+- Added missing Provenance content `package` and `sha256` filters.
+
+---
+
 ## 3.22.1 (2025-12-10) {: #3.22.1 }
 
 #### Bugfixes {: #3.22.1-bugfix }
