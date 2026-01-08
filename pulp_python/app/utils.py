@@ -58,13 +58,13 @@ simple_detail_template = """<!DOCTYPE html>
     <h1>Links for {{ project_name }}</h1>
     {%- for pkg in project_packages %}
       <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal"
-      {%- if pkg.metadata_sha256 %} data-dist-info-metadata="sha256={{ pkg.metadata_sha256 }}"
+      {%- if pkg.metadata_sha256 %} data-dist-info-metadata="sha256={{ pkg.metadata_sha256 }}" data-core-metadata="sha256={{ pkg.metadata_sha256 }}"
       {%- endif %} {% if pkg.provenance -%}
       data-provenance="{{ pkg.provenance }}"{% endif %}>{{ pkg.filename }}</a><br/>
     {%- endfor %}
   </body>
 </html>
-"""
+"""  # noqa: E501
 
 DIST_EXTENSIONS = {
     ".whl": "bdist_wheel",
@@ -536,12 +536,14 @@ def write_simple_detail_json(project_name, project_packages):
                 "data-dist-info-metadata": (
                     {"sha256": package["metadata_sha256"]} if package["metadata_sha256"] else False
                 ),
+                # PEP 714
+                "core-metadata": (
+                    {"sha256": package["metadata_sha256"]} if package["metadata_sha256"] else False
+                ),
                 # yanked and yanked_reason are not implemented because they are mutable
                 # (v1.1, PEP 700)
                 "size": package["size"],
                 "upload-time": format_upload_time(package["upload_time"]),
-                # TODO in the future:
-                # core-metadata (PEP 7.14)
                 # (v1.3, PEP 740)
                 "provenance": package.get("provenance", None),
             }

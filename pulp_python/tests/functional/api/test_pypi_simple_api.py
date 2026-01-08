@@ -142,6 +142,7 @@ def test_simple_json_detail_api(
     assert file_whl["hashes"] == {"sha256": PYTHON_WHEEL_SHA256}
     assert file_whl["requires-python"] is None
     assert file_whl["data-dist-info-metadata"] == {"sha256": PYTHON_WHEEL_METADATA_SHA256}
+    assert file_whl["core-metadata"] == {"sha256": PYTHON_WHEEL_METADATA_SHA256}
     assert file_whl["size"] == 22455
     assert file_whl["upload-time"] is not None
     # Check data of a tarball
@@ -151,6 +152,7 @@ def test_simple_json_detail_api(
     assert file_tar["hashes"] == {"sha256": PYTHON_EGG_SHA256}
     assert file_tar["requires-python"] is None
     assert file_tar["data-dist-info-metadata"] is False
+    assert file_tar["core-metadata"] is False
     assert file_tar["size"] == 19097
     assert file_tar["upload-time"] is not None
     assert file_tar["provenance"] is None

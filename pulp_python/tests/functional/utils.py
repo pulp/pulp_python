@@ -6,24 +6,23 @@ from lxml import html
 
 def _validate_metadata_sha_digest(link, filename, metadata_sha_digests):
     """
-    Validate data-dist-info-metadata attribute for a release link.
+    Validate data-dist-info-metadata and data-core-metadata attributes for a release link.
     """
-    data_dist_info_metadata = link.get("data-dist-info-metadata")
+    expected_metadata_sha = metadata_sha_digests.get(filename)
+    expected_attr = f"sha256={expected_metadata_sha}" if expected_metadata_sha else None
 
-    if expected_metadata_sha := metadata_sha_digests.get(filename):
-        expected_attr = f"sha256={expected_metadata_sha}"
-        if data_dist_info_metadata != expected_attr:
-            return (
-                f"\nFile {filename} has incorrect data-dist-info-metadata: "
-                f"expected '{expected_attr}', got '{data_dist_info_metadata}'"
-            )
-    else:
-        if data_dist_info_metadata:
-            return (
-                f"\nFile {filename} should not have data-dist-info-metadata "
-                f"but has '{data_dist_info_metadata}'"
-            )
-    return ""
+    msgs = ""
+    for attr_name in ["data-dist-info-metadata", "data-core-metadata"]:
+        attr_value = link.get(attr_name)
+        if attr_value != expected_attr:
+            if expected_attr:
+                msgs += (
+                    f"\nFile {filename} has incorrect {attr_name}: "
+                    f"expected '{expected_attr}', got '{attr_value}'"
+                )
+            else:
+                msgs += f"\nFile {filename} should not have {attr_name} but has '{attr_value}'"
+    return msgs
 
 
 def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=None):
