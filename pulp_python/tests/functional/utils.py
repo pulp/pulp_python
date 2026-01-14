@@ -38,7 +38,8 @@ def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=N
     how would one know that it's there?*
     """
 
-    def explore_links(page_url, page_name, links_found, msgs):
+    def explore_links(page_url, page_name, links_found):
+        msgs = ""
         legit_found_links = []
         page = html.fromstring(requests.get(page_url).text)
         page_links = page.xpath("/html/body/a")
@@ -56,15 +57,18 @@ def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=N
                     msgs += f"\nFound {page_name} link without href {link.text}"
             else:
                 msgs += f"\nFound extra {page_name} link {link.text}"
-        return legit_found_links
+        return legit_found_links, msgs
 
     packages_found = {name: False for name in packages.keys()}
     releases_found = {name: False for releases in packages.values() for name in releases}
-    msgs = ""
-    found_release_links = explore_links(simple_url, "simple", packages_found, msgs)
+    found_release_links, msgs = explore_links(simple_url, "simple", packages_found)
     dl_links = []
     for rel_link in found_release_links:
-        dl_links += explore_links(urljoin(simple_url, rel_link), "release", releases_found, msgs)
+        new_links, new_msgs = explore_links(
+            urljoin(simple_url, rel_link), "release", releases_found
+        )
+        dl_links += new_links
+        msgs += new_msgs
     for dl_link in dl_links:
         package_link, _, sha = dl_link.partition("#sha256=")
         if len(sha) != 64:
