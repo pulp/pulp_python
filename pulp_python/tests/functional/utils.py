@@ -25,7 +25,36 @@ def _validate_metadata_sha_digest(link, filename, metadata_sha_digests):
     return msgs
 
 
-def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=None):
+def _validate_requires_python(link, filename, requires_python, page_content):
+    """
+    Validate data-requires-python attribute for a release link.
+    """
+    expected_requires_python = requires_python.get(filename) if requires_python else None
+    attr_value = link.get("data-requires-python")
+
+    msgs = ""
+    if attr_value != expected_requires_python:
+        if expected_requires_python:
+            msgs += (
+                f"\nFile {filename} has incorrect data-requires-python: "
+                f"expected '{expected_requires_python}', got '{attr_value}'"
+            )
+        else:
+            msgs += f"\nFile {filename} should not have data-requires-python but has '{attr_value}'"
+
+    # Check HTML escaping
+    if expected_requires_python and any(char in expected_requires_python for char in [">", "<"]):
+        escaped_value = expected_requires_python.replace(">", "&gt;").replace("<", "&lt;")
+        escaped_attr = f'data-requires-python="{escaped_value}"'
+        if escaped_attr not in page_content:
+            msgs += f"\nFile {filename} has unescaped < or > in data-requires-python attribute"
+
+    return msgs
+
+
+def ensure_simple(
+    simple_url, packages, sha_digests=None, metadata_sha_digests=None, requires_python=None
+):
     """
     Tests that the simple api at `url` matches the packages supplied.
     `packages`: dictionary of form {package_name: [release_filenames]}
@@ -40,7 +69,8 @@ def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=N
 
     def explore_links(page_url, page_name, links_found, msgs):
         legit_found_links = []
-        page = html.fromstring(requests.get(page_url).text)
+        page_content = requests.get(page_url).text
+        page = html.fromstring(page_content)
         page_links = page.xpath("/html/body/a")
         for link in page_links:
             if link.text in links_found:
@@ -52,6 +82,11 @@ def ensure_simple(simple_url, packages, sha_digests=None, metadata_sha_digests=N
                     # Check metadata SHA digest if provided
                     if metadata_sha_digests and page_name == "release":
                         msgs += _validate_metadata_sha_digest(link, link.text, metadata_sha_digests)
+                    # Check requires-python if provided
+                    if requires_python and page_name == "release":
+                        msgs += _validate_requires_python(
+                            link, link.text, requires_python, page_content
+                        )
                 else:
                     msgs += f"\nFound {page_name} link without href {link.text}"
             else:
