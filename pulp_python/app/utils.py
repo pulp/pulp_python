@@ -47,7 +47,7 @@ simple_index_template = """<!DOCTYPE html>
 </html>
 """
 
-# TODO in the future: data-requires-python (PEP 503)
+# TODO in the future: data-yanked (not implemented yet because it is mutable)
 simple_detail_template = """<!DOCTYPE html>
 <html>
   <head>
@@ -58,6 +58,7 @@ simple_detail_template = """<!DOCTYPE html>
     <h1>Links for {{ project_name }}</h1>
     {%- for pkg in project_packages %}
       <a href="{{ pkg.url }}#sha256={{ pkg.sha256 }}" rel="internal"
+      {%- if pkg.requires_python %} data-requires-python="{{ pkg.requires_python }}" {%- endif %}
       {%- if pkg.metadata_sha256 %} data-dist-info-metadata="sha256={{ pkg.metadata_sha256 }}" data-core-metadata="sha256={{ pkg.metadata_sha256 }}"
       {%- endif %} {% if pkg.provenance -%}
       data-provenance="{{ pkg.provenance }}"{% endif %}>{{ pkg.filename }}</a><br/>
@@ -501,7 +502,7 @@ def write_simple_index(project_names, streamed=False):
 
 def write_simple_detail(project_name, project_packages, streamed=False):
     """Writes the simple detail page of a package."""
-    detail = Template(simple_detail_template)
+    detail = Template(simple_detail_template, autoescape=True)
     context = {
         "SIMPLE_API_VERSION": SIMPLE_API_VERSION,
         "project_name": project_name,
