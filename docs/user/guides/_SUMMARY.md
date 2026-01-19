@@ -3,3 +3,4 @@
 * [Upload and Manage Content](upload.md)
 * [Publish and Host Python Content](publish.md)
 * [Vulnerability Report](vulnerability_report.md)
+* [Attestation Hosting](attestation.md)
