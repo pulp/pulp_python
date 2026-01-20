@@ -8,6 +8,22 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.24.0 (2026-01-20) {: #3.24.0 }
+
+#### Features {: #3.24.0-feature }
+
+- Added core metadata to Simple API (PEP 714)
+  [#997](https://github.com/pulp/pulp_python/issues/997)
+- Added data-requires-python to Simple HTML API.
+  [#1054](https://github.com/pulp/pulp_python/issues/1054)
+
+#### Bugfixes {: #3.24.0-bugfix }
+
+- Fixed migration error in 0019_create_missing_metadata_artifacts.
+  [#1067](https://github.com/pulp/pulp_python/issues/1067)
+
+---
+
 ## 3.23.0 (2026-01-06) {: #3.23.0 }
 
 #### Features {: #3.23.0-feature }
