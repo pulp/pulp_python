@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.23.1 (2026-01-20) {: #3.23.1 }
+
+#### Bugfixes {: #3.23.1-bugfix }
+
+- Fixed migration error in 0019_create_missing_metadata_artifacts.
+  [#1067](https://github.com/pulp/pulp_python/issues/1067)
+
+---
+
 ## 3.23.0 (2026-01-06) {: #3.23.0 }
 
 #### Features {: #3.23.0-feature }
