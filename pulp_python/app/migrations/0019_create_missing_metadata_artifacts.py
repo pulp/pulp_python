@@ -159,6 +159,9 @@ def create_missing_metadata_artifacts(apps, schema_editor):
                 package.metadata_sha256 = mismatched_sha256
                 packages_batch.append(package)
 
+            # Set the domain on the metadata artifact to match the package's domain
+            metadata_artifact.pulp_domain = package._pulp_domain
+
             contentartifact = ContentArtifact(
                 artifact=metadata_artifact,
                 content=package,
