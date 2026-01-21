@@ -1,8 +1,9 @@
 # Generated manually on 2025-12-15 14:00 for creating missing metadata artifacts
 
 from django.db import migrations
+from itertools import groupby
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 200
 
 
 def pulp_hashlib_new(name, *args, **kwargs):
@@ -118,6 +119,7 @@ def create_missing_metadata_artifacts(apps, schema_editor):
     import tempfile
     from django.conf import settings
     from django.db import models
+    from django.db.utils import IntegrityError
 
     PythonPackageContent = apps.get_model("python", "PythonPackageContent")
     ContentArtifact = apps.get_model("core", "ContentArtifact")
@@ -132,62 +134,93 @@ def create_missing_metadata_artifacts(apps, schema_editor):
         )
         .exclude(metadata_sha256="")
         .prefetch_related("_artifacts")
-        .only("filename", "metadata_sha256")
+        .only("filename", "metadata_sha256", "pulp_domain_id")
+        .order_by("pulp_domain_id")
     )
-    artifact_batch = []
+    artifact_batch = {}
     contentartifact_batch = []
     packages_batch = []
 
-    with tempfile.TemporaryDirectory(dir=settings.WORKING_DIRECTORY) as temp_dir:
-        for package in packages:
-            # Get the main artifact for package
-            main_artifact = package._artifacts.get()
+    def batch_save_artifacts(domain_id):
+        from django.db import transaction
 
-            filename = package.filename
-            metadata_digests = {"sha256": package.metadata_sha256}
-            result = artifact_to_metadata_artifact(
-                filename, main_artifact, metadata_digests, temp_dir, Artifact
+        sid = transaction.savepoint()  # Start a savepoint
+        try:
+            Artifact.objects.bulk_create(artifact_batch.values(), batch_size=BATCH_SIZE)
+        except IntegrityError:
+            transaction.savepoint_rollback(sid)  # Only rollback this batch
+            # Find the existing artifacts and update the contentartifacts to point to the existing artifacts
+            digest_cas = {}
+            for ca in contentartifact_batch:
+                digest_cas.setdefault(ca.artifact.sha256, []).append(ca)
+            artifacts = Artifact.objects.filter(
+                sha256__in=artifact_batch.keys(), pulp_domain_id=domain_id
             )
-            if result is None:
-                # Unset metadata_sha256 when extraction or validation fails
-                package.metadata_sha256 = None
-                packages_batch.append(package)
-                continue
-            metadata_artifact, mismatched_sha256 = result
-            if mismatched_sha256:
-                # Fix the package if its metadata_sha256 differs from the actual value
-                package.metadata_sha256 = mismatched_sha256
-                packages_batch.append(package)
+            for artifact in artifacts:
+                for ca in digest_cas[artifact.sha256]:
+                    ca.artifact = artifact
+                artifact_batch.pop(artifact.sha256)
+            Artifact.objects.bulk_create(artifact_batch.values(), batch_size=BATCH_SIZE)
 
-            # Set the domain on the metadata artifact to match the package's domain
-            metadata_artifact.pulp_domain = package._pulp_domain
+        ContentArtifact.objects.bulk_create(
+            contentartifact_batch,
+            batch_size=BATCH_SIZE,
+            update_conflicts=True,
+            update_fields=["artifact"],
+            unique_fields=["content", "relative_path"],
+        )
+        artifact_batch.clear()
+        contentartifact_batch.clear()
 
-            contentartifact = ContentArtifact(
-                artifact=metadata_artifact,
-                content=package,
-                relative_path=f"{filename}.metadata",
-            )
-            artifact_batch.append(metadata_artifact)
-            contentartifact_batch.append(contentartifact)
+    for domain_id, domain_packages in groupby(
+        packages.iterator(chunk_size=BATCH_SIZE), key=lambda x: x.pulp_domain_id
+    ):
+        for package in domain_packages:
+            with tempfile.TemporaryDirectory(dir=settings.WORKING_DIRECTORY) as temp_dir:
+                # Get the main artifact for package
+                main_artifact = package._artifacts.get()
 
-            if len(artifact_batch) == BATCH_SIZE:
-                Artifact.objects.bulk_create(artifact_batch, batch_size=BATCH_SIZE)
-                ContentArtifact.objects.bulk_create(contentartifact_batch, batch_size=BATCH_SIZE)
-                artifact_batch.clear()
-                contentartifact_batch.clear()
-            if len(packages_batch) == BATCH_SIZE:
+                filename = package.filename
+                metadata_digests = {"sha256": package.metadata_sha256}
+                result = artifact_to_metadata_artifact(
+                    filename, main_artifact, metadata_digests, temp_dir, Artifact
+                )
+                if result is None:
+                    # Unset metadata_sha256 when extraction or validation fails
+                    package.metadata_sha256 = None
+                    packages_batch.append(package)
+                    continue
+                metadata_artifact, mismatched_sha256 = result
+                if mismatched_sha256:
+                    # Fix the package if its metadata_sha256 differs from the actual value
+                    package.metadata_sha256 = mismatched_sha256
+                    packages_batch.append(package)
+
+                # Set the domain on the metadata artifact to match the package's domain
+                metadata_artifact.pulp_domain_id = domain_id
+
+                art = artifact_batch.setdefault(metadata_artifact.sha256, metadata_artifact)
+                contentartifact = ContentArtifact(
+                    artifact=art,
+                    content=package,
+                    relative_path=f"{filename}.metadata",
+                )
+                contentartifact_batch.append(contentartifact)
+
+                if len(contentartifact_batch) == BATCH_SIZE:
+                    batch_save_artifacts(domain_id)
+                if len(packages_batch) == BATCH_SIZE:
+                    PythonPackageContent.objects.bulk_update(
+                        packages_batch, ["metadata_sha256"], batch_size=BATCH_SIZE
+                    )
+                    packages_batch.clear()
+
+            if artifact_batch:
+                batch_save_artifacts(domain_id)
+            if packages_batch:
                 PythonPackageContent.objects.bulk_update(
                     packages_batch, ["metadata_sha256"], batch_size=BATCH_SIZE
                 )
-                packages_batch.clear()
-
-        if artifact_batch:
-            Artifact.objects.bulk_create(artifact_batch, batch_size=BATCH_SIZE)
-            ContentArtifact.objects.bulk_create(contentartifact_batch, batch_size=BATCH_SIZE)
-        if packages_batch:
-            PythonPackageContent.objects.bulk_update(
-                packages_batch, ["metadata_sha256"], batch_size=BATCH_SIZE
-            )
 
 
 class Migration(migrations.Migration):
