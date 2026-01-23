@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.24.1 (2026-01-22) {: #3.24.1 }
+
+#### Bugfixes {: #3.24.1-bugfix }
+
+- Changed migration 19 to reset package's metadata_sha256 to null. This field will be fixed in a later release.
+  [#1071](https://github.com/pulp/pulp_python/issues/1071)
+
+---
+
 ## 3.24.0 (2026-01-20) {: #3.24.0 }
 
 #### Features {: #3.24.0-feature }
