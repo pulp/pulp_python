@@ -610,7 +610,7 @@ class PackageIncludeFilter:
 
         try:
             version = parse(version)
-        except InvalidVersion:
+        except (InvalidVersion, TypeError):
             return False
 
         include_range = self._filter_includes.get("range", {})
