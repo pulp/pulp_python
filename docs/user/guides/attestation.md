@@ -10,13 +10,12 @@ repositories. The provenance objects will be available through the Simple API an
 Attestations can be uploaded to Pulp with its package as a JSON list under the field `attestations`.
 
 ```bash
-att=$(jq '[.]' twine-6.2.0.tar.gz.publish.attestation)
-# multiple attestation files can be combined using --slurp and '.', jq --slurp '.' att1 att2 ...
-http POST $PULP_API/pulp/api/v3/content/python/packages/ \
-    repository="$PYTHON_REPO_HREF" \
-    relative_path=twine-6.2.0.tar.gz \
-    artifact=$PACKAGE_ARTIFACT_PRN \
-    attestations:="$att"
+pulp python content create \
+  --relative-path twine-6.2.0.tar.gz \
+  --file twine-6.2.0.tar.gz \
+  --repository $REPO_PRN \
+  --attestation @twine-6.2.0.tar.gz.publish.attestation
+# --attestation can be specified multiple times to attach many attestations with a package
 ```
 
 The uploaded attestations can be found in the created Provenance object attached to the content in
@@ -61,10 +60,11 @@ twine upload --repository-url $PULP_API/pypi/foo/simple/ --attestations dist/*
 Provenance content can be directly uploaded to Pulp through its content endpoint.
 
 ```bash
-http POST $PULP_API/pulp/api/v3/content/python/provenance/ --form \
-    file@twine.provenance \
-    package="$PACKAGE_PRN" \
-    repository="$REPO_PRN"
+pulp python content -t provenance create \
+  --file twine.provenance \
+  --package $TWINE_PRN \
+  --repository $REPO_PRN
+# you can also specify a package through its sha256
 ```
 
 Provenance objects are artifactless content, their data is stored in a json field and are unique by
@@ -75,7 +75,7 @@ one. Since provenance objects are content they can be added, removed, and synced
 To sync provenance objects from an upstream repository set the `provenance` field on the remote.
 
 ```bash
-http PATCH $PULP_API/$FOO_REMOTE_HREF provenance=true
+pulp python remote update --name foo --provenance
 pulp python repository sync --repository foo --remote foo
 ```
 
