@@ -11,8 +11,9 @@ from pulp_python.tests.functional.constants import (
 
 from pypi_simple import ProjectPage
 from packaging.version import parse
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 from random import sample
+from hashlib import sha256
 
 
 def test_pull_through_install(
@@ -202,3 +203,38 @@ def test_pull_through_filtering_bad_names(python_remote_factory, python_distribu
     # Should have no packages with None version (they get filtered out)
     assert len(project_page.packages) > 0
     assert all(package.version is not None for package in project_page.packages)
+
+
+@pytest.mark.parallel
+def test_pull_through_metadata(python_remote_factory, python_distribution_factory):
+    """
+    Tests that metadata is correctly served when using pull-through.
+
+    So when requesting the metadata url according to PEP 658 you should just need to add .metadata
+    to the end of the url path. Since pull-through includes a redirect query parameter we need to
+    test adding .metadata to the end of the url path vs adding it to the end of redirect query.
+    """
+    remote = python_remote_factory(includes=["pytz"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/pytz/"
+    project_page = ProjectPage.from_response(requests.get(url), "pytz")
+    filename1 = "pytz-2023.2-py2.py3-none-any.whl"
+    filename2 = "pytz-2023.3-py2.py3-none-any.whl"
+    package1 = next(p for p in project_page.packages if p.filename == filename1)
+    package2 = next(p for p in project_page.packages if p.filename == filename2)
+    assert package1.has_metadata
+    assert package2.has_metadata
+
+    # The correct way to get the metadata url: add to path (uv does this)
+    parts1 = urlsplit(package1.url)
+    url1 = urlunsplit((parts1[0], parts1[1], parts1[2] + ".metadata", parts1[3], parts1[4]))
+    r = requests.get(url1)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package1.metadata_digests["sha256"]
+
+    # The incorrect way to get the metadata url: add to end of string (pip does this)
+    url2 = package2.url + ".metadata"
+    r = requests.get(url2)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package2.metadata_digests["sha256"]
