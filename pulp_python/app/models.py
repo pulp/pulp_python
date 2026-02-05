@@ -25,6 +25,7 @@ from pathlib import PurePath
 from .provenance import Provenance
 from .utils import (
     artifact_to_python_content_data,
+    artifact_to_metadata_artifact,
     canonicalize_name,
     python_content_to_json,
     PYPI_LAST_SERIAL,
@@ -215,7 +216,10 @@ class PythonPackageContent(Content):
         """Used when downloading package from pull-through cache."""
         path = PurePath(relative_path)
         data = artifact_to_python_content_data(path.name, artifact, domain=get_domain())
-        return PythonPackageContent(**data)
+        artifacts = {path.name: artifact}
+        if metadata_artifact := artifact_to_metadata_artifact(path.name, artifact):
+            artifacts[f"{path.name}.metadata"] = metadata_artifact
+        return PythonPackageContent(**data), artifacts
 
     def __str__(self):
         """
