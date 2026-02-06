@@ -182,3 +182,23 @@ def test_pull_through_local_only(
     r = requests.get(url)
     assert r.status_code == 404
     assert r.text == "pulp-python does not exist."
+
+
+@pytest.mark.parallel
+def test_pull_through_filtering_bad_names(python_remote_factory, python_distribution_factory):
+    """Tests that pull-through handles packages with invalid names gracefully."""
+    # ipython version 0.13.X has improper named bdist_wininst, e.g ipython-0.13.py2-win-amd64.exe
+    # pypi-simple expects the platform to go before the pyversion (for .exe), so when parsed the
+    # version and package type will be None.
+    remote = python_remote_factory(url=PYPI_URL, includes=["ipython"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/ipython/"
+    response = requests.get(url)
+
+    assert response.status_code == 200
+
+    project_page = ProjectPage.from_response(response, "ipython")
+    # Should have no packages with None version (they get filtered out)
+    assert len(project_page.packages) > 0
+    assert all(package.version is not None for package in project_page.packages)
