@@ -105,6 +105,10 @@ pulp python distribution update --name foo --remote bar
     Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
     is not guaranteed.
 
+!!! warning
+    Chaining pull-through indices, having a pull-through point to another pull-through, does not
+    work.
+
 ## Use the newly created distribution
 
 The metadata and packages can now be retrieved from the distribution:
