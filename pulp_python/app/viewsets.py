@@ -337,8 +337,8 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
-            "name": ["exact", "in"],
-            "author": ["exact", "in"],
+            "name": ["exact", "in", "contains"],
+            "author": ["exact", "in", "contains"],
             "packagetype": ["exact", "in"],
             "requires_python": ["exact", "in", "contains"],
             "filename": ["exact", "in", "contains"],
