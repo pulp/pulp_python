@@ -11,8 +11,9 @@ from pulp_python.tests.functional.constants import (
 
 from pypi_simple import ProjectPage
 from packaging.version import parse
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 from random import sample
+from hashlib import sha256
 
 
 def test_pull_through_install(
@@ -202,3 +203,85 @@ def test_pull_through_filtering_bad_names(python_remote_factory, python_distribu
     # Should have no packages with None version (they get filtered out)
     assert len(project_page.packages) > 0
     assert all(package.version is not None for package in project_page.packages)
+
+
+@pytest.mark.parallel
+def test_pull_through_metadata(python_remote_factory, python_distribution_factory):
+    """
+    Tests that metadata is correctly served when using pull-through.
+
+    So when requesting the metadata url according to PEP 658 you should just need to add .metadata
+    to the end of the url path. Since pull-through includes a redirect query parameter we need to
+    test adding .metadata to the end of the url path vs adding it to the end of redirect query.
+    """
+    remote = python_remote_factory(includes=["pytz"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/pytz/"
+    project_page = ProjectPage.from_response(requests.get(url), "pytz")
+    filename1 = "pytz-2023.2-py2.py3-none-any.whl"
+    filename2 = "pytz-2023.3-py2.py3-none-any.whl"
+    package1 = next(p for p in project_page.packages if p.filename == filename1)
+    package2 = next(p for p in project_page.packages if p.filename == filename2)
+    assert package1.has_metadata
+    assert package2.has_metadata
+
+    # The correct way to get the metadata url: add to path (uv does this)
+    parts1 = urlsplit(package1.url)
+    url1 = urlunsplit((parts1[0], parts1[1], parts1[2] + ".metadata", parts1[3], parts1[4]))
+    r = requests.get(url1)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package1.metadata_digests["sha256"]
+
+    # The incorrect way to get the metadata url: add to end of string (pip does this)
+    url2 = package2.url + ".metadata"
+    r = requests.get(url2)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package2.metadata_digests["sha256"]
+
+
+@pytest.mark.parallel
+def test_pull_through_metadata_with_repo(
+    python_repo_factory,
+    python_remote_factory,
+    python_distribution_factory,
+    pulpcore_bindings,
+):
+    """Tests that metadata is correctly saved when using pull-through with a repository."""
+    remote = python_remote_factory(url=PYPI_URL, includes=["pip"])
+    repo = python_repo_factory()
+    distro = python_distribution_factory(repository=repo.pulp_href, remote=remote.pulp_href)
+
+    pip_url = f"{distro.base_url}simple/pip/"
+    project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
+    filename = "pip-26.0.1-py3-none-any.whl"
+    package = next(p for p in project_page.packages if p.filename == filename)
+    assert package.has_metadata
+    assert "?redirect=" in package.url
+
+    # Retrieve the metadata and assert the content was not saved to the repository
+    parts = urlsplit(package.url)
+    url = urlunsplit((parts[0], parts[1], parts[2] + ".metadata", parts[3], parts[4]))
+    r = requests.get(url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package.metadata_digests["sha256"]
+    project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
+    package = next(p for p in project_page.packages if p.filename == filename)
+    assert package.has_metadata
+    assert "?redirect=" in package.url
+
+    # Now retrieve the package and assert the content was saved with metadata
+    r = requests.get(package.url)
+    assert r.status_code == 200
+    pa = pulpcore_bindings.ArtifactsApi.list(sha256=package.digests["sha256"])
+    assert pa.count == 1
+    ma = pulpcore_bindings.ArtifactsApi.list(sha256=package.metadata_digests["sha256"])
+    assert ma.count == 1
+
+    # Check the simple page is updated to point to the local repository
+    project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
+    package = next(p for p in project_page.packages if p.filename == filename)
+    assert "?redirect=" not in package.url
+    r = requests.get(package.metadata_url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package.metadata_digests["sha256"]
