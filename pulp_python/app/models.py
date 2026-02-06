@@ -25,6 +25,7 @@ from pathlib import PurePath
 from .provenance import Provenance
 from .utils import (
     artifact_to_python_content_data,
+    artifact_to_metadata_artifact,
     canonicalize_name,
     python_content_to_json,
     PYPI_LAST_SERIAL,
@@ -215,7 +216,10 @@ class PythonPackageContent(Content):
         """Used when downloading package from pull-through cache."""
         path = PurePath(relative_path)
         data = artifact_to_python_content_data(path.name, artifact, domain=get_domain())
-        return PythonPackageContent(**data)
+        artifacts = {path.name: artifact}
+        if metadata_artifact := artifact_to_metadata_artifact(path.name, artifact):
+            artifacts[f"{path.name}.metadata"] = metadata_artifact
+        return PythonPackageContent(**data), artifacts
 
     def __str__(self):
         """
@@ -320,11 +324,25 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
         """Get url for remote_artifact"""
         if request and (url := request.query.get("redirect")):
             # This is a special case for pull-through caching
+            # To handle PEP 658, it states that if the package has metadata available then it
+            # should be found at the download URL + ".metadata". Thus if the request url ends with
+            # ".metadata" then we need to add ".metadata" to the redirect url if not present.
+            if relative_path:
+                if relative_path.endswith(".metadata") and not url.endswith(".metadata"):
+                    url += ".metadata"
+                # Handle special case for bug in pip (TODO file issue in pip) where it appends
+                # ".metadata" to the redirect url instead of the request url
+                if url.endswith(".metadata") and not relative_path.endswith(".metadata"):
+                    setattr(self, "_real_relative_path", url.rsplit("/", 1)[1])
             return url
         return super().get_remote_artifact_url(relative_path, request=request)
 
     def get_remote_artifact_content_type(self, relative_path=None):
-        """Return PythonPackageContent."""
+        """Return PythonPackageContent, except for metadata artifacts."""
+        if hasattr(self, "_real_relative_path"):
+            relative_path = getattr(self, "_real_relative_path")
+        if relative_path and relative_path.endswith(".whl.metadata"):
+            return None
         return PythonPackageContent
 
     class Meta:

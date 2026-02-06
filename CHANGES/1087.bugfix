@@ -1,0 +1,1 @@
+Fixed pull-through PEP 658 metadata not being saved correctly with the package.
