@@ -1,1 +1,0 @@
-Changed migration 19 to reset package's metadata_sha256 to null. This field will be fixed in a later release.
