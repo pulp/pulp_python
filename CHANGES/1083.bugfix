@@ -1,1 +1,0 @@
-Fixed pull-through PEP 658 metadata not being served correctly for certain tools.
