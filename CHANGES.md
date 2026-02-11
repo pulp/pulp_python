@@ -8,6 +8,26 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.25.0 (2026-02-10) {: #3.25.0 }
+
+#### Features {: #3.25.0-feature }
+
+- Added the `contains` filter to `name` and `author` fields for the Content endpoint.
+  [#1096](https://github.com/pulp/pulp_python/issues/1096)
+
+#### Bugfixes {: #3.25.0-bugfix }
+
+- Fixed pull-through caching failing for packages with bad names.
+  [#1040](https://github.com/pulp/pulp_python/issues/1040)
+- Changed migration 19 to reset package's metadata_sha256 to null. This field will be fixed in a later release.
+  [#1071](https://github.com/pulp/pulp_python/issues/1071)
+- Fixed pull-through PEP 658 metadata not being served correctly for certain tools.
+  [#1083](https://github.com/pulp/pulp_python/issues/1083)
+- Fixed pull-through PEP 658 metadata not being saved correctly with the package.
+  [#1087](https://github.com/pulp/pulp_python/issues/1087)
+
+---
+
 ## 3.24.2 (2026-02-06) {: #3.24.2 }
 
 #### Bugfixes {: #3.24.2-bugfix }
