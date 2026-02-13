@@ -354,4 +354,6 @@ def test_package_sync_with_metadata(
     distro = python_distribution_factory(repository=repo)
 
     # Test that metadata is accessible
-    ensure_metadata(pulp_content_url, distro.base_path, "pytz-2023.2-py2.py3-none-any.whl")
+    ensure_metadata(
+        pulp_content_url, distro.base_path, "pytz-2023.2-py2.py3-none-any.whl", "pytz", "2023.2"
+    )
