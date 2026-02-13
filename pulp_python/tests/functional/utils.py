@@ -123,7 +123,7 @@ def ensure_simple(
     return len(msgs) == 0, msgs
 
 
-def ensure_metadata(pulp_content_url, distro_base_path, filename):
+def ensure_metadata(pulp_content_url, distro_base_path, filename, name, version):
     """
     Tests that metadata is accessible for a given wheel package filename.
     """
@@ -132,4 +132,5 @@ def ensure_metadata(pulp_content_url, distro_base_path, filename):
     metadata_response = requests.get(metadata_url)
     assert metadata_response.status_code == 200
     assert len(metadata_response.content) > 0
-    assert "Name: " in metadata_response.text
+    assert f"Name: {name}" in metadata_response.text
+    assert f"Version: {version}" in metadata_response.text

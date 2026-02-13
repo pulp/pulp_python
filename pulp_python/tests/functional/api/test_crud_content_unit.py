@@ -200,4 +200,6 @@ def test_package_creation_with_metadata(
     distro = python_distribution_factory(repository=python_repo)
 
     # Test that metadata is accessible
-    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
+    ensure_metadata(
+        pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME, "shelf-reader", "0.1"
+    )

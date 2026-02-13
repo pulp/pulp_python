@@ -3,6 +3,7 @@ import requests
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_URL,
     PYTHON_EGG_SHA256,
@@ -61,7 +62,9 @@ def test_synchronous_package_upload_with_metadata(
     """
     Test that the synchronous upload of a Python wheel package creates a metadata artifact.
     """
-    python_file = download_python_file(PYTHON_WHEEL_FILENAME, PYTHON_WHEEL_URL)
+    wheel_filename = "setuptools-80.9.0-py3-none-any.whl"
+    wheel_url = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), wheel_filename)
+    python_file = download_python_file(wheel_filename, wheel_url)
     content_body = {"file": python_file}
     content = python_bindings.ContentPackagesApi.upload(**content_body)
 
@@ -70,7 +73,7 @@ def test_synchronous_package_upload_with_metadata(
     distro = python_distribution_factory(repository=python_repo)
 
     # Test that metadata is accessible
-    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
+    ensure_metadata(pulp_content_url, distro.base_path, wheel_filename, "setuptools", "80.9.0")
 
 
 @pytest.mark.parallel

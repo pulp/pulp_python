@@ -1,0 +1,1 @@
+Fixed edge case where metadata file did not match wheel metadata.
