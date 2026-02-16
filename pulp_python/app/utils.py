@@ -220,9 +220,12 @@ def extract_wheel_metadata(filename: str) -> bytes | None:
         return None
     try:
         with zipfile.ZipFile(filename, "r") as f:
-            for file_path in f.namelist():
-                if file_path.endswith(".dist-info/METADATA"):
-                    return f.read(file_path)
+            metadata_paths = [p for p in f.namelist() if p.endswith("METADATA")]
+            sorted_paths = sorted(metadata_paths, key=lambda s: s.count("/"))
+            for metadata_path in sorted_paths:
+                file = f.read(metadata_path)
+                if b"Metadata-Version" in file:
+                    return file
     except (zipfile.BadZipFile, KeyError, OSError) as e:
         log.warning(f"Failed to extract metadata file from {filename}: {e}")
     return None
