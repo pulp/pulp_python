@@ -165,7 +165,9 @@ def test_package_upload_with_metadata(
     assert summary.added["python.python"]["count"] == 1
 
     # Test that metadata is accessible
-    ensure_metadata(pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME)
+    ensure_metadata(
+        pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME, "shelf-reader", "0.1"
+    )
 
 
 @pytest.mark.parallel
