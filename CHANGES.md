@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.25.1 (2026-02-16) {: #3.25.1 }
+
+#### Bugfixes {: #3.25.1-bugfix }
+
+- Fixed edge case where metadata file did not match wheel metadata.
+  [#1101](https://github.com/pulp/pulp_python/issues/1101)
+
+---
+
 ## 3.25.0 (2026-02-10) {: #3.25.0 }
 
 #### Features {: #3.25.0-feature }
