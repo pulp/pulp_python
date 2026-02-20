@@ -61,7 +61,9 @@ underlines = ["", "", ""]
 
 [tool.check-manifest]
 ignore = [
+    "AGENTS.md",
     "CHANGES/**",
+    "CLAUDE.md",
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
