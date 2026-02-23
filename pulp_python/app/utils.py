@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import json
 from collections import defaultdict
-from django.core.files.storage import default_storage as storage
 from django.conf import settings
 from jinja2 import Template
 from packaging.utils import canonicalize_name
@@ -144,8 +143,8 @@ def get_project_metadata_from_artifact(filename, artifact):
     # because pkginfo validates that the filename has a valid extension before
     # reading it
     with tempfile.NamedTemporaryFile('wb', dir=".", suffix=filename) as temp_file:
-        artifact_file = storage.open(artifact.file.name)
-        shutil.copyfileobj(artifact_file, temp_file)
+        artifact.file.seek(0)
+        shutil.copyfileobj(artifact.file, temp_file)
         temp_file.flush()
         metadata = DIST_TYPES[packagetype](temp_file.name)
         metadata.packagetype = packagetype

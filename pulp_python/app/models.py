@@ -4,7 +4,6 @@ from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.conf import settings
 from pulpcore.plugin.models import (
     Content,
     Publication,
@@ -13,6 +12,7 @@ from pulpcore.plugin.models import (
     Repository,
 )
 from pulpcore.plugin.responses import ArtifactResponse
+from pulpcore.plugin.util import get_domain
 
 from pathlib import PurePath
 from .utils import (
@@ -77,7 +77,7 @@ class PythonDistribution(Distribution):
         elif len(path.parts) and path.parts[0] == "simple":
             # Temporary fix for PublishedMetadata not being properly served from remote storage
             # https://github.com/pulp/pulp_python/issues/413
-            if settings.DEFAULT_FILE_STORAGE != "pulpcore.app.models.storage.FileSystem":
+            if get_domain().storage_class != "pulpcore.app.models.storage.FileSystem":
                 if self.publication or self.repository:
                     try:
                         publication = self.publication or Publication.objects.filter(
