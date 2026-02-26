@@ -352,7 +352,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             raise serializers.ValidationError(_("Invalid attestations: {}".format(e)))
         return attestations
 
-    def handle_attestations(self, filename, sha256, attestations, offline=False):
+    def handle_attestations(self, filename, sha256, attestations, offline=True):
         """Handle converting attestations to a Provenance object."""
         user = get_current_authenticated_user()
         publisher = AnyPublisher(kind="Pulp User", prn=get_prn(user))

@@ -58,7 +58,7 @@ class Provenance(BaseModel):
     attestation_bundles: list[AttestationBundle]
 
 
-def verify_provenance(filename, sha256, provenance, offline=False):
+def verify_provenance(filename, sha256, provenance, offline=True):
     """Verify the provenance object is valid for the package."""
     dist = Distribution(name=filename, digest=sha256)
     for bundle in provenance.attestation_bundles:
