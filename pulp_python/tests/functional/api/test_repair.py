@@ -10,7 +10,7 @@ from pulp_python.tests.functional.constants import (
 
 @pytest.fixture
 def create_content_direct(python_bindings):
-    def _create(artifact_filename, content_data):
+    def _create(artifact_filename, content_data, metadata_artifact_filename=None):
         commands = (
             "from pulpcore.plugin.models import Artifact, ContentArtifact; "
             "from pulpcore.plugin.util import get_url; "
@@ -21,8 +21,16 @@ def create_content_direct(python_bindings):
             "c.save(); "
             f"ca = ContentArtifact(artifact=a, content=c, relative_path=c.filename); "
             "ca.save(); "
-            "print(get_url(c))"
         )
+        if metadata_artifact_filename:
+            commands += (
+                f"a2 = Artifact.init_and_validate('{metadata_artifact_filename}'); "
+                "a2.save(); "
+                "ca2_filename = c.filename + '.metadata'; "
+                f"ca2 = ContentArtifact(artifact=a2, content=c, relative_path=ca2_filename); "
+                "ca2.save(); "
+            )
+        commands += "print(get_url(c))"
         process = subprocess.run(["pulpcore-manager", "shell", "-c", commands], capture_output=True)
 
         assert process.returncode == 0
@@ -214,3 +222,112 @@ def test_metadata_repair_endpoint(
         assert new_content.author == author
         assert new_content.packagetype == packagetype
         assert new_content.requires_python == requires_python
+
+
+def test_metadata_artifact_repair_endpoint(
+    create_content_direct,
+    delete_orphans_pre,
+    download_python_file,
+    monitor_task,
+    move_to_repository,
+    pulpcore_bindings,
+    python_bindings,
+    python_repo_factory,
+):
+    """
+    Test repairing of PythonPackageContent's metadata_sha256 and its metadata Artifact
+    and ContentArtifact via `Repositories.repair_metadata` endpoint.
+    """
+    # 1. Setup tested data
+    python_repo = python_repo_factory()
+
+    # missing metadata_sha256, missing metadata Artifact + ContentArtifact
+    filename_1 = "scipy-1.1.0-cp27-none-win_amd64.whl"
+    metadata_1 = None
+    url_1 = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), filename_1)
+    file_1 = download_python_file(filename_1, url_1)
+
+    # correct metadata_sha256, missing metadata Artifact + ContentArtifact
+    filename_2 = "scipy-1.1.0-cp27-cp27m-manylinux1_x86_64.whl"
+    metadata_2 = "7f303850d9be88fff27eaeb393c2fd3a6c1a130e21758b8294fc5bb2f38e02f6"
+    url_2 = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), filename_2)
+    file_2 = download_python_file(filename_2, url_2)
+
+    # wrong metadata_sha256, missing metadata Artifact + ContentArtifact
+    filename_3 = "scipy-1.1.0-cp34-none-win32.whl"
+    metadata_3 = "1234"
+    url_3 = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), filename_3)
+    file_3 = download_python_file(filename_3, url_3)
+
+    # wrong metadata_sha256, wrong metadata Artifact, correct metadata ContentArtifact
+    filename_4 = "scipy-1.1.0-cp35-none-win32.whl"
+    metadata_4 = "5678"
+    url_4 = urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), filename_4)
+    file_4 = download_python_file(filename_4, url_4)
+    metadata_file_4 = download_python_file(
+        f"{filename_1}.metadata",
+        urljoin(urljoin(PYTHON_FIXTURES_URL, "packages/"), f"{filename_1}.metadata"),
+    )
+
+    # Build PythonPackageContent data
+    filenames = [filename_1, filename_2, filename_3, filename_4]
+    metadata_sha256s = [metadata_1, metadata_2, metadata_3, metadata_4]
+    data_1, data_2, data_3, data_4 = [
+        {"name": "scipy", "version": "1.1.0", "filename": f, "metadata_sha256": m}
+        for f, m in zip(filenames, metadata_sha256s)
+    ]
+
+    # 2. Create content
+    content_1 = create_content_direct(file_1, data_1)
+    content_2 = create_content_direct(file_2, data_2)
+    content_3 = create_content_direct(file_3, data_3)
+    content_4 = create_content_direct(file_4, data_4, metadata_file_4)
+
+    content_hrefs = {}
+    for data, content in [
+        (data_1, content_1),
+        (data_2, content_2),
+        (data_3, content_3),
+        (data_4, content_4),
+    ]:
+        for field, test_value in data.items():
+            assert getattr(content, field) == test_value
+        content_hrefs[data["filename"]] = content.pulp_href
+    move_to_repository(python_repo.pulp_href, list(content_hrefs.values()))
+
+    # 3. Repair metadata and metadata files
+    response = python_bindings.RepositoriesPythonApi.repair_metadata(python_repo.pulp_href)
+    monitor_task(response.task)
+
+    # 4. Check new metadata and metadata files
+    main_artifact_hrefs = set()
+    metadata_artifact_hrefs = set()
+    new_data = [
+        (filename_1, "15ae132303b2774a0d839d01c618cf99fc92716adfaaa2bc1267142ab2b76b98"),
+        (filename_2, "7f303850d9be88fff27eaeb393c2fd3a6c1a130e21758b8294fc5bb2f38e02f6"),
+        # filename_3 and filename_4 have the same metadata file
+        (filename_3, "747d24e500308067c4e5fd0e20fb2d4fd6595a3fb7b1d2ffa717217fb6a53364"),
+        (filename_4, "747d24e500308067c4e5fd0e20fb2d4fd6595a3fb7b1d2ffa717217fb6a53364"),
+    ]
+    for filename, metadata_sha256 in new_data:
+        content = pulpcore_bindings.ContentApi.list(pulp_href__in=[content_hrefs[filename]]).results
+        assert content
+        artifacts = content[0].artifacts
+        assert len(artifacts) == 2
+
+        main_artifact_href = artifacts.get(filename)
+        main_artifact_hrefs.add(main_artifact_href)
+        main_artifact = pulpcore_bindings.ArtifactsApi.read(main_artifact_href)
+
+        metadata_artifact_href = artifacts.get(f"{filename}.metadata")
+        metadata_artifact_hrefs.add(metadata_artifact_href)
+        metadata_artifact = pulpcore_bindings.ArtifactsApi.read(metadata_artifact_href)
+
+        pkg = python_bindings.ContentPackagesApi.read(content_hrefs[filename])
+        assert pkg.metadata_sha256 == metadata_sha256
+        assert main_artifact.sha256 == pkg.sha256
+        assert metadata_artifact.sha256 == pkg.metadata_sha256
+
+    # Check deduplication
+    assert len(main_artifact_hrefs) == 4
+    assert len(metadata_artifact_hrefs) == 3
