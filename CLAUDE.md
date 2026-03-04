@@ -1,115 +1,52 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+The role of this file is to describe common mistakes and confusion points that agents might encounter as they work in this project.
+If you ever encounter something in the project that surprises you, please alert the developer working with you and indicate that this is the case in the CLAUDE.md file to help prevent future agents from having the same issue.
 
-## What This Project Is
+## Interacting with the developer environment
 
-`pulp_python` is a Pulp plugin that enables self-hosted, PyPI-compatible Python package repositories. It is a Django application that integrates with [pulpcore](https://github.com/pulp/pulpcore) via the Pulp plugin API. Key capabilities: sync from PyPI, upload packages, serve via pip, pull-through caching, versioned repos, PEP 740 attestations.
-
-## Development Commands
-
-### Linting
-```bash
-# Code formatting check
-black --check --diff .
-
-# Style/docstring linting
-flake8
-
-# Run both via CI scripts
-.ci/scripts/extra_linting.sh
-.ci/scripts/check_pulpcore_imports.sh
-```
-
-**Style rules** (`.flake8`): max line length 100, black-compatible, docstrings required on public methods (with several D-codes ignored — see `.flake8`).
-
-### Testing
-
-Tests require a running Pulp instance. Functional tests use pytest fixtures from `pulp_python/pytest_plugin.py` and connect to a live API.
+Use the `pulp-cli` to interact with the Pulp API. Fallback on `httpie/curl` when the CLI doesn't support the endpoint/options needed.
 
 ```bash
-# Run all tests
-pytest pulp_python/tests/
-
-# Run only unit tests (no Pulp instance needed)
-pytest pulp_python/tests/unit/
-
-# Run a single functional test file
-pytest pulp_python/tests/functional/api/test_sync.py
-
-# Run a single test by name
-pytest pulp_python/tests/functional/api/test_sync.py::test_name
+pulp --help
+pulp --refresh-api status
+pulp file content list --limit 5
+pulp file repository create --name foo
+pulp -v file repository sync --name foo --remote foo
+pulp task show --wait --href prn:core.task:019c8cae-cc5f-7148-a3de-456d0a9f39a1
+pulp show --href /pulp/api/v3/tasks/019c8cae-cc5f-7148-a3de-456d0a9f39a1/
 ```
 
-### Building
+Use the `oci-env` cli to interact with the developer's Pulp instance. It has commands for managing state, running tests, and executing commands against a running Pulp.
+
 ```bash
-# Build the Python distribution wheel
-python -m build
-
-# Install in development mode
-pip install -e .
+oci-env --help
+oci-env compose ps  # check status of the Pulp dev container
+oci-env compose up/down/restart  # start/stop/restart the Pulp dev container
+oci-env poll --attempts 10 --wait 10  # wait till Pulp container finishes booting up
+oci-env pstart/pstop/prestart  # start/stop/restart the services inside the Pulp container
+oci-env generate-client --help  # create the client bindings needed for the functional tests!
+oci-env test --help # run the functional/unit tests
+oci-env pulpcore-manager  # run any pulpcore or Django commands
 ```
 
-### Changelog Entries
+## Running/Writing tests
 
-New changelog fragments go in `CHANGES/` using towncrier format. See `pyproject.toml` `[tool.towncrier]` for configuration.
+Prefer writing functional tests for new changes/bugfixes and only fallback on unit tests when the change is not easily testable through the API.
 
-## Architecture
+pulp-python functional tests require pulp-python, pulpcore & pulp-file client bindings to be installed. The bindings must be regenerated for any changes to the API spec.
 
-### Plugin Structure
+**Always** use the `oci-env` to run the functional and unit tests.
 
-This follows the standard Pulp plugin pattern. The plugin registers itself via the entry point `pulpcore.plugin` → `pulp_python.app.PulpPythonPluginAppConfig`.
+## Modifying template_config.yml
 
-All application code lives in `pulp_python/app/`:
+Use the `plugin-template` tool after any changes made to `template_config.yml`.
 
-| File/Dir | Purpose |
-|---|---|
-| `models.py` | Django models for all content types and repository objects |
-| `serializers.py` | DRF serializers with validation and metadata extraction |
-| `viewsets.py` | DRF viewsets implementing the REST API |
-| `urls.py` | URL routing — PyPI API endpoints |
-| `utils.py` | Metadata extraction, PyPI template rendering, canonicalization |
-| `provenance.py` | PEP 740 attestation/provenance validation logic |
-| `tasks/` | Celery async tasks (sync, publish, upload, repair, vulnerability) |
-| `pypi/` | PyPI-specific views (Simple API, Legacy upload, Metadata, Provenance) |
-| `settings.py` | Django settings additions |
-| `migrations/` | Database migrations |
-
-### Core Models
-
-- **`PythonPackageContent`** — the main content type; stores all Python package metadata (PEP 440/core-metadata fields) plus release info (filename, sha256, size). Unique per `(sha256, _pulp_domain)`.
-- **`PackageProvenance`** — PEP 740 provenance objects linked to a `PythonPackageContent`.
-- **`PythonRepository`** — Repository; supports `autopublish`, `PULL_THROUGH_SUPPORTED = True`. Calls `tasks.publish()` on new versions if `autopublish` is set.
-- **`PythonRemote`** — Remote with package filtering (`includes`, `excludes`, `package_types`, `keep_latest_packages`, `exclude_platforms`, `prereleases`, `provenance`).
-- **`PythonPublication`** — Publication for generated PyPI Simple API index files.
-- **`PythonDistribution`** — Distribution serving content via `content_handler()` which generates JSON API responses and handles Simple API serving from remote storage.
-- **`NormalizeName`** — A custom Django `Transform` that normalizes package names per PEP 426 (regex replace `., _, -` → `-`, lowercased). Used as `name__normalize=value` in queries.
-
-### PyPI API Endpoints (`urls.py`)
-
-```
-pypi/<domain>/<path>/legacy/          → UploadView (twine/pip upload)
-pypi/<domain>/<path>/integrity/...    → ProvenanceView (PEP 740)
-pypi/<domain>/<path>/pypi/<meta>/     → MetadataView (JSON API)
-pypi/<domain>/<path>/simple/...       → SimpleView (pip simple index)
+```bash
+# typically located in the parent directory of pulpcore/plugin
+../plugin_template/plugin-template --github
 ```
 
-### Async Tasks (`tasks/`)
+## Contributing
 
-- **`sync.py`** — Syncs packages from a remote (PyPI or compatible). Uses `bandersnatch` and `pypi-simple`.
-- **`publish.py`** — Creates a `PythonPublication` with Simple API index files.
-- **`upload.py`** — Handles package uploads (`upload` for single, `upload_group` for multi-upload).
-- **`repair.py`** — Re-downloads missing artifacts.
-- **`vulnerability_report.py`** — Fetches vulnerability data for repository content.
-
-### Test Fixtures (`pytest_plugin.py`)
-
-The pytest plugin defines session-scoped and function-scoped fixtures for all major objects: `python_repo_factory`, `python_remote_factory`, `python_distribution_factory`, `python_publication_factory`, `python_content_factory`, `python_repo_with_sync`. Functional tests depend on a running Pulp instance configured via environment.
-
-### Key Conventions
-
-- The plugin is domain-compatible (`domain_compatible = True`). All content models have a `_pulp_domain` FK.
-- Package name lookups always use the `NormalizeName` transform: `name__normalize=canonicalize_name(name)`.
-- Content deduplication is enforced in `PythonRepository.finalize_new_version()` via pulpcore's `remove_duplicates()`.
-- Access policies use `AutoAddObjPermsMixin` and role-based permissions defined in each model's `Meta.permissions`.
-- Changelog entries use towncrier; fragment files belong in `CHANGES/`.
+When preparing to commit and create a PR you **must** follow our [PR checklist](https://pulpproject.org/pulpcore/docs/dev/guides/pull-request-walkthrough/)
