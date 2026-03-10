@@ -1,0 +1,1 @@
+Fixed sync issue where non https URLs were not allowed.
