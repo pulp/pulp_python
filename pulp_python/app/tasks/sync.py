@@ -65,7 +65,6 @@ def create_bandersnatch_config(remote):
     config = BandersnatchConfig()
     config["mirror"]["master"] = remote.url
     config["mirror"]["workers"] = str(remote.download_concurrency)
-    config["mirror"]["allow_non_https"] = "true"
     if not config.has_section("plugins"):
         config.add_section("plugins")
     config["plugins"]["enabled"] = "blocklist_release\n"
@@ -120,7 +119,7 @@ class PythonBanderStage(Stage):
         if not isinstance(downloader, HttpDownloader):
             raise ValueError("Only HTTP(S) is supported for python syncing")
 
-        async with Master(url) as master:
+        async with Master(url, allow_non_https=True) as master:
             # Replace the session with the remote's downloader session
             old_session = master.session
             master.session = downloader.session
