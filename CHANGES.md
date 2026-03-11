@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.26.1 (2026-03-10) {: #3.26.1 }
+
+#### Bugfixes {: #3.26.1-bugfix }
+
+- Fixed sync issue where non https URLs were not allowed.
+
+---
+
 ## 3.26.0 (2026-02-26) {: #3.26.0 }
 
 #### Features {: #3.26.0-feature }
