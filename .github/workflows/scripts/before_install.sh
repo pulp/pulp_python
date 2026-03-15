@@ -26,7 +26,7 @@ fi
 COMPONENT_VERSION="$(bump-my-version show current_version | tail -n -1 | python -c 'from packaging.version import Version; print(Version(input()))')"
 COMPONENT_SOURCE="./pulp_python/dist/pulp_python-${COMPONENT_VERSION}-py3-none-any.whl"
 if [ "$TEST" = "s3" ]; then
-  COMPONENT_SOURCE="${COMPONENT_SOURCE} pulpcore[s3]"
+  COMPONENT_SOURCE="${COMPONENT_SOURCE} pulpcore[s3] git+https://github.com/gerrod3/botocore.git@fix-100-continue"
 fi
 if [ "$TEST" = "azure" ]; then
   COMPONENT_SOURCE="${COMPONENT_SOURCE} pulpcore[azure]"
@@ -38,6 +38,7 @@ fi
 if [[ "$TEST" = "lowerbounds" ]]; then
   python3 .ci/scripts/calc_constraints.py pyproject.toml > lowerbounds_constraints.txt
 fi
+
 export PULP_API_ROOT=$(test "${TEST}" = "s3" && echo "/rerouted/djnd/" || echo "/pulp/")
 
 echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
@@ -48,30 +49,31 @@ mkdir -p .ci/ansible/vars
 cat > .ci/ansible/vars/main.yaml << VARSYAML
 ---
 scenario: "${TEST}"
+plugin_name: "pulp_python"
 legacy_component_name: "pulp_python"
 component_name: "python"
 component_version: "${COMPONENT_VERSION}"
 pulp_env: {}
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "orphan_protection_time": 0, "pypi_api_hostname": "https://pulp:443"}
 pulp_scheme: "https"
-pulp_default_container: "ghcr.io/pulp/pulp-ci-centos9:latest"
 api_root: "${PULP_API_ROOT}"
 image:
   name: "pulp"
   tag: "ci_build"
-plugins:
-  - name: "pulp_python"
-    source: "${COMPONENT_SOURCE}"
-    ci_requirements: $(test -f ci_requirements.txt && echo -n true || echo -n false)
-    upperbounds: $(test "${TEST}" = "pulp" && echo -n true || echo -n false)
-    lowerbounds: $(test "${TEST}" = "lowerbounds" && echo -n true || echo -n false)
+  ci_base: "ghcr.io/pulp/pulp-ci-centos9:latest"
+  source: "${COMPONENT_SOURCE}"
+  ci_requirements: $(test -f ci_requirements.txt && echo -n true || echo -n false)
+  upperbounds: $(test "${TEST}" = "pulp" && echo -n true || echo -n false)
+  lowerbounds: $(test "${TEST}" = "lowerbounds" && echo -n true || echo -n false)
+  webserver_snippet: $(test -f pulp_python/app/webserver_snippets/nginx.conf && echo -n true || echo -n false )
+extra_files:
+  - origin: "pulp_python"
+    destination: "pulp_python"
 services:
   - name: "pulp"
     image: "pulp:ci_build"
     volumes:
       - "./settings:/etc/pulp"
-      - "./ssh:/keys/"
-      - "~/.config:/var/lib/pulp/.config"
       - "../../../pulp-openapi-generator:/root/pulp-openapi-generator"
     env:
       PULP_WORKERS: "4"
