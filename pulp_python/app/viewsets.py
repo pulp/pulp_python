@@ -1,6 +1,6 @@
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
@@ -605,11 +605,21 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet, core_viewsets.RolesMixin)
         return Response(remote.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
+@extend_schema_view(
+    list=extend_schema(deprecated=True),
+    add_role=extend_schema(deprecated=True),
+    remove_role=extend_schema(deprecated=True),
+    list_roles=extend_schema(deprecated=True),
+    my_permissions=extend_schema(deprecated=True),
+)
 class PythonPublicationViewSet(core_viewsets.PublicationViewSet, core_viewsets.RolesMixin):
     """
-    <!-- User-facing documentation, rendered as html-->
     Python Publications refer to the Python Package content in a repository version, and include
-    metadata about that content.
+    metadata about that content. [Deprecated] See
+    https://pulpproject.org/pulp_python/docs/user/guides/host/#migrating-off-publications for more
+    information.
+
+    Use a repository or repository-version to serve content instead.
 
     """
 
@@ -677,7 +687,7 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet, core_viewsets.R
         "python.pythonpublication_viewer": ["python.view_pythonpublication"],
     }
 
-    @extend_schema(responses={202: AsyncOperationResponseSerializer})
+    @extend_schema(responses={202: AsyncOperationResponseSerializer}, deprecated=True)
     def create(self, request):
         """
         <!-- User-facing documentation, rendered as html-->
@@ -698,3 +708,11 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet, core_viewsets.R
             kwargs={"repository_version_pk": str(repository_version.pk)},
         )
         return core_viewsets.OperationPostponedResponse(result, request)
+
+    @extend_schema(deprecated=True)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(deprecated=True)
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)

@@ -1,6 +1,6 @@
 * [Set up your own PyPI](pypi.md)
 * [Sync from Remote Repositories](sync.md)
 * [Upload and Manage Content](upload.md)
-* [Publish and Host Python Content](publish.md)
+* [Host Python Content](host.md)
 * [Vulnerability Report](vulnerability_report.md)
 * [Attestation Hosting](attestation.md)

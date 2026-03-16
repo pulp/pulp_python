@@ -60,6 +60,7 @@ Distributions serve the content stored in repositories so that it can be used by
       "pulp_labels": {},
       "name": "my-pypi",
       "repository": "/pulp/api/v3/repositories/python/python/0196ba29-52b9-7cf4-b12e-f3247f0eb3dc/",
+      "repository_version": null,
       "publication": null,
       "allow_uploads": true,
       "remote": null
