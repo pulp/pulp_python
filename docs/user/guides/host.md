@@ -44,7 +44,7 @@ Setting the distribution's `repository` field will auto-serve the latest version
 
 Only packages present in your repository will be available from your index, but adding a remote source to
 your distribution will enable the pull-through cache feature. This feature allows you to install any package
-from the remote source and have Pulp store that package as orphaned content.
+from the remote source and have Pulp store that package in your repository.
 
 ```bash
 # Add remote to distribution to enable pull-through caching
@@ -54,10 +54,8 @@ pulp python distribution update --name foo --remote bar
 !!! note
     Pull-through caching will respect the includes/excludes filters on the supplied remote.
 
-!!! warning
-    Support for pull-through caching is provided as a tech preview in Pulp 3.
-    Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
-    is not guaranteed.
+!!! note
+    Setting the remote on a distribution without a repository will cause requested content to be saved as orphans.
 
 !!! warning
     Chaining pull-through indices, having a pull-through point to another pull-through, does not

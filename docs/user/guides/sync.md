@@ -135,7 +135,7 @@ pulp python remote create \
     ]' \
     --excludes '[
         "django~=1.0",
-        "scipy"
+        "scipy==1.1.0"
     ]'
 ```
 

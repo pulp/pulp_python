@@ -18,9 +18,6 @@ customized. The access policies for the Pulp APIs follow the same scheme as the 
 about here: [Pulp File RBAC](site:pulp_file/docs/admin/guides/rbac/). Use the Pulp 
 CLI to follow along with the examples here.
 
-!!! note 
-    This feature is currently in tech preview and is subject to change in future releases.
-
 ## Default Index Behavior
 
 By default, the read APIs of the index are accessible to any user, authenticated or not, while the upload APIs 
