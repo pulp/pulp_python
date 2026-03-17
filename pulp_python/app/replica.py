@@ -37,8 +37,7 @@ class PythonReplicator(Replicator):
         return None
 
     def repository_extra_fields(self, remote):
-        # Use autopublish since publications result in faster serving times
-        return {"autopublish": True}
+        return {"autopublish": False}
 
     def sync_params(self, repository, remote):
         return {"remote_pk": str(remote.pk), "repository_pk": str(repository.pk), "mirror": True}

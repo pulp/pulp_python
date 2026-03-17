@@ -4,6 +4,7 @@ import tempfile
 from gettext import gettext as _
 from django.conf import settings
 from django.db.utils import IntegrityError
+from drf_spectacular.utils import extend_schema_serializer
 from packaging.requirements import Requirement
 from rest_framework import serializers
 from pypi_attestations import AttestationError
@@ -33,6 +34,11 @@ from pulp_python.app.utils import (
 log = logging.getLogger(__name__)
 
 
+@extend_schema_serializer(
+    deprecate_fields=[
+        "autopublish",
+    ]
+)
 class PythonRepositorySerializer(core_serializers.RepositorySerializer):
     """
     Serializer for Python Repositories.
@@ -41,7 +47,7 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
     autopublish = serializers.BooleanField(
         help_text=_(
             "Whether to automatically create publications for new repository versions, "
-            "and update any distributions pointing to this repository."
+            "and update any distributions pointing to this repository. [Deprecated]"
         ),
         default=False,
         required=False,
@@ -52,6 +58,11 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
         model = python_models.PythonRepository
 
 
+@extend_schema_serializer(
+    deprecate_fields=[
+        "publication",
+    ]
+)
 class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     """
     Serializer for Pulp distributions for the Python type.
@@ -59,7 +70,7 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
 
     publication = core_serializers.DetailRelatedField(
         required=False,
-        help_text=_("Publication to be served"),
+        help_text=_("Publication to be served. [Deprecated]"),
         view_name_pattern=r"publications(-.*/.*)?-detail",
         queryset=core_models.Publication.objects.exclude(complete=False),
         allow_null=True,

@@ -176,7 +176,7 @@ Python remotes involve syncing with PyPI which requires terabytes of disk space.
 modifying the "policy" field.
 
 Syncing all of PyPI can take a long time depending on your network and disk speeds. Check out
-[pull-through caching](site:pulp_python/docs/user/guides/publish/#enable-pull-through-caching) 
+[pull-through caching](site:pulp_python/docs/user/guides/host/#enable-pull-through-caching) 
 to learn about another way to mirror PyPI.
 
 ## Sync repository foo with remote

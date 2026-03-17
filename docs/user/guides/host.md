@@ -1,50 +1,18 @@
-# Publish and Host Your Python Content
+# Host Your Python Content
 
 This section assumes that you have a repository with content in it. To do this, see the
 [sync](site:pulp_python/docs/user/guides/sync/) or [upload](site:pulp_python/docs/user/guides/upload/) documentation.
 
-## Create a Publication (manually)
+## Make a Python Index (Create a Distribution)
 
-Kick off a publish task by creating a new publication. The publish task will generate all the
-metadata that `pip` needs to install packages (although it will need to be hosted through a
-Distribution before it is consumable).
+To host your Python content as a PyPI compatible index, (which makes it consumable by `pip`), users create a distribution which will serve the content in the repository at `${BASE_ADDR}/pypi/${DIST_BASE_PATH}/`.
 
 === "Run"
 
     ```bash
-    # Create a new publication specifying the repository_version.
-    # Alternatively, you can specify just the repository, and Pulp will assume the latest version.
-    pulp python publication create --repository foo --version 1
-    
-    # Publications can only be referenced through their pulp_href
-    PUBLICATION_HREF=$(pulp python publication list | jq -r .[0].pulp_href)
-    ```
-
-=== "Output"
-
-    ```
-    {
-      "pulp_href": "/pulp/api/v3/publications/python/pypi/0196ba31-cd04-7aba-a7b4-71a98a976745/",
-      "prn": "prn:python.pythonpublication:0196ba31-cd04-7aba-a7b4-71a98a976745",
-      "pulp_created": "2025-05-10T12:35:48.103758Z",
-      "pulp_last_updated": "2025-05-10T12:35:48.205361Z",
-      "repository_version": "/pulp/api/v3/repositories/python/python/0196ba30-e15e-71ea-9867-33aeceb5a87e/versions/1/",
-      "repository": "/pulp/api/v3/repositories/python/python/0196ba30-e15e-71ea-9867-33aeceb5a87e/",
-      "distributions": []
-    }
-    ```
-
-## Host a Publication (Create a Distribution)
-
-To host a publication, (which makes it consumable by `pip`), users create a distribution which
-will serve the associated publication at `${BASE_ADDR}/pypi/${DIST_BASE_PATH}/`.
-
-=== "Run"
-
-    ```bash
-    # Distributions are created asynchronously. Create one, and specify the publication that will
+    # Distributions are created asynchronously. Create one, and specify the repository that will
     # be served at the base path specified.
-    pulp python distribution create --name foo --base-path foo --publication "$PUBLICATION_HREF"
+    pulp python distribution create --name foo --base-path foo --repository foo
     ```
 
 === "Output"
@@ -62,29 +30,15 @@ will serve the associated publication at `${BASE_ADDR}/pypi/${DIST_BASE_PATH}/`.
       "hidden": false,
       "pulp_labels": {},
       "name": "foo",
-      "repository": null,
-      "publication": "/pulp/api/v3/publications/python/pypi/0196ba31-cd04-7aba-a7b4-71a98a976745/",
+      "repository": "/pulp/api/v3/repositories/python/python/019cf738-6951-7b25-b26f-182683dc32f2/",
+      "repository_version": null,
+      "publication": null,
       "allow_uploads": true,
       "remote": null
     }
     ```
 
-## Automate Publication and Distribution
-
-With a little more initial setup, you can have publications and distributions for your repositories
-updated automatically when new repository versions are created.
-
-```bash
-# This configures the repository to produce new publications when a new version is created
-pulp python repository update --name foo --autopublish
-# This configures the distribution to track the latest repository version for a given repository
-pulp python distribution update --name foo --repository foo
-```
-
-!!! warning
-    Support for automatic publication and distribution is provided as a tech preview in Pulp 3.
-    Functionality may not work or may be incomplete. Also, backwards compatibility when upgrading
-    is not guaranteed.
+Setting the distribution's `repository` field will auto-serve the latest version of that repository. If you wish to only serve content from a specific version you can use the `repository_version` field.
 
 ## Enable Pull-Through Caching
 
@@ -150,3 +104,18 @@ pip install --trusted-host localhost shelf-reader
 ```
 
 See the [pip docs](https://pip.pypa.io/en/stable/topics/configuration) for more details.
+
+
+## Migrating off Publications
+
+Ever since the release of `pulp-python` 3.4, publications have no longer been required to serve content to Python compatible tooling. Publications became deprecated in version 3.27, but it is recommended to move off of them even on early versions as many new features like pull-through caching, simple JSON, attestations, were not built to work with publications. To move off publications follow these three steps:
+
+1. Switch any distribution serving a publication to a repository or repository-version
+2. Set `autopublish=False` for all repositories
+3. Delete all python publications
+
+!!! warning
+    Publications may be removed in a future `pulp-python` version.
+
+!!! note
+    To maintain backwards compatibility, `/pypi/` endpoints will always try to use a publication if there is one available for the repository. We recommend deleting every publication for a repository if you wish to use the newer features.

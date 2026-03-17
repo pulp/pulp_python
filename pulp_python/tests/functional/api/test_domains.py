@@ -182,7 +182,6 @@ def test_domain_content_replication(
         python_bindings.ContentPackagesApi,
         python_bindings.RepositoriesPythonApi,
         python_bindings.RemotesPythonApi,
-        python_bindings.PublicationsPypiApi,
         python_bindings.DistributionsPypiApi,
     ):
         result = api_client.list(pulp_domain=replica_domain.name)
@@ -204,9 +203,6 @@ def test_domain_content_replication(
 
     response = python_bindings.ContentPackagesApi.list(pulp_domain=replica_domain.name)
     assert PYTHON_SM_PACKAGE_COUNT + 1 == response.count
-    response = python_bindings.PublicationsPypiApi.list(pulp_domain=replica_domain.name)
-    assert 2 == response.count
-    add_to_cleanup(python_bindings.PublicationsPypiApi, response.results[0])
     assert 1 == python_bindings.RepositoriesPythonApi.list(pulp_domain=replica_domain.name).count
     assert 1 == python_bindings.DistributionsPypiApi.list(pulp_domain=replica_domain.name).count
     assert 1 == python_bindings.RemotesPythonApi.list(pulp_domain=replica_domain.name).count
