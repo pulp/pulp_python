@@ -1,0 +1,1 @@
+Pulpcore enabled a feature to allow users to specify "repository_version" on their distributions, which pulp_python already allowed. We no longer need to enable that field ourselves.
