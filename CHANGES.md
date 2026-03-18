@@ -8,6 +8,19 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.27.0 (2026-03-17) {: #3.27.0 }
+
+#### Bugfixes {: #3.27.0-bugfix }
+
+- Fixed sync issue where non https URLs were not allowed.
+
+#### Deprecations and Removals {: #3.27.0-removal }
+
+- Deprecated publications and added documentation for migrating off of them.
+  [#1000](https://github.com/pulp/pulp_python/issues/1000)
+
+---
+
 ## 3.26.1 (2026-03-10) {: #3.26.1 }
 
 #### Bugfixes {: #3.26.1-bugfix }
