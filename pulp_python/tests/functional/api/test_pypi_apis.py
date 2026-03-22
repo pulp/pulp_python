@@ -16,7 +16,6 @@ from pulp_python.tests.functional.constants import (
 )
 from pulp_python.tests.functional.utils import ensure_metadata
 
-
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 
 
