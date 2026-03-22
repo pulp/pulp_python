@@ -29,7 +29,6 @@ from pulp_python.app.utils import (
     parse_project_metadata,
 )
 
-
 log = logging.getLogger(__name__)
 
 
