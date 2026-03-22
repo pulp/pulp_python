@@ -1,7 +1,6 @@
 import os
 from urllib.parse import urljoin
 
-
 PULP_FIXTURES_BASE_URL = os.environ.get(
     "REMOTE_FIXTURES_ORIGIN", "https://fixtures.pulpproject.org/"
 )

@@ -20,7 +20,6 @@ from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.exceptions import TimeoutException
 from pulpcore.plugin.util import get_domain
 
-
 log = logging.getLogger(__name__)
 
 

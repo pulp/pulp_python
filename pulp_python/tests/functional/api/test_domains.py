@@ -12,7 +12,6 @@ from pulp_python.tests.functional.constants import (
 )
 from urllib.parse import urlsplit
 
-
 pytestmark = pytest.mark.skipif(not settings.DOMAIN_ENABLED, reason="Domain not enabled")
 
 

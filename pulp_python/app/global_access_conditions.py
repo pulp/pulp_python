@@ -1,6 +1,5 @@
 from django.conf import settings
 
-
 # Access Condition methods that can be used with PyPI access policies
 
 
