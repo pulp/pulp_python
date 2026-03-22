@@ -14,7 +14,6 @@ from pulp_python.tests.functional.constants import (
     PYTHON_SM_PROJECT_SPECIFIER,
 )
 
-
 pytestmark = [
     pytest.mark.skipif(
         "/tmp" not in settings.ALLOWED_EXPORT_PATHS,

@@ -12,7 +12,6 @@ from pulp_python.app import models as python_models
 from pulp_python.app.serializers import PythonPublicationSerializer
 from pulp_python.app.utils import write_simple_index, write_simple_detail
 
-
 log = logging.getLogger(__name__)
 
 
