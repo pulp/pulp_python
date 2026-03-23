@@ -87,5 +87,5 @@ API. The attestations can then be verified using tools like `sigstore` or `pypi-
 ```bash
 http $PULP_API/pypi/foo/simple/twine/ "Accept:application/vnd.pypi.simple.v1+json" | jq -r ".files[].provenance"
 
-http $PULP_API/pypi/foo/integrity/twine/6.2.0/twine-6.2.0.tar.gz/
+http $PULP_API/pypi/foo/integrity/twine/6.2.0/twine-6.2.0.tar.gz/provenance/
 ```

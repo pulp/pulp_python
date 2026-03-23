@@ -44,7 +44,7 @@ Each artifact in Pulp represents a file. They can be created during sync or crea
     PKG="shelf-reader-0.1.tar.gz"
     
     # Upload it to Pulp
-    pulp python content upload --relative-path "$PKG" --file "$PKG"
+    pulp python content create --relative-path "$PKG" --file "$PKG"
     ```
 
 === "Output"
@@ -90,7 +90,7 @@ Each artifact in Pulp represents a file. They can be created during sync or crea
 ## Add content to a repository
 
 Once there is a content unit, it can be added to a repository using the `add` command.
-This command requires both the `filename` and `sha256` to ensure that a specific file can be identified,
+This command requires the `sha256` to ensure that a specific file can be identified,
 as Pulp may contain different content units with the same name.
 
 === "Run"
@@ -100,7 +100,7 @@ as Pulp may contain different content units with the same name.
     SHA256="04cfd8bb4f843e35d51bfdef2035109bdea831b55a57c3e6a154d14be116398c"
 
     # Add the created PythonPackage content to the repository
-    pulp python repository content add --repository foo --filename "$PKG" --sha256 "$SHA256"
+    pulp python repository content add --repository foo --sha256 "$SHA256"
     
     # After the task is complete, it gives us a new repository version
     pulp python repository version show --repository foo
@@ -144,7 +144,7 @@ This command requires the same options as the `add` command.
 
     ```bash
     # Remove the PythonPackage content from the repository
-    pulp python repository content remove --repository foo --filename "$PKG" --sha256 "$SHA256"
+    pulp python repository content remove --repository foo --sha256 "$SHA256"
     
     # After the task is complete, it gives us a new repository version
     pulp python repository version show --repository foo
