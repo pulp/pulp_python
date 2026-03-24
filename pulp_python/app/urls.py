@@ -10,9 +10,10 @@ from pulp_python.app.pypi.views import (
 )
 
 if settings.DOMAIN_ENABLED:
-    PYPI_API_URL = "pypi/<slug:pulp_domain>/<path:path>/"
+    PYPI_API_URL = "/<slug:pulp_domain>/<path:path>/"
 else:
-    PYPI_API_URL = "pypi/<path:path>/"
+    PYPI_API_URL = "/<path:path>/"
+PYPI_API_URL = settings.PYPI_PATH_PREFIX.strip("/") + PYPI_API_URL
 # TODO: Implement remaining PyPI endpoints
 # path("project/", PackageProject.as_view()), # Endpoints to nicely see contents of index
 # path("search/", PackageSearch.as_view()),

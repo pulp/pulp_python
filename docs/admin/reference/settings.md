@@ -13,3 +13,9 @@
 > This specifies the hostname where the PyPI API is served. It defaults to the fully qualified
 > hostname of the system where the process is running. This needs to be adjusted if running behind
 > a non local reverse proxy.
+
+## PYPI_PATH_PREFIX
+
+> This specifies where the PyPI endpoints can be found at. It defaults to `/pypi/`. The value is
+> used along with `PYPI_API_HOSTNAME` to generate the links to the PyPI endpoints and should start
+> and end in a slash.

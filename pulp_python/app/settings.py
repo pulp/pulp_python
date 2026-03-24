@@ -2,6 +2,7 @@ import socket
 
 PYTHON_GROUP_UPLOADS = False
 PYPI_API_HOSTNAME = "https://" + socket.getfqdn()
+PYPI_PATH_PREFIX = "/pypi/"
 
 DRF_ACCESS_POLICY = {
     "dynaconf_merge_unique": True,
