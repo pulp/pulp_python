@@ -59,7 +59,7 @@ log = logging.getLogger(__name__)
 
 ORIGIN_HOST = settings.CONTENT_ORIGIN if settings.CONTENT_ORIGIN else settings.PYPI_API_HOSTNAME
 BASE_CONTENT_URL = urljoin(ORIGIN_HOST, settings.CONTENT_PATH_PREFIX)
-BASE_API_URL = urljoin(settings.PYPI_API_HOSTNAME, "pypi/")
+BASE_API_URL = urljoin(settings.PYPI_API_HOSTNAME, settings.PYPI_PATH_PREFIX)
 
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"

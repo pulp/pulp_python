@@ -9,6 +9,7 @@ from packaging.requirements import Requirement
 from rest_framework import serializers
 from pypi_attestations import AttestationError
 from pydantic import TypeAdapter, ValidationError
+from urllib.parse import urljoin
 
 from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
@@ -31,6 +32,7 @@ from pulp_python.app.utils import (
 )
 
 log = logging.getLogger(__name__)
+PYPI_BASE_URL = urljoin(settings.PYPI_API_HOSTNAME, settings.PYPI_PATH_PREFIX)
 
 
 @extend_schema_serializer(
@@ -92,8 +94,8 @@ class PythonDistributionSerializer(core_serializers.DistributionSerializer):
     def get_base_url(self, obj):
         """Gets the base url."""
         if settings.DOMAIN_ENABLED:
-            return f"{settings.PYPI_API_HOSTNAME}/pypi/{get_domain().name}/{obj.base_path}/"
-        return f"{settings.PYPI_API_HOSTNAME}/pypi/{obj.base_path}/"
+            return urljoin(PYPI_BASE_URL, f"{get_domain().name}/{obj.base_path}/")
+        return urljoin(PYPI_BASE_URL, f"{obj.base_path}/")
 
     class Meta:
         fields = core_serializers.DistributionSerializer.Meta.fields + (
