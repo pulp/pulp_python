@@ -8,15 +8,18 @@ from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from pulpcore.plugin import viewsets as core_viewsets
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
+    RepositoryAddRemoveContentSerializer,
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import check_content, dispatch
+from pulpcore.plugin.util import extract_pk
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
@@ -126,6 +129,43 @@ class PythonRepositoryViewSet(
         ],
         "python.pythonrepository_viewer": ["python.view_pythonrepository"],
     }
+
+    @extend_schema(
+        description="Trigger an asynchronous task to create a new repository version.",
+        summary="Modify Repository Content",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=RepositoryAddRemoveContentSerializer)
+    def modify(self, request, pk):
+        """
+        Queues a task that creates a new RepositoryVersion by adding and removing content units.
+
+        If allow_package_substitution is False and the request is **only** adding packages, then a
+        package substitution check is performed to provide a quicker error response. Otherwise, the
+        check is delegated to the task.
+        """
+        repository = self.get_object()
+        if not repository.allow_package_substitution:
+            remove_content_units = request.data.get("remove_content_units", [])
+            if remove_content_units or "base_version" in request.data:
+                return super().modify(request, pk)
+            rvc = repository.latest_version().content
+            add_content_units = request.data.get("add_content_units", [])
+            content_ids = [extract_pk(x) for x in add_content_units]
+            packages = (
+                python_models.PythonPackageContent.objects.filter(pk__in=content_ids)
+                .exclude(pk__in=rvc)
+                .values("filename")
+            )
+            conflicting_packages = python_models.PythonPackageContent.objects.filter(
+                filename__in=packages, pk__in=rvc
+            )
+            if conflicting_packages.exists():
+                raise ValidationError(
+                    "Found duplicate packages being added with the same filename but different checksums. "  # noqa: E501
+                    f"Existing conflicting packages: {conflicting_packages.values('filename', 'sha256', 'pk')}"  # noqa: E501
+                )
+        return super().modify(request, pk)
 
     @extend_schema(
         summary="Repair metadata",
