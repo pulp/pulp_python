@@ -303,7 +303,12 @@ class SimpleView(PackageUploadMixin, ViewSet):
         repo_version, content = self.get_rvc()
         if self.should_redirect(repo_version=repo_version):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/"))
-        names = content.order_by("name").values_list("name", flat=True).distinct().iterator()
+        names = (
+            content.order_by("name_normalized")
+            .values_list("name", flat=True)
+            .distinct("name_normalized")
+            .iterator()
+        )
         media_type = request.accepted_renderer.media_type
         headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
 
@@ -361,7 +366,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content:
-            local_packages = content.filter(name__normalize=normalized)
+            local_packages = content.filter(name_normalized=normalized)
             packages = local_packages.values(
                 "filename",
                 "sha256",
@@ -454,7 +459,7 @@ class MetadataView(PyPIMixin, ViewSet):
             name = meta_path.parts[0]
         if name:
             normalized = canonicalize_name(name)
-            package_content = content.filter(name__normalize=normalized)
+            package_content = content.filter(name_normalized=normalized)
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
             if settings.DOMAIN_ENABLED:
@@ -541,7 +546,7 @@ class ProvenanceView(PyPIMixin, ViewSet):
         repo_ver, content = self.get_rvc()
         if content:
             package_content = content.filter(
-                name__normalize=package, version=version, filename=filename
+                name_normalized=package, version=version, filename=filename
             ).first()
             if package_content:
                 provenance = self.get_provenances(repo_ver).filter(package=package_content).first()

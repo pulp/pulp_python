@@ -60,9 +60,9 @@ def write_simple_api(publication):
         python_models.PythonPackageContent.objects.filter(
             pk__in=publication.repository_version.content, _pulp_domain=domain
         )
-        .order_by("name__normalize")
+        .order_by("name_normalized")
         .values_list("name", flat=True)
-        .distinct("name__normalize")
+        .distinct("name_normalized")
     )
 
     # write the root index, which lists all of the projects for which there is a package available
@@ -81,7 +81,7 @@ def write_simple_api(publication):
     packages = python_models.PythonPackageContent.objects.filter(
         pk__in=publication.repository_version.content, _pulp_domain=domain
     )
-    releases = packages.order_by("name__normalize").values("name", "filename", "sha256")
+    releases = packages.order_by("name_normalized").values("name", "filename", "sha256")
 
     ind = 0
     current_name = canonicalize_name(project_names[ind])

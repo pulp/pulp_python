@@ -115,7 +115,7 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
         if name:
             normalized = canonicalize_name(name)
             package_content = PythonPackageContent.objects.filter(
-                pk__in=self.publication.repository_version.content, name__normalize=normalized
+                pk__in=self.publication.repository_version.content, name_normalized=normalized
             )
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
@@ -134,14 +134,6 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
         permissions = [
             ("manage_roles_pythondistribution", "Can manage roles on python distributions"),
         ]
-
-
-class NormalizeName(models.Transform):
-    """A transform field to normalize package names according to PEP426."""
-
-    function = "REGEXP_REPLACE"
-    template = "LOWER(%(function)s(%(expressions)s, '(\.|_|-)', '-', 'ig'))"  # noqa:W605
-    lookup_name = "normalize"
 
 
 class PythonPackageContent(Content):
@@ -195,6 +187,9 @@ class PythonPackageContent(Content):
     license_expression = models.TextField()
     license_file = models.JSONField(default=list)
 
+    # Stored normalized name for indexed lookups
+    name_normalized = models.TextField(db_index=True, default="")
+
     # Release metadata
     filename = models.TextField(db_index=True)
     packagetype = models.TextField(choices=PACKAGE_TYPES)
@@ -208,8 +203,12 @@ class PythonPackageContent(Content):
     PROTECTED_FROM_RECLAIM = False
     TYPE = "python"
     _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
-    name.register_lookup(NormalizeName)
     repo_key_fields = ("filename",)
+
+    @hook(BEFORE_SAVE)
+    def set_name_normalized(self):
+        """Pre-compute the normalized package name for indexed lookups."""
+        self.name_normalized = canonicalize_name(self.name)
 
     @staticmethod
     def init_from_artifact_and_relative_path(artifact, relative_path):

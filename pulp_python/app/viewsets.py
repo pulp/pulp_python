@@ -1,6 +1,9 @@
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
+from django_filters import CharFilter
+from django_filters.rest_framework import filters as drf_filters
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from packaging.utils import canonicalize_name
 from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
@@ -329,15 +332,34 @@ class PythonDistributionViewSet(core_viewsets.DistributionViewSet, core_viewsets
     }
 
 
+class NormalizedNameFilter(CharFilter):
+    """Filter that normalizes the input and queries name_normalized."""
+
+    def filter(self, qs, value):
+        if value:
+            if isinstance(value, list):
+                value = [canonicalize_name(v) for v in value]
+            else:
+                value = canonicalize_name(value)
+        return super().filter(qs, value)
+
+
+class NormalizedNameInFilter(drf_filters.BaseInFilter, NormalizedNameFilter):
+    """In-filter that normalizes each input value and queries name_normalized."""
+
+
 class PythonPackageContentFilter(core_viewsets.ContentFilter):
     """
     FilterSet for PythonPackageContent.
     """
 
+    name = NormalizedNameFilter(field_name="name_normalized", lookup_expr="exact")
+    name__in = NormalizedNameInFilter(field_name="name_normalized", lookup_expr="in")
+    name__contains = CharFilter(field_name="name", lookup_expr="contains")
+
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
-            "name": ["exact", "in", "contains"],
             "author": ["exact", "in", "contains"],
             "packagetype": ["exact", "in"],
             "requires_python": ["exact", "in", "contains"],
