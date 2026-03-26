@@ -365,7 +365,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
             releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
-        if content:
+        if content is not None:
             local_packages = content.filter(name_normalized=normalized)
             packages = local_packages.values(
                 "filename",
