@@ -8,6 +8,23 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.28.0 (2026-03-27) {: #3.28.0 }
+
+#### Features {: #3.28.0-feature }
+
+- Added the name_normalized field to PythonPackageContent model with a database index to replace
+  runtime regex normalization, reducing database load for package name lookups.
+  [#1159](https://github.com/pulp/pulp_python/issues/1159)
+- Added a new `allow_package_substitution` boolean field to PythonRepository (default: True).
+  When set to False, any new repository version that would implicitly replace existing content
+  with content that has the same filename but a different sha256 checksum is rejected. This
+  applies to all repository version creation paths including uploads, modify, and sync. Content
+  with a matching checksum is allowed through idempotently.
+  [#1162](https://github.com/pulp/pulp_python/issues/1162)
+- Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
 ## 3.27.0 (2026-03-17) {: #3.27.0 }
 
 #### Bugfixes {: #3.27.0-bugfix }
