@@ -53,9 +53,23 @@ class PythonRepositorySerializer(core_serializers.RepositorySerializer):
         default=False,
         required=False,
     )
+    allow_package_substitution = serializers.BooleanField(
+        help_text=_(
+            "Whether to allow package substitution (replacing existing packages with packages "
+            "that have the same filename but a different checksum). When False, any new "
+            "repository version that would cause such a substitution will be rejected. This "
+            "applies to all repository version creation paths including uploads, modify, and "
+            "sync. When True (the default), package substitution is allowed."
+        ),
+        default=True,
+        required=False,
+    )
 
     class Meta:
-        fields = core_serializers.RepositorySerializer.Meta.fields + ("autopublish",)
+        fields = core_serializers.RepositorySerializer.Meta.fields + (
+            "autopublish",
+            "allow_package_substitution",
+        )
         model = python_models.PythonRepository
 
 
@@ -448,7 +462,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         content = super().create(validated_data)
         if provenance:
             prov_sha256 = python_models.PackageProvenance.calculate_sha256(provenance)
-            prov_model, _ = python_models.PackageProvenance.objects.get_or_create(
+            prov_model, _created = python_models.PackageProvenance.objects.get_or_create(
                 sha256=prov_sha256,
                 _pulp_domain=get_domain(),
                 defaults={"package": content, "provenance": provenance},

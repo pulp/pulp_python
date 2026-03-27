@@ -11,6 +11,7 @@ from django_lifecycle import (
     BEFORE_SAVE,
     hook,
 )
+from rest_framework.serializers import ValidationError
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     Content,
@@ -31,7 +32,11 @@ from .utils import (
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
 )
-from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
+from pulpcore.plugin.repo_version_utils import (
+    collect_duplicates,
+    remove_duplicates,
+    validate_repo_version,
+)
 from pulpcore.plugin.util import get_domain_pk, get_domain
 
 log = getLogger(__name__)
@@ -362,6 +367,7 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
     PULL_THROUGH_SUPPORTED = True
 
     autopublish = models.BooleanField(default=False)
+    allow_package_substitution = models.BooleanField(default=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -390,6 +396,25 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
     def finalize_new_version(self, new_version):
         """
         Remove duplicate packages that have the same filename.
+
+        When allow_package_substitution is False, reject any new version that would implicitly
+        replace existing content with different checksums (content substitution).
         """
+        if not self.allow_package_substitution:
+            self._check_for_package_substitution(new_version)
         remove_duplicates(new_version)
         validate_repo_version(new_version)
+
+    def _check_for_package_substitution(self, new_version):
+        """
+        Raise a ValidationError if newly added packages would replace existing packages that have
+        the same filename but a different sha256 checksum.
+        """
+        qs = PythonPackageContent.objects.filter(pk__in=new_version.content)
+        duplicates = collect_duplicates(qs, ("filename",))
+        if duplicates:
+            raise ValidationError(
+                "Found duplicate packages being added with the same filename but different checksums. "  # noqa: E501
+                "To allow this, set 'allow_package_substitution' to True on the repository. "
+                f"Conflicting packages: {duplicates}"
+            )

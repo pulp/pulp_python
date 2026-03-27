@@ -144,44 +144,41 @@ def test_content_create_new_metadata(
         assert getattr(content, k) == v
 
 
+def get_package_url(package, filename):
+    with PyPISimple() as client:
+        page = client.get_project_page(package)
+        for package in page.packages:
+            if package.filename == filename:
+                return package.url
+        raise ValueError(f"Package {filename} not found")
+
+
 @pytest.mark.parallel
 def test_upload_metadata_23_spec(python_content_factory):
     """Test that packages using metadata spec 2.3 can be uploaded to pulp."""
     filename = "urllib3-2.2.2-py3-none-any.whl"
-    with PyPISimple() as client:
-        page = client.get_project_page("urllib3")
-        for package in page.packages:
-            if package.filename == filename:
-                content = python_content_factory(filename, url=package.url)
-                assert content.metadata_version == "2.3"
-                break
+    url = get_package_url("urllib3", filename)
+    content = python_content_factory(filename, url=url)
+    assert content.metadata_version == "2.3"
 
 
 @pytest.mark.parallel
 def test_upload_requires_python(python_content_factory):
     filename = "pip-24.3.1-py3-none-any.whl"
-    with PyPISimple() as client:
-        page = client.get_project_page("pip")
-        for package in page.packages:
-            if package.filename == filename:
-                content = python_content_factory(filename, url=package.url)
-                assert content.requires_python == ">=3.8"
-                break
+    url = get_package_url("pip", filename)
+    content = python_content_factory(filename, url=url)
+    assert content.requires_python == ">=3.8"
 
 
 @pytest.mark.parallel
 def test_upload_metadata_24_spec(python_content_factory):
     """Test that packages using metadata spec 2.4 can be uploaded to pulp."""
     filename = "setuptools-80.9.0.tar.gz"
-    with PyPISimple() as client:
-        page = client.get_project_page("setuptools")
-        for package in page.packages:
-            if package.filename == filename:
-                content = python_content_factory(filename, url=package.url)
-                assert content.metadata_version == "2.4"
-                assert content.license_expression == "MIT"
-                assert content.license_file == '["LICENSE"]'
-                break
+    url = get_package_url("setuptools", filename)
+    content = python_content_factory(filename, url=url)
+    assert content.metadata_version == "2.4"
+    assert content.license_expression == "MIT"
+    assert content.license_file == '["LICENSE"]'
 
 
 @pytest.mark.parallel
@@ -203,3 +200,108 @@ def test_package_creation_with_metadata(
     ensure_metadata(
         pulp_content_url, distro.base_path, PYTHON_WHEEL_FILENAME, "shelf-reader", "0.1"
     )
+
+
+@pytest.mark.parallel
+def test_disallow_package_substitution(
+    monitor_task,
+    python_bindings,
+    python_repo_factory,
+):
+    """
+    When allow_package_substitution=False, any new repository version that would substitute
+    existing content (same filename, different sha256) is rejected. This applies to both
+    content uploads and repository modify operations. Re-adding content with a matching
+    sha256 succeeds idempotently.
+    """
+    repo = python_repo_factory(allow_package_substitution=False)
+    msg1 = "Found duplicate packages being added with the same filename but different checksums."
+    msg2 = "To allow this, set 'allow_package_substitution' to True on the repository."
+
+    # First upload succeeds
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file_url": PYTHON_EGG_URL}
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    content = python_bindings.ContentPackagesApi.read(task.created_resources[-1])
+    assert content.filename == PYTHON_EGG_FILENAME
+
+    # Re-upload same artifact with same filename — should succeed (idempotent)
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    assert content.pulp_href in task.created_resources
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    assert repo.latest_version_href.endswith("/1/")
+
+    # Upload a different artifact with the same filename — should be rejected
+    second_filename = "pip-26.0.1.tar.gz"
+    second_url = get_package_url("pip", second_filename)
+    content_body2 = {"relative_path": PYTHON_EGG_FILENAME, "file_url": second_url}
+    with pytest.raises(PulpTaskError) as exc:
+        response = python_bindings.ContentPackagesApi.create(
+            repository=repo.pulp_href, **content_body2
+        )
+        monitor_task(response.task)
+    assert msg1 in exc.value.task.error["description"]
+    assert msg2 in exc.value.task.error["description"]
+
+    # Also create the conflicting content without a repo, then try to add via modify
+    response = python_bindings.ContentPackagesApi.create(**content_body2)
+    task = monitor_task(response.task)
+    content2 = python_bindings.ContentPackagesApi.read(task.created_resources[0])
+    # When body only contains add_content_units, the request will be rejected
+    body = {"add_content_units": [content2.pulp_href]}
+    with pytest.raises(python_bindings.ApiException) as exc:
+        python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body)
+    assert msg1 in exc.value.body
+    # Else when body contains other fields, the check will be delegated to the task
+    body = {"add_content_units": [content2.pulp_href], "base_version": repo.latest_version_href}
+    with pytest.raises(PulpTaskError) as exc:
+        monitor_task(python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body).task)
+    assert msg1 in exc.value.task.error["description"]
+    assert msg2 in exc.value.task.error["description"]
+
+    # Verify the repository still has only the original content
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    assert repo.latest_version_href.endswith("/1/")
+    # Check that you can remove the conflicting content and add the new content
+    body = {"remove_content_units": [content.pulp_href], "add_content_units": [content2.pulp_href]}
+    response = python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body)
+    task = monitor_task(response.task)
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    assert repo.latest_version_href.endswith("/2/")
+
+
+@pytest.mark.parallel
+def test_package_substitution_allowed_by_default(
+    monitor_task,
+    python_bindings,
+    python_repo_factory,
+):
+    """
+    By default (allow_package_substitution=True), uploading a file with the same filename
+    but different sha256 replaces the existing content in the repository.
+    """
+    repo = python_repo_factory()
+    assert repo.allow_package_substitution is True
+
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file_url": PYTHON_EGG_URL}
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    content1 = python_bindings.ContentPackagesApi.read(task.created_resources[-1])
+
+    # Upload a different artifact with the same filename — should succeed and replace
+    second_filename = "pip-26.0.tar.gz"
+    second_url = get_package_url("pip", second_filename)
+    content_body = {"relative_path": PYTHON_EGG_FILENAME, "file_url": second_url}
+    response = python_bindings.ContentPackagesApi.create(repository=repo.pulp_href, **content_body)
+    task = monitor_task(response.task)
+    content2 = python_bindings.ContentPackagesApi.read(task.created_resources[-1])
+    assert content2.pulp_href != content1.pulp_href
+
+    # Verify the repo has only the new content
+    repo = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    content_list = python_bindings.ContentPackagesApi.list(
+        repository_version=repo.latest_version_href
+    )
+    assert content_list.count == 1
+    assert content_list.results[0].sha256 == content2.sha256
