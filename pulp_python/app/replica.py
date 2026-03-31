@@ -31,7 +31,8 @@ class PythonReplicator(Replicator):
     def url(self, upstream_distribution):
         # Ignore distributions that are only pull-through
         repo, pub = upstream_distribution["repository"], upstream_distribution["publication"]
-        if repo or pub:
+        repo_ver = upstream_distribution.get("repository_version")
+        if repo or pub or repo_ver:
             return super().url(upstream_distribution)
 
         return None
