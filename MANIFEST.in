@@ -11,3 +11,5 @@ include unittest_requirements.txt
 include pulp_python/app/webserver_snippets/*
 include pulp_python/tests/functional/assets/*
 exclude releasing.md
+
+exclude .gitleaks.toml
