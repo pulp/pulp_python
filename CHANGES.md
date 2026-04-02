@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.28.1 (2026-04-01) {: #3.28.1 }
+
+#### Bugfixes {: #3.28.1-bugfix }
+
+- Support "atomic" replications in pulpcore 3.107
+
+---
+
 ## 3.28.0 (2026-03-27) {: #3.28.0 }
 
 #### Features {: #3.28.0-feature }
@@ -22,6 +30,14 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.1 (2026-04-01) {: #3.27.1 }
+
+#### Bugfixes {: #3.27.1-bugfix }
+
+- Support "atomic" replications in pulpcore 3.107
 
 ---
 
@@ -332,6 +348,14 @@
 
 ---
 
+## 3.13.6 (2026-04-01) {: #3.13.6 }
+
+#### Bugfixes {: #3.13.6-bugfix }
+
+- Support "atomic" replications in pulpcore 3.107
+
+---
+
 ## 3.13.5 (2025-04-23) {: #3.13.5 }
 
 No significant changes.
@@ -395,6 +419,14 @@ No significant changes.
 #### Misc {: #3.13.0-misc }
 
 - [#774](https://github.com/pulp/pulp_python/issues/774)
+
+---
+
+## 3.12.9 (2026-04-01) {: #3.12.9 }
+
+#### Bugfixes {: #3.12.9-bugfix }
+
+- Support "atomic" replications in pulpcore 3.107
 
 ---
 
