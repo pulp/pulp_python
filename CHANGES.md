@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.27.2 (2026-04-14) {: #3.27.2 }
+
+#### Bugfixes {: #3.27.2-bugfix }
+
+- Fixed "Worker has gone missing" errors during repair_metadata on large repositories (1000+ packages) by reducing peak memory consumption.
+  [#1188](https://github.com/pulp/pulp_python/issues/1188)
+
+---
+
 ## 3.27.1 (2026-04-01) {: #3.27.1 }
 
 #### Bugfixes {: #3.27.1-bugfix }
