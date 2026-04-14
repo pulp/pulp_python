@@ -1,0 +1,1 @@
+Fixed "Worker has gone missing" errors during repair_metadata on large repositories (1000+ packages) by reducing peak memory consumption.
