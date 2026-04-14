@@ -240,18 +240,37 @@ def compute_metadata_sha256(filename: str) -> str | None:
     return hashlib.sha256(metadata_content).hexdigest() if metadata_content else None
 
 
-def artifact_to_python_content_data(filename, artifact, domain=None):
+def copy_artifact_to_temp_file(artifact, filename, tmp_dir="."):
+    """
+    Copy an artifact's file to a temporary file on disk.
+
+    Returns the path to the temp file. The caller is responsible for cleanup.
+    """
+    temp_file = tempfile.NamedTemporaryFile("wb", dir=tmp_dir, suffix=filename, delete=False)
+    artifact.file.seek(0)
+    shutil.copyfileobj(artifact.file, temp_file)
+    temp_file.flush()
+    temp_file.close()
+    return temp_file.name
+
+
+def artifact_to_python_content_data(filename, artifact, domain=None, temp_path=None):
     """
     Takes the artifact/filename and returns the metadata needed to create a PythonPackageContent.
+
+    If temp_path is provided, uses it instead of copying the artifact to a new temp file.
     """
     # Copy file to a temp directory under the user provided filename, we do this
     # because pkginfo validates that the filename has a valid extension before
     # reading it
-    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
-        artifact.file.seek(0)
-        shutil.copyfileobj(artifact.file, temp_file)
-        temp_file.flush()
-        metadata = get_project_metadata_from_file(temp_file.name)
+    if temp_path:
+        metadata = get_project_metadata_from_file(temp_path)
+    else:
+        with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
+            artifact.file.seek(0)
+            shutil.copyfileobj(artifact.file, temp_file)
+            temp_file.flush()
+            metadata = get_project_metadata_from_file(temp_file.name)
     data = parse_project_metadata(vars(metadata))
     data["sha256"] = artifact.sha256
     data["size"] = artifact.size
@@ -277,6 +296,16 @@ def artifact_to_metadata_artifact(
         temp_file.flush()
 
     metadata_content = extract_wheel_metadata(temp_wheel_path)
+    if not metadata_content:
+        return None
+
+    return metadata_content_to_artifact(metadata_content, tmp_dir)
+
+
+def metadata_content_to_artifact(metadata_content: bytes, tmp_dir: str = ".") -> Artifact | None:
+    """
+    Creates an Artifact from raw metadata content bytes.
+    """
     if not metadata_content:
         return None
 
