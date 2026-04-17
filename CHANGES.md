@@ -8,6 +8,21 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.29.0 (2026-04-17) {: #3.29.0 }
+
+#### Features {: #3.29.0-feature }
+
+- Added repository-specific package blocklist.
+  [#1166](https://github.com/pulp/pulp_python/issues/1166)
+
+#### Bugfixes {: #3.29.0-bugfix }
+
+- Fixed "Worker has gone missing" errors during repair_metadata on large repositories (1000+ packages) by reducing peak memory consumption.
+  [#1188](https://github.com/pulp/pulp_python/issues/1188)
+- Support "atomic" replications in pulpcore 3.107
+
+---
+
 ## 3.28.2 (2026-04-14) {: #3.28.2 }
 
 #### Bugfixes {: #3.28.2-bugfix }
