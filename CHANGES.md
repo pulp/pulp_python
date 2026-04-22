@@ -555,6 +555,12 @@ No significant changes.
 
 ---
 
+## 3.11.8 (2026-04-21) {: #3.11.8 }
+
+No significant changes.
+
+---
+
 ## 3.11.7 (2025-11-18) {: #3.11.7 }
 
 No significant changes.
