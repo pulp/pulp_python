@@ -1,7 +1,9 @@
-import pytest
 import uuid
 
+import pytest
+
 from pulpcore.client.pulp_python import ApiException, AsyncOperationResponse
+
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
@@ -230,7 +232,7 @@ def test_pypi_apis(
     python_distribution_factory,
     anonymous_user,
     download_python_file,
-    try_action
+    try_action,
 ):
     alice, bob, charlie = gen_users(["pythonrepository", "pythondistribution"])
     with bob:

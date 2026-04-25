@@ -1,13 +1,13 @@
-import pkginfo
+import json
 import shutil
 import tempfile
-import json
 from collections import defaultdict
+
+import pkginfo
 from django.conf import settings
 from jinja2 import Template
 from packaging.utils import canonicalize_name
 from packaging.version import parse
-
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
@@ -71,28 +71,28 @@ def parse_project_metadata(project):
 
     """
     package = {}
-    package['name'] = project.get('name') or ""
-    package['metadata_version'] = project.get('metadata_version') or ""
-    package['summary'] = project.get('summary') or ""
-    package['description'] = project.get('description') or ""
-    package['keywords'] = project.get('keywords') or ""
-    package['home_page'] = project.get('home_page') or ""
-    package['download_url'] = project.get('download_url') or ""
-    package['author'] = project.get('author') or ""
-    package['author_email'] = project.get('author_email') or ""
-    package['maintainer'] = project.get('maintainer') or ""
-    package['maintainer_email'] = project.get('maintainer_email') or ""
-    package['license'] = project.get('license') or ""
-    package['project_url'] = project.get('project_url') or ""
-    package['platform'] = project.get('platform') or ""
-    package['supported_platform'] = project.get('supported_platform') or ""
-    package['requires_dist'] = json.dumps(project.get('requires_dist', []))
-    package['provides_dist'] = json.dumps(project.get('provides_dist', []))
-    package['obsoletes_dist'] = json.dumps(project.get('obsoletes_dist', []))
-    package['requires_external'] = json.dumps(project.get('requires_external', []))
-    package['classifiers'] = json.dumps(project.get('classifiers', []))
-    package['project_urls'] = json.dumps(project.get('project_urls', {}))
-    package['description_content_type'] = project.get('description_content_type') or ""
+    package["name"] = project.get("name") or ""
+    package["metadata_version"] = project.get("metadata_version") or ""
+    package["summary"] = project.get("summary") or ""
+    package["description"] = project.get("description") or ""
+    package["keywords"] = project.get("keywords") or ""
+    package["home_page"] = project.get("home_page") or ""
+    package["download_url"] = project.get("download_url") or ""
+    package["author"] = project.get("author") or ""
+    package["author_email"] = project.get("author_email") or ""
+    package["maintainer"] = project.get("maintainer") or ""
+    package["maintainer_email"] = project.get("maintainer_email") or ""
+    package["license"] = project.get("license") or ""
+    package["project_url"] = project.get("project_url") or ""
+    package["platform"] = project.get("platform") or ""
+    package["supported_platform"] = project.get("supported_platform") or ""
+    package["requires_dist"] = json.dumps(project.get("requires_dist", []))
+    package["provides_dist"] = json.dumps(project.get("provides_dist", []))
+    package["obsoletes_dist"] = json.dumps(project.get("obsoletes_dist", []))
+    package["requires_external"] = json.dumps(project.get("requires_external", []))
+    package["classifiers"] = json.dumps(project.get("classifiers", []))
+    package["project_urls"] = json.dumps(project.get("project_urls", {}))
+    package["description_content_type"] = project.get("description_content_type") or ""
 
     return package
 
@@ -115,13 +115,13 @@ def parse_metadata(project, version, distribution):
     """
     package = {}
 
-    package['filename'] = distribution.get('filename') or ""
-    package['packagetype'] = distribution.get('packagetype') or ""
-    package['version'] = version
-    package['url'] = distribution.get('url') or ""
-    package['sha256'] = distribution.get('digests', {}).get('sha256') or ""
-    package['python_version'] = distribution.get('python_version') or ""
-    package['requires_python'] = distribution.get('requires_python') or ""
+    package["filename"] = distribution.get("filename") or ""
+    package["packagetype"] = distribution.get("packagetype") or ""
+    package["version"] = version
+    package["url"] = distribution.get("url") or ""
+    package["sha256"] = distribution.get("digests", {}).get("sha256") or ""
+    package["python_version"] = distribution.get("python_version") or ""
+    package["requires_python"] = distribution.get("requires_python") or ""
 
     package.update(parse_project_metadata(project))
 
@@ -142,7 +142,7 @@ def get_project_metadata_from_artifact(filename, artifact):
     # Copy file to a temp directory under the user provided filename, we do this
     # because pkginfo validates that the filename has a valid extension before
     # reading it
-    with tempfile.NamedTemporaryFile('wb', dir=".", suffix=filename) as temp_file:
+    with tempfile.NamedTemporaryFile("wb", dir=".", suffix=filename) as temp_file:
         shutil.copyfileobj(artifact.file, temp_file)
         temp_file.flush()
         metadata = DIST_TYPES[packagetype](temp_file.name)
@@ -268,10 +268,12 @@ def python_content_to_download_info(content, base_path, domain=None):
     Takes in a PythonPackageContent and base path of the distribution to create a dictionary of
     download information for that content. This dictionary is used by Releases and Urls.
     """
+
     def find_artifact():
         _art = content_artifact.artifact
         if not _art:
             from pulpcore.plugin import models
+
             _art = models.RemoteArtifact.objects.filter(content_artifact=content_artifact).first()
         return _art
 
@@ -301,7 +303,7 @@ def python_content_to_download_info(content, base_path, domain=None):
         "upload_time_iso_8601": str(content.pulp_created.isoformat()),
         "url": url,
         "yanked": False,
-        "yanked_reason": None
+        "yanked_reason": None,
     }
 
 
