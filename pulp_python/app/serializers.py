@@ -404,7 +404,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("includes specifier {} is invalid. {}".format(pkg, ve))
+                    _("includes specifier {} is invalid. {}").format(pkg, ve)
                 )
         return value
 
@@ -415,7 +415,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("excludes specifier {} is invalid. {}".format(pkg, ve))
+                    _("excludes specifier {} is invalid. {}").format(pkg, ve)
                 )
         return value
 
