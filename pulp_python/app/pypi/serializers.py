@@ -1,11 +1,13 @@
 import logging
 from gettext import gettext as _
 
+from django.db.utils import IntegrityError
 from rest_framework import serializers
-from pulp_python.app.utils import DIST_EXTENSIONS
+
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
-from django.db.utils import IntegrityError
+
+from pulp_python.app.utils import DIST_EXTENSIONS
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +48,7 @@ class PackageUploadSerializer(serializers.Serializer):
     action = serializers.CharField(
         help_text=_("Defaults to `file_upload`, don't change it or request will fail!"),
         default="file_upload",
-        source=":action"
+        source=":action",
     )
     sha256_digest = serializers.CharField(
         help_text=_("SHA256 of package to validate upload integrity."),
@@ -59,17 +61,17 @@ class PackageUploadSerializer(serializers.Serializer):
         """Validates the request."""
         action = data.get(":action")
         if action != "file_upload":
-            raise serializers.ValidationError(
-                _("We do not support the :action {}").format(action)
-            )
+            raise serializers.ValidationError(_("We do not support the :action {}").format(action))
         file = data.get("content")
         for ext, packagetype in DIST_EXTENSIONS.items():
             if file.name.endswith(ext):
                 break
         else:
-            raise serializers.ValidationError(_(
-                "Extension on {} is not a valid python extension "
-                "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)").format(file.name)
+            raise serializers.ValidationError(
+                _(
+                    "Extension on {} is not a valid python extension "
+                    "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
+                ).format(file.name)
             )
         sha256 = data.get("sha256_digest")
         digests = {"sha256": sha256} if sha256 else None

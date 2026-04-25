@@ -1,12 +1,13 @@
-import pytest
 import random
 from urllib.parse import urljoin
 
+import pytest
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_EGG_FILENAME,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
 )
 from pulp_python.tests.functional.utils import ensure_simple
@@ -17,6 +18,7 @@ def python_publication_workflow(
     python_repo_with_sync, python_remote_factory, python_publication_factory
 ):
     """Create repo, remote, sync & then publish."""
+
     def _publish_workflow(repository=None, remote=None, **remote_body):
         if not remote:
             remote = python_remote_factory(**remote_body)
@@ -55,8 +57,9 @@ def test_all_content_published(python_publication_workflow, python_distribution_
     distro = python_distribution_factory(publication=pub)
 
     url = urljoin(distro.base_url, "simple/")
-    proper, msgs = ensure_simple(url, PYTHON_SM_FIXTURE_RELEASES,
-                                 sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS)
+    proper, msgs = ensure_simple(
+        url, PYTHON_SM_FIXTURE_RELEASES, sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS
+    )
     assert proper is True, msgs
 
 

@@ -1,21 +1,21 @@
 import pytest
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_XS_PACKAGE_COUNT,
-    PYTHON_PRERELEASE_TEST_SPECIFIER,
-    PYTHON_WITH_PRERELEASE_COUNT,
-    PYTHON_WITHOUT_PRERELEASE_COUNT,
-    PYTHON_XS_PROJECT_SPECIFIER,
-    PYTHON_MD_PROJECT_SPECIFIER,
+    DJANGO_LATEST_3,
+    PYTHON_LG_FIXTURE_COUNTS,
+    PYTHON_LG_PACKAGE_COUNT,
+    PYTHON_LG_PROJECT_SPECIFIER,
     PYTHON_MD_PACKAGE_COUNT,
-    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_PRERELEASE_TEST_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
-    PYTHON_LG_PROJECT_SPECIFIER,
-    PYTHON_LG_PACKAGE_COUNT,
-    PYTHON_LG_FIXTURE_COUNTS,
-    DJANGO_LATEST_3,
+    PYTHON_WITH_PRERELEASE_COUNT,
+    PYTHON_WITHOUT_PRERELEASE_COUNT,
+    PYTHON_XS_PACKAGE_COUNT,
+    PYTHON_XS_PROJECT_SPECIFIER,
     SCIPY_COUNTS,
 )
 
@@ -213,7 +213,7 @@ def test_sync_package_type(python_repo_with_sync, python_remote_factory, python_
 
 @pytest.mark.parallel
 def test_sync_platform_exclude(
-        python_repo_with_sync, python_remote_factory, python_content_summary
+    python_repo_with_sync, python_remote_factory, python_content_summary
 ):
     """
     Tests for platform specific packages not being synced when specified
@@ -226,8 +226,11 @@ def test_sync_platform_exclude(
     1 any platform release
     """
     # Tests that no windows packages are synced
-    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["windows"],
-                                   prereleases=True, )
+    remote = python_remote_factory(
+        includes=["scipy"],
+        exclude_platforms=["windows"],
+        prereleases=True,
+    )
     repo = python_repo_with_sync(remote)
 
     summary = python_content_summary(repository_version=repo.latest_version_href)
@@ -235,8 +238,11 @@ def test_sync_platform_exclude(
     assert summary.present["python.python"]["count"] == diff_count
 
     # Tests that no macos packages are synced
-    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["macos"],
-                                   prereleases=True, )
+    remote = python_remote_factory(
+        includes=["scipy"],
+        exclude_platforms=["macos"],
+        prereleases=True,
+    )
     repo = python_repo_with_sync(remote)
 
     summary = python_content_summary(repository_version=repo.latest_version_href)
@@ -244,8 +250,11 @@ def test_sync_platform_exclude(
     assert summary.present["python.python"]["count"] == diff_count
 
     # Tests that no linux packages are synced
-    remote = python_remote_factory(includes=["scipy"], exclude_platforms=["linux"],
-                                   prereleases=True, )
+    remote = python_remote_factory(
+        includes=["scipy"],
+        exclude_platforms=["linux"],
+        prereleases=True,
+    )
     repo = python_repo_with_sync(remote)
 
     summary = python_content_summary(repository_version=repo.latest_version_href)
@@ -273,7 +282,7 @@ def test_sync_multiple_filters(
         includes=PYTHON_LG_PROJECT_SPECIFIER,
         package_types=["bdist_wheel"],
         keep_latest_packages=1,
-        prereleases=False
+        prereleases=False,
     )
     repo = python_repo_with_sync(remote)
 

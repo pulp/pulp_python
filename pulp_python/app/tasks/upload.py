@@ -1,9 +1,10 @@
 import time
-
 from datetime import datetime, timezone
-from django.db import transaction
+
 from django.contrib.sessions.models import Session
-from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
+from django.db import transaction
+
+from pulpcore.plugin.models import Artifact, ContentArtifact, CreatedResource
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
@@ -43,10 +44,10 @@ def upload_group(session_pk, repository_pk=None):
         with transaction.atomic():
             session_data = s_query.first().get_decoded()
             now = datetime.now(tz=timezone.utc)
-            start_time = datetime.fromisoformat(session_data['start'])
+            start_time = datetime.fromisoformat(session_data["start"])
             if now >= start_time:
                 content_to_add = PythonPackageContent.objects.none()
-                for artifact_sha256, filename in session_data['artifacts']:
+                for artifact_sha256, filename in session_data["artifacts"]:
                     pre_check = PythonPackageContent.objects.filter(
                         sha256=artifact_sha256, _pulp_domain=domain
                     )
@@ -81,9 +82,7 @@ def create_content(artifact_sha256, filename, domain):
     @transaction.atomic()
     def create():
         content = PythonPackageContent.objects.create(**data)
-        ContentArtifact.objects.create(
-            artifact=artifact, content=content, relative_path=filename
-        )
+        ContentArtifact.objects.create(artifact=artifact, content=content, relative_path=filename)
         return content
 
     new_content = create()
