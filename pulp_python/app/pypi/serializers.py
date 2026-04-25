@@ -112,7 +112,7 @@ class PackageUploadSerializer(serializers.Serializer):
                 attestations = TypeAdapter(list[Attestation]).validate_python(attestations)
             except ValidationError as e:
                 raise serializers.ValidationError(
-                    {"attestations": _("The uploaded attestations are not valid: {}".format(e))}
+                    {"attestations": _("The uploaded attestations are not valid: {}").format(e)}
                 )
 
         sha256 = data.get("sha256_digest")
