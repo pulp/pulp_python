@@ -1,17 +1,18 @@
 import time
-
 from datetime import datetime, timezone
-from django.db import transaction
-from django.contrib.sessions.models import Session
-from pydantic import TypeAdapter
-from pulpcore.plugin.models import Artifact, CreatedResource, Content, ContentArtifact
-from pulpcore.plugin.util import get_domain, get_current_authenticated_user, get_prn
 
-from pulp_python.app.models import PythonPackageContent, PythonRepository, PackageProvenance
+from django.contrib.sessions.models import Session
+from django.db import transaction
+from pydantic import TypeAdapter
+
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, CreatedResource
+from pulpcore.plugin.util import get_current_authenticated_user, get_domain, get_prn
+
+from pulp_python.app.models import PackageProvenance, PythonPackageContent, PythonRepository
 from pulp_python.app.provenance import (
+    AnyPublisher,
     Attestation,
     AttestationBundle,
-    AnyPublisher,
     Provenance,
     verify_provenance,
 )

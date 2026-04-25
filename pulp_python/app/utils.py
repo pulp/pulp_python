@@ -1,23 +1,25 @@
 import hashlib
+import json
 import logging
-import pkginfo
 import re
 import shutil
 import tempfile
 import zipfile
-import json
-from aiohttp.client_exceptions import ClientError
 from collections import defaultdict
 from datetime import timezone
+
+import pkginfo
+from aiohttp.client_exceptions import ClientError
 from django.conf import settings
 from django.db.utils import IntegrityError
 from jinja2 import Template
-from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
-from packaging.version import parse, InvalidVersion
+from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
-from pulpcore.plugin.models import Artifact, Remote
+
 from pulpcore.plugin.exceptions import TimeoutException
+from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)

@@ -69,7 +69,7 @@ def test_simple_html_detail_api(
     monitor_task(python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body).task)
     distro = python_distribution_factory(repository=repo)
 
-    url = f'{urljoin(distro.base_url, "simple/")}twine'
+    url = f"{urljoin(distro.base_url, 'simple/')}twine"
     headers = {"Accept": PYPI_SIMPLE_V1_HTML}
 
     response = requests.get(url, headers=headers)
@@ -125,7 +125,7 @@ def test_simple_json_detail_api(
     monitor_task(python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body).task)
     distro = python_distribution_factory(repository=repo)
 
-    url = f'{urljoin(distro.base_url, "simple/")}twine'
+    url = f"{urljoin(distro.base_url, 'simple/')}twine"
     headers = {"Accept": PYPI_SIMPLE_V1_JSON}
 
     response = requests.get(url, headers=headers)

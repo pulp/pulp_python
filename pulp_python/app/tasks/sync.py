@@ -1,11 +1,17 @@
-import logging
 import asyncio
-
-from aiohttp import ClientResponseError, ClientError
-from lxml.etree import LxmlError
-from gettext import gettext as _
+import logging
 from functools import partial
+from gettext import gettext as _
+from urllib.parse import urljoin
 
+from aiohttp import ClientError, ClientResponseError
+from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.master import Master
+from bandersnatch.mirror import Mirror
+from lxml.etree import LxmlError
+from packaging.requirements import Requirement
+from pypi_attestations import Provenance
+from pypi_simple import IndexPage
 from rest_framework import serializers
 
 from pulpcore.plugin.download import HttpDownloader
@@ -18,19 +24,11 @@ from pulpcore.plugin.stages import (
 )
 
 from pulp_python.app.models import (
+    PackageProvenance,
     PythonPackageContent,
     PythonRemote,
-    PackageProvenance,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL, aget_remote_simple_page
-from pypi_simple import IndexPage
-from pypi_attestations import Provenance
-
-from bandersnatch.mirror import Mirror
-from bandersnatch.master import Master
-from bandersnatch.configuration import BandersnatchConfig
-from packaging.requirements import Requirement
-from urllib.parse import urljoin
+from pulp_python.app.utils import PYPI_LAST_SERIAL, aget_remote_simple_page, parse_metadata
 
 logger = logging.getLogger(__name__)
 

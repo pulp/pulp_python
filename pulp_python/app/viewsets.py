@@ -1,10 +1,11 @@
+from pathlib import Path
+
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from django_filters import CharFilter
 from django_filters.rest_framework import filters as drf_filters
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from packaging.utils import canonicalize_name
-from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import (

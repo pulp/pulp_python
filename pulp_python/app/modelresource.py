@@ -1,6 +1,7 @@
 from pulpcore.plugin.importexport import BaseContentResource
 from pulpcore.plugin.modelresources import RepositoryResource
 from pulpcore.plugin.util import get_domain
+
 from pulp_python.app.models import (
     PythonPackageContent,
     PythonRepository,

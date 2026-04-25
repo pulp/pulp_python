@@ -1,16 +1,18 @@
+from urllib.parse import urljoin
+
 import pytest
 import requests
+
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
+    PYTHON_EGG_SHA256,
     PYTHON_EGG_URL,
     PYTHON_FIXTURES_URL,
     PYTHON_WHEEL_FILENAME,
-    PYTHON_WHEEL_URL,
-    PYTHON_EGG_SHA256,
     PYTHON_WHEEL_SHA256,
+    PYTHON_WHEEL_URL,
 )
 from pulp_python.tests.functional.utils import ensure_metadata
-from urllib.parse import urljoin
 
 
 @pytest.mark.parametrize(
