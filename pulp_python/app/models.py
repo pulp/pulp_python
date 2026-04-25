@@ -1,29 +1,30 @@
 from logging import getLogger
+from pathlib import PurePath
 
 from aiohttp.web import json_response
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+
 from pulpcore.plugin.models import (
     Content,
-    Publication,
     Distribution,
+    Publication,
     Remote,
     Repository,
 )
+from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 from pulpcore.plugin.responses import ArtifactResponse
 from pulpcore.plugin.util import get_domain
 
-from pathlib import PurePath
 from .utils import (
+    PYPI_LAST_SERIAL,
+    PYPI_SERIAL_CONSTANT,
     canonicalize_name,
     get_project_metadata_from_artifact,
     parse_project_metadata,
     python_content_to_json,
-    PYPI_LAST_SERIAL,
-    PYPI_SERIAL_CONSTANT,
 )
-from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
 log = getLogger(__name__)
 

@@ -1,39 +1,42 @@
 """Tests all the PyPI apis available at `pypi/`."""
+
 import os
-import requests
 import subprocess
 import tempfile
-import pytest
-
 from urllib.parse import urljoin
 
+import pytest
+import requests
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import get_added_content_summary, get_content_summary
+
+from pulpcore.client.pulp_python import PypiApi
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_CONTENT_NAME,
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
-    PYTHON_MD_PROJECT_SPECIFIER,
-    PYTHON_MD_PYPI_SUMMARY,
     PULP_CONTENT_BASE_URL,
     PULP_PYPI_BASE_URL,
+    PYTHON_CONTENT_NAME,
     PYTHON_EGG_FILENAME,
-    PYTHON_EGG_URL,
     PYTHON_EGG_SHA256,
+    PYTHON_EGG_URL,
+    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_MD_PYPI_SUMMARY,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
-    PYTHON_WHEEL_URL,
     PYTHON_WHEEL_SHA256,
+    PYTHON_WHEEL_URL,
     SHELF_PYTHON_JSON,
 )
-
 from pulp_python.tests.functional.utils import (
-    py_client as client,
-    ensure_simple,
     TestCaseUsingBindings,
     TestHelpersMixin,
+    ensure_simple,
 )
-from pulpcore.client.pulp_python import PypiApi
+from pulp_python.tests.functional.utils import (
+    py_client as client,
+)
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000
@@ -44,6 +47,7 @@ PYPI_HOST = urljoin(HOST, PULP_PYPI_BASE_URL)
 @pytest.fixture
 def python_empty_repo_distro(python_repo_factory, python_distribution_factory):
     """Returns an empty repo with and distribution serving it."""
+
     def _generate_empty_repo_distro(repo_body=None, distro_body=None):
         repo_body = repo_body or {}
         distro_body = distro_body or {}
@@ -145,9 +149,7 @@ class PyPIPackageUpload(TestCaseUsingBindings, TestHelpersMixin):
             files={"content": open(self.egg, "rb")},
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.reason, f"Package {PYTHON_EGG_FILENAME} already exists in index"
-        )
+        self.assertEqual(response.reason, f"Package {PYTHON_EGG_FILENAME} already exists in index")
 
     def test_package_upload_session(self):
         """Tests that multiple uploads will be broken up into multiple tasks."""
@@ -303,16 +305,12 @@ class PyPIPackageMetadata(TestCaseUsingBindings, TestHelpersMixin):
         repo = self._create_repo_and_sync_with_remote(remote)
         pub = self._create_publication(repo)
         distro = self._create_distribution_from_publication(pub)
-        content_url = urljoin(
-            PULP_CONTENT_BASE_URL, f"{distro.base_path}/pypi/shelf-reader/json"
-        )
+        content_url = urljoin(PULP_CONTENT_BASE_URL, f"{distro.base_path}/pypi/shelf-reader/json")
         pypi_url = urljoin(PYPI_HOST, f"{distro.base_path}/pypi/shelf-reader/json/")
         for url in [content_url, pypi_url]:
             response = requests.get(url)
             self.assertIn(PYPI_LAST_SERIAL, response.headers, msg=url)
-            self.assertEqual(
-                response.headers[PYPI_LAST_SERIAL], str(PYPI_SERIAL_CONSTANT), msg=url
-            )
+            self.assertEqual(response.headers[PYPI_LAST_SERIAL], str(PYPI_SERIAL_CONSTANT), msg=url)
 
     def assert_pypi_json(self, package):
         """Asserts that shelf-reader package json is correct."""
@@ -322,9 +320,7 @@ class PyPIPackageMetadata(TestCaseUsingBindings, TestHelpersMixin):
         self.assert_download_info(
             SHELF_PYTHON_JSON["urls"], package["urls"], "Failed to match URLS"
         )
-        self.assertTrue(
-            SHELF_PYTHON_JSON["releases"].keys() <= package["releases"].keys()
-        )
+        self.assertTrue(SHELF_PYTHON_JSON["releases"].keys() <= package["releases"].keys())
         for version in SHELF_PYTHON_JSON["releases"].keys():
             self.assert_download_info(
                 SHELF_PYTHON_JSON["releases"][version],

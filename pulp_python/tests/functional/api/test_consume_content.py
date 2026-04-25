@@ -1,28 +1,28 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
+
+from urllib.parse import urljoin, urlsplit
+
 from pulp_smash import cli
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import modify_repo
+from pulp_smash.utils import http_get
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURE_URL,
-    PYTHON_FIXTURES_PACKAGES,
-    PYTHON_FIXTURES_FILENAMES,
-    PYTHON_LIST_PROJECT_SPECIFIER,
     PYPI_URL,
+    PYTHON_FIXTURE_URL,
+    PYTHON_FIXTURES_FILENAMES,
+    PYTHON_FIXTURES_PACKAGES,
+    PYTHON_LIST_PROJECT_SPECIFIER,
 )
-
 from pulp_python.tests.functional.utils import (
+    TestCaseUsingBindings,
+    TestHelpersMixin,
     cfg,
     gen_artifact,
     gen_python_content_attrs,
-    TestCaseUsingBindings,
-    TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from urllib.parse import urljoin, urlsplit
-
-from pulp_smash.utils import http_get
 
 
 class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
@@ -101,9 +101,7 @@ class PipInstallContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
     def check_consume(self, distribution):
         """Tests that pip packages hosted in a distribution can be consumed"""
         host_base_url = cfg.get_content_host_base_url()
-        url = "".join(
-            [host_base_url, "/pulp/content/", distribution["base_path"], "/simple/"]
-        )
+        url = "".join([host_base_url, "/pulp/content/", distribution["base_path"], "/simple/"])
         for pkg in self.PACKAGES:
             out = self.install(self.cli_client, pkg, host=url)
             self.assertTrue(self.check_install(self.cli_client, pkg), out)

@@ -1,34 +1,31 @@
 # coding=utf-8
 """Tests that publish python plugin repositories."""
+
 import random
 from random import choice
-
-from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import (
-    get_content,
-    get_versions,
-    modify_repo
-)
 from urllib.parse import urljoin
 
+from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.utils import get_content, get_versions, modify_repo
+
+from pulpcore.client.pulp_python.exceptions import ApiException
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_CONTENT_NAME,
     PULP_CONTENT_BASE_URL,
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_CONTENT_NAME,
     PYTHON_EGG_FILENAME,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
 )
 from pulp_python.tests.functional.utils import (
-    cfg,
     TestCaseUsingBindings,
     TestHelpersMixin,
+    cfg,
     ensure_simple,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_python.exceptions import ApiException
 
 
 class PublishAnyRepoVersionTestCase(TestCaseUsingBindings, TestHelpersMixin):
@@ -231,8 +228,9 @@ class PublishedCorrectContent(TestCaseUsingBindings, TestHelpersMixin):
         distro = self._create_distribution_from_publication(pub)
 
         url = urljoin(PULP_CONTENT_BASE_URL, f"{distro.base_path}/simple/")
-        proper, msgs = ensure_simple(url, PYTHON_SM_FIXTURE_RELEASES,
-                                     sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS)
+        proper, msgs = ensure_simple(
+            url, PYTHON_SM_FIXTURE_RELEASES, sha_digests=PYTHON_SM_FIXTURE_CHECKSUMS
+        )
         self.assertTrue(proper, msg=msgs)
 
     def test_removed_content_not_published(self):

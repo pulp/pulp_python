@@ -1,37 +1,39 @@
 # coding=utf-8
 """Tests that python plugin can fully mirror PyPi and other Pulp repositories"""
-import unittest
 
-from pulp_smash import config, cli
+import socket
+import unittest
+from urllib.parse import urljoin, urlsplit
+
+import requests
+from pulp_smash import cli, config
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import gen_repo, get_content_summary
+from pypi_simple import parse_repo_project_response
+
+from pulpcore.client.pulp_python import (
+    RemotesPythonApi,
+    RepositoriesPythonApi,
+    RepositorySyncURL,
+)
+from pulpcore.client.pulpcore import ApiClient as CoreApiClient
+from pulpcore.client.pulpcore import Configuration, TasksApi
 
 from pulp_python.tests.functional.constants import (
     PULP_CONTENT_BASE_URL,
     PULP_PYPI_BASE_URL,
-    PYTHON_CONTENT_NAME,
     PYPI_URL,
+    PYTHON_CONTENT_NAME,
     PYTHON_XS_FIXTURE_CHECKSUMS,
 )
 from pulp_python.tests.functional.utils import (
+    TestCaseUsingBindings,
+    TestHelpersMixin,
     cfg,
     gen_python_client,
     gen_python_remote,
-    TestCaseUsingBindings,
-    TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulpcore import TasksApi, ApiClient as CoreApiClient, Configuration
-from pulpcore.client.pulp_python import (
-    RepositoriesPythonApi,
-    RepositorySyncURL,
-    RemotesPythonApi,
-)
-from pypi_simple import parse_repo_project_response
-import requests
-import socket
-from urllib.parse import urljoin, urlsplit
 
 
 @unittest.skip
@@ -50,10 +52,10 @@ class PyPiMirrorTestCase(unittest.TestCase):
         cls.cfg = config.get_config()
         cls.client = gen_python_client()
         configuration = Configuration()
-        configuration.username = 'admin'
-        configuration.password = 'password'
-        configuration.host = 'http://{}:24817'.format(socket.gethostname())
-        configuration.safe_chars_for_path_param = '/'
+        configuration.username = "admin"
+        configuration.password = "password"
+        configuration.host = "http://{}:24817".format(socket.gethostname())
+        configuration.safe_chars_for_path_param = "/"
         cls.core_client = CoreApiClient(configuration)
 
     def test_on_demand_pypi_full_sync(self):

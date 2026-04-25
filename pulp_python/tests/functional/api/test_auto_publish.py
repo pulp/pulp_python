@@ -1,16 +1,18 @@
 # coding=utf-8
 """Tests automatic updating of publications and distributions."""
+
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import download_content_unit
 
+from pulpcore.client.pulp_python import RepositorySyncURL
+
 from pulp_python.tests.functional.utils import (
+    TestCaseUsingBindings,
+    TestHelpersMixin,
     cfg,
     gen_python_remote,
-    TestCaseUsingBindings,
-    TestHelpersMixin
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from pulpcore.client.pulp_python import RepositorySyncURL
 
 
 class AutoPublishDistributeTestCase(TestCaseUsingBindings, TestHelpersMixin):

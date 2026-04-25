@@ -1,49 +1,50 @@
 # coding=utf-8
 """Tests that sync python plugin repositories."""
-import pytest
+
 import unittest
 
+import pytest
 from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulp_smash.pulp3.bindings import PulpTaskError, monitor_task
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_added_content_summary,
-    get_removed_content_summary,
     get_content_summary,
+    get_removed_content_summary,
+)
+
+from pulpcore.client.pulp_python import (
+    RemotesPythonApi,
+    RepositoriesPythonApi,
+    RepositorySyncURL,
 )
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_XS_FIXTURE_SUMMARY,
-    PYTHON_XS_PACKAGE_COUNT,
-    PYTHON_INVALID_FIXTURE_URL,
-    PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY,
-    PYTHON_PRERELEASE_TEST_SPECIFIER,
-    PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY,
-    PYTHON_WITH_PRERELEASE_COUNT,
-    PYTHON_WITHOUT_PRERELEASE_COUNT,
+    DJANGO_LATEST_3,
     PYTHON_CONTENT_NAME,
-    PYTHON_XS_PROJECT_SPECIFIER,
-    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_INVALID_FIXTURE_URL,
+    PYTHON_LG_FIXTURE_COUNTS,
+    PYTHON_LG_FIXTURE_SUMMARY,
+    PYTHON_LG_PROJECT_SPECIFIER,
     PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_MD_PACKAGE_COUNT,
-    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_PRERELEASE_TEST_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_UNAVAILABLE_PACKAGE_COUNT,
     PYTHON_UNAVAILABLE_PROJECT_SPECIFIER,
-    PYTHON_LG_PROJECT_SPECIFIER,
-    PYTHON_LG_FIXTURE_SUMMARY,
-    PYTHON_LG_FIXTURE_COUNTS,
-    DJANGO_LATEST_3,
+    PYTHON_WITH_PRERELEASE_COUNT,
+    PYTHON_WITH_PRERELEASE_FIXTURE_SUMMARY,
+    PYTHON_WITHOUT_PRERELEASE_COUNT,
+    PYTHON_WITHOUT_PRERELEASE_FIXTURE_SUMMARY,
+    PYTHON_XS_FIXTURE_SUMMARY,
+    PYTHON_XS_PACKAGE_COUNT,
+    PYTHON_XS_PROJECT_SPECIFIER,
     SCIPY_COUNTS,
 )
 from pulp_python.tests.functional.utils import gen_python_client, gen_python_remote
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_python import (
-    RepositoriesPythonApi,
-    RepositorySyncURL,
-    RemotesPythonApi,
-)
 
 
 class BasicSyncTestCase(unittest.TestCase):
@@ -93,12 +94,8 @@ class BasicSyncTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertIsNotNone(repo.latest_version_href)
-        self.assertDictEqual(
-            get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
-        self.assertDictEqual(
-            get_added_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
+        self.assertDictEqual(get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_added_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY)
 
         # Sync the repository again.
         latest_version_href = repo.latest_version_href
@@ -108,9 +105,7 @@ class BasicSyncTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertEqual(latest_version_href, repo.latest_version_href)
-        self.assertDictEqual(
-            get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
+        self.assertDictEqual(get_content_summary(repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY)
 
 
 class SyncInvalidTestCase(unittest.TestCase):
@@ -203,9 +198,7 @@ class PrereleasesTestCase(unittest.TestCase):
            by the specifiers.
 
         """
-        body = gen_python_remote(
-            includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=False
-        )
+        body = gen_python_remote(includes=PYTHON_PRERELEASE_TEST_SPECIFIER, prereleases=False)
         sync_to_remote(self, body, create=True)
 
         self.assertDictEqual(
@@ -296,9 +289,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         body = gen_python_remote(includes=PYTHON_XS_PROJECT_SPECIFIER)
         sync_to_remote(self, body, create=True)
 
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY
-        )
+        self.assertDictEqual(get_content_summary(self.repo.to_dict()), PYTHON_XS_FIXTURE_SUMMARY)
 
     def test_02_add_superset_include(self):
         """
@@ -311,9 +302,7 @@ class IncludesExcludesTestCase(unittest.TestCase):
         body = {"includes": PYTHON_MD_PROJECT_SPECIFIER}
         sync_to_remote(self, body)
 
-        self.assertDictEqual(
-            get_content_summary(self.repo.to_dict()), PYTHON_MD_FIXTURE_SUMMARY
-        )
+        self.assertDictEqual(get_content_summary(self.repo.to_dict()), PYTHON_MD_FIXTURE_SUMMARY)
 
     def test_03_add_subset_exclude(self):
         """
@@ -479,7 +468,7 @@ class LatestKeptPackagesTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["latest_3"]
+            PYTHON_LG_FIXTURE_COUNTS["latest_3"],
         )
 
 
@@ -521,7 +510,7 @@ class PackageTypeTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["sdist"]
+            PYTHON_LG_FIXTURE_COUNTS["sdist"],
         )
 
     def test_bdist_wheel_sync_only(self):
@@ -535,7 +524,7 @@ class PackageTypeTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            PYTHON_LG_FIXTURE_COUNTS["bdist_wheel"]
+            PYTHON_LG_FIXTURE_COUNTS["bdist_wheel"],
         )
 
     def test_both_together_sync(self):
@@ -547,10 +536,7 @@ class PackageTypeTestCase(unittest.TestCase):
         )
         sync_to_remote(self, body, create=True)
 
-        self.assertEqual(
-            get_content_summary(self.repo.to_dict()),
-            PYTHON_LG_FIXTURE_SUMMARY
-        )
+        self.assertEqual(get_content_summary(self.repo.to_dict()), PYTHON_LG_FIXTURE_SUMMARY)
 
 
 class PlatformExcludeTestCase(unittest.TestCase):
@@ -595,7 +581,7 @@ class PlatformExcludeTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["windows"]
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["windows"],
         )
 
     def test_no_macos_sync(self):
@@ -609,7 +595,7 @@ class PlatformExcludeTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["macos"]
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["macos"],
         )
 
     def test_no_linux_sync(self):
@@ -623,7 +609,7 @@ class PlatformExcludeTestCase(unittest.TestCase):
 
         self.assertEqual(
             get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["total"] - SCIPY_COUNTS["linux"]
+            SCIPY_COUNTS["total"] - SCIPY_COUNTS["linux"],
         )
 
     def test_no_platform_sync(self):
@@ -636,8 +622,7 @@ class PlatformExcludeTestCase(unittest.TestCase):
         sync_to_remote(self, body, create=True)
 
         self.assertEqual(
-            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME],
-            SCIPY_COUNTS["no_os"]
+            get_content_summary(self.repo.to_dict())[PYTHON_CONTENT_NAME], SCIPY_COUNTS["no_os"]
         )
 
 
@@ -650,7 +635,7 @@ def test_sync_multiple_filters(
         includes=PYTHON_LG_PROJECT_SPECIFIER,
         package_types=["bdist_wheel"],
         keep_latest_packages=1,
-        prereleases=False
+        prereleases=False,
     )
     repo = python_repo_with_sync(remote)
 
@@ -713,9 +698,7 @@ def sync_to_remote(self, body, create=False, mirror=False):
         monitor_task(remote_task.task)
         type(self).remote = self.remote_api.read(self.remote.pulp_href)
 
-    repository_sync_data = RepositorySyncURL(
-        remote=self.remote.pulp_href, mirror=mirror
-    )
+    repository_sync_data = RepositorySyncURL(remote=self.remote.pulp_href, mirror=mirror)
     sync_response = self.repo_api.sync(self.repo.pulp_href, repository_sync_data)
     monitor_task(sync_response.task)
     type(self).repo = self.repo_api.read(self.repo.pulp_href)

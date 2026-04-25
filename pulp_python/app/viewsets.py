@@ -24,15 +24,12 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
     synced, added, or removed.
     """
 
-    endpoint_name = 'python'
+    endpoint_name = "python"
     queryset = python_models.PythonRepository.objects.all()
     serializer_class = python_serializers.PythonRepositorySerializer
 
-    @extend_schema(
-        summary="Sync from remote",
-        responses={202: AsyncOperationResponseSerializer}
-    )
-    @action(detail=True, methods=['post'], serializer_class=RepositorySyncURLSerializer)
+    @extend_schema(summary="Sync from remote", responses={202: AsyncOperationResponseSerializer})
+    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         <!-- User-facing documentation, rendered as html-->
@@ -42,22 +39,21 @@ class PythonRepositoryViewSet(core_viewsets.RepositoryViewSet, ModifyRepositoryA
         """
         repository = self.get_object()
         serializer = RepositorySyncURLSerializer(
-            data=request.data,
-            context={'request': request, "repository_pk": pk}
+            data=request.data, context={"request": request, "repository_pk": pk}
         )
         serializer.is_valid(raise_exception=True)
-        remote = serializer.validated_data.get('remote', repository.remote)
-        mirror = serializer.validated_data.get('mirror')
+        remote = serializer.validated_data.get("remote", repository.remote)
+        mirror = serializer.validated_data.get("mirror")
 
         result = dispatch(
             tasks.sync,
             exclusive_resources=[repository],
             shared_resources=[remote],
             kwargs={
-                'remote_pk': str(remote.pk),
-                'repository_pk': str(repository.pk),
-                'mirror': mirror
-            }
+                "remote_pk": str(remote.pk),
+                "repository_pk": str(repository.pk),
+                "mirror": mirror,
+            },
         )
         return core_viewsets.OperationPostponedResponse(result, request)
 
@@ -81,7 +77,7 @@ class PythonDistributionViewSet(core_viewsets.DistributionViewSet):
     href="./#tag/Content:-Packages">Python Package Content.</a>
     """
 
-    endpoint_name = 'pypi'
+    endpoint_name = "pypi"
     queryset = python_models.PythonDistribution.objects.all()
     serializer_class = python_serializers.PythonDistributionSerializer
 
@@ -94,19 +90,20 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
     class Meta:
         model = python_models.PythonPackageContent
         fields = {
-            'name': ['exact', 'in'],
-            'author': ['exact', 'in'],
-            'packagetype': ['exact', 'in'],
-            'requires_python': ['exact', 'in', "contains"],
-            'filename': ['exact', 'in', 'contains'],
-            'keywords': ['in', 'contains'],
-            'sha256': ['exact', 'in'],
-            'version': ['exact', 'gt', 'lt', 'gte', 'lte']
+            "name": ["exact", "in"],
+            "author": ["exact", "in"],
+            "packagetype": ["exact", "in"],
+            "requires_python": ["exact", "in", "contains"],
+            "filename": ["exact", "in", "contains"],
+            "keywords": ["in", "contains"],
+            "sha256": ["exact", "in"],
+            "version": ["exact", "gt", "lt", "gte", "lte"],
         }
 
 
 class PythonPackageSingleArtifactContentUploadViewSet(
-        core_viewsets.SingleArtifactContentUploadViewSet):
+    core_viewsets.SingleArtifactContentUploadViewSet
+):
     """
     <!-- User-facing documentation, rendered as html-->
     PythonPackageContent represents each individually installable Python package. In the Python
@@ -117,7 +114,7 @@ class PythonPackageSingleArtifactContentUploadViewSet(
 
     """
 
-    endpoint_name = 'packages'
+    endpoint_name = "packages"
     queryset = python_models.PythonPackageContent.objects.all()
     serializer_class = python_serializers.PythonPackageContentSerializer
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
@@ -133,7 +130,7 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
 
     """
 
-    endpoint_name = 'python'
+    endpoint_name = "python"
     queryset = python_models.PythonRemote.objects.all()
     serializer_class = python_serializers.PythonRemoteSerializer
 
@@ -141,8 +138,11 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
         summary="Create from Bandersnatch",
         responses={201: python_serializers.PythonRemoteSerializer},
     )
-    @action(detail=False, methods=["post"],
-            serializer_class=python_serializers.PythonBanderRemoteSerializer)
+    @action(
+        detail=False,
+        methods=["post"],
+        serializer_class=python_serializers.PythonBanderRemoteSerializer,
+    )
     def from_bandersnatch(self, request):
         """
         <!-- User-facing documentation, rendered as html-->
@@ -154,11 +154,12 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
         name = serializer.validated_data.get("name")
         policy = serializer.validated_data.get("policy")
         bander_config = BandersnatchConfig(bander_config_file.file.name).config
-        data = {"name": name,
-                "policy": policy,
-                "url": bander_config.get("mirror", "master"),
-                "download_concurrency": bander_config.get("mirror", "workers"),
-                }
+        data = {
+            "name": name,
+            "policy": policy,
+            "url": bander_config.get("mirror", "master"),
+            "download_concurrency": bander_config.get("mirror", "workers"),
+        }
         enabled = bander_config.get("plugins", "enabled")
         enabled_all = "all" in enabled
         data["prereleases"] = not (enabled_all or "prerelease_release" in enabled)
@@ -175,8 +176,9 @@ class PythonRemoteViewSet(core_viewsets.RemoteViewSet):
             "exclude_platform": ("blocklist", "platforms", "exclude_platforms"),
         }
         for plugin, options in plugin_filters.items():
-            if (enabled_all or plugin in enabled) and \
-                    bander_config.has_option(options[0], options[1]):
+            if (enabled_all or plugin in enabled) and bander_config.has_option(
+                options[0], options[1]
+            ):
                 data[options[2]] = bander_config.get(options[0], options[1]).split()
         remote = python_serializers.PythonRemoteSerializer(data=data, context={"request": request})
         remote.is_valid(raise_exception=True)
@@ -193,13 +195,11 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
 
     """
 
-    endpoint_name = 'pypi'
+    endpoint_name = "pypi"
     queryset = python_models.PythonPublication.objects.exclude(complete=False)
     serializer_class = python_serializers.PythonPublicationSerializer
 
-    @extend_schema(
-        responses={202: AsyncOperationResponseSerializer}
-    )
+    @extend_schema(responses={202: AsyncOperationResponseSerializer})
     def create(self, request):
         """
         <!-- User-facing documentation, rendered as html-->
@@ -207,18 +207,16 @@ class PythonPublicationViewSet(core_viewsets.PublicationViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
+        repository_version = serializer.validated_data.get("repository_version")
 
         # Safe because version OR repository is enforced by serializer.
         if not repository_version:
-            repository = serializer.validated_data.get('repository')
+            repository = serializer.validated_data.get("repository")
             repository_version = RepositoryVersion.latest(repository)
 
         result = dispatch(
             tasks.publish,
             shared_resources=[repository_version.repository],
-            kwargs={
-                'repository_version_pk': str(repository_version.pk)
-            }
+            kwargs={"repository_version_pk": str(repository_version.pk)},
         )
         return core_viewsets.OperationPostponedResponse(result, request)

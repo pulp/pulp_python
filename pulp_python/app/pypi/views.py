@@ -1,52 +1,51 @@
 import logging
+from datetime import datetime, timedelta, timezone
+from itertools import chain
+from pathlib import PurePath
+from urllib.parse import urljoin, urlparse, urlunsplit
+
 import requests
-
-from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import redirect
-from datetime import datetime, timezone, timedelta
-
-from rest_framework.reverse import reverse
 from django.contrib.sessions.models import Session
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.utils import DatabaseError
 from django.http.response import (
     Http404,
-    HttpResponseForbidden,
     HttpResponseBadRequest,
-    StreamingHttpResponse
+    HttpResponseForbidden,
+    StreamingHttpResponse,
 )
+from django.shortcuts import redirect
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
-from itertools import chain
 from packaging.utils import canonicalize_name
-from urllib.parse import urljoin, urlparse, urlunsplit
-from pathlib import PurePath
 from pypi_simple.parse_stream import parse_links_stream_response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.viewsets import ViewSet
 
 from pulpcore.plugin.tasking import dispatch
+
+from pulp_python.app import tasks
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
     PythonPublication,
 )
 from pulp_python.app.pypi.serializers import (
-    SummarySerializer,
     PackageMetadataSerializer,
     PackageUploadSerializer,
-    PackageUploadTaskSerializer
+    PackageUploadTaskSerializer,
+    SummarySerializer,
 )
 from pulp_python.app.utils import (
-    write_simple_index,
-    write_simple_detail,
-    python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
+    python_content_to_json,
+    write_simple_detail,
+    write_simple_index,
 )
-
-from pulp_python.app import tasks
 
 log = logging.getLogger(__name__)
 
@@ -133,11 +132,16 @@ class PackageUploadMixin(PyPIMixin):
         if settings.PYTHON_GROUP_UPLOADS:
             return self.upload_package_group(repo, artifact, filename, request.session)
 
-        result = dispatch(tasks.upload, exclusive_resources=[artifact, repo],
-                          kwargs={"artifact_sha256": artifact.sha256,
-                                  "filename": filename,
-                                  "repository_pk": str(repo.pk)})
-        return Response(data={"task": reverse('tasks-detail', args=[result.pk], request=None)})
+        result = dispatch(
+            tasks.upload,
+            exclusive_resources=[artifact, repo],
+            kwargs={
+                "artifact_sha256": artifact.sha256,
+                "filename": filename,
+                "repository_pk": str(repo.pk),
+            },
+        )
+        return Response(data={"task": reverse("tasks-detail", args=[result.pk], request=None)})
 
     def upload_package_group(self, repo, artifact, filename, session):
         """Steps 4 & 5, spawns tasks to add packages to index."""
@@ -150,10 +154,10 @@ class PackageUploadMixin(PyPIMixin):
             try:
                 with transaction.atomic():
                     sq.first()
-                    current_start = datetime.fromisoformat(session['start'])
+                    current_start = datetime.fromisoformat(session["start"])
                     if current_start >= datetime.now(tz=timezone.utc):
-                        session['artifacts'].append((str(artifact.sha256), filename))
-                        session['start'] = str(start_time)
+                        session["artifacts"].append((str(artifact.sha256), filename))
+                        session["start"] = str(start_time)
                         session.modified = False
                         session.save()
                     else:
@@ -166,14 +170,19 @@ class PackageUploadMixin(PyPIMixin):
 
     def create_group_upload_task(self, cur_session, repository, artifact, filename, start_time):
         """Creates the actual task that adds the packages to the index."""
-        cur_session['start'] = str(start_time)
-        cur_session['artifacts'] = [(str(artifact.sha256), filename)]
+        cur_session["start"] = str(start_time)
+        cur_session["artifacts"] = [(str(artifact.sha256), filename)]
         cur_session.modified = False
         cur_session.save()
-        result = dispatch(tasks.upload_group, exclusive_resources=[artifact, repository],
-                          kwargs={"session_pk": str(cur_session.session_key),
-                                  "repository_pk": str(repository.pk)})
-        return reverse('tasks-detail', args=[result.pk], request=None)
+        result = dispatch(
+            tasks.upload_group,
+            exclusive_resources=[artifact, repository],
+            kwargs={
+                "session_pk": str(cur_session.session_key),
+                "repository_pk": str(repository.pk),
+            },
+        )
+        return reverse("tasks-detail", args=[result.pk], request=None)
 
 
 class SimpleView(ViewSet, PackageUploadMixin):
@@ -186,21 +195,22 @@ class SimpleView(ViewSet, PackageUploadMixin):
         """Gets the simple api html page for the index."""
         distro, repo_version, content = self.get_drvc(path)
         if self.should_redirect(distro, repo_version=repo_version):
-            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/'))
-        names = content.order_by('name').values_list('name', flat=True).distinct().iterator()
+            return redirect(urljoin(BASE_CONTENT_URL, f"{path}/simple/"))
+        names = content.order_by("name").values_list("name", flat=True).distinct().iterator()
         return StreamingHttpResponse(write_simple_index(names, streamed=True))
 
     def pull_through_package_simple(self, package, path, remote):
         """Gets the package's simple page from remote."""
+
         def parse_url(link):
             parsed = urlparse(link.url)
-            digest, _, value = parsed.fragment.partition('=')
+            digest, _, value = parsed.fragment.partition("=")
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
-            redirect = f'{path}/{link.text}?redirect={stripped_url}'
+            redirect = f"{path}/{link.text}?redirect={stripped_url}"
             d_url = urljoin(BASE_CONTENT_URL, redirect)
-            return link.text, d_url, value if digest == 'sha256' else ''
+            return link.text, d_url, value if digest == "sha256" else ""
 
-        url = remote.get_remote_artifact_url(f'simple/{package}/')
+        url = remote.get_remote_artifact_url(f"simple/{package}/")
         kwargs = {}
         if proxy_url := remote.proxy_url:
             if remote.proxy_username or remote.proxy_password:
@@ -224,10 +234,10 @@ class SimpleView(ViewSet, PackageUploadMixin):
             if not repo_ver or not content.filter(name__normalize=normalized).exists():
                 return self.pull_through_package_simple(normalized, path, distro.remote)
         if self.should_redirect(distro, repo_version=repo_ver):
-            return redirect(urljoin(BASE_CONTENT_URL, f'{path}/simple/{normalized}/'))
+            return redirect(urljoin(BASE_CONTENT_URL, f"{path}/simple/{normalized}/"))
         packages = (
             content.filter(name__normalize=normalized)
-            .values_list('filename', 'sha256', 'name')
+            .values_list("filename", "sha256", "name")
             .iterator()
         )
         try:
@@ -237,12 +247,14 @@ class SimpleView(ViewSet, PackageUploadMixin):
         else:
             packages = chain([present], packages)
             name = present[2]
-        releases = ((f, urljoin(BASE_CONTENT_URL, f'{path}/{f}'), d) for f, d, _ in packages)
+        releases = ((f, urljoin(BASE_CONTENT_URL, f"{path}/{f}"), d) for f, d, _ in packages)
         return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
 
-    @extend_schema(request=PackageUploadSerializer,
-                   responses={200: PackageUploadTaskSerializer},
-                   summary="Upload a package")
+    @extend_schema(
+        request=PackageUploadSerializer,
+        responses={200: PackageUploadTaskSerializer},
+        summary="Upload a package",
+    )
     def create(self, request, path):
         """
         Upload package to the index.
@@ -259,9 +271,11 @@ class MetadataView(ViewSet, PyPIMixin):
     authentication_classes = []
     permission_classes = []
 
-    @extend_schema(tags=["Pypi: Metadata"],
-                   responses={200: PackageMetadataSerializer},
-                   summary="Get package metadata")
+    @extend_schema(
+        tags=["Pypi: Metadata"],
+        responses={200: PackageMetadataSerializer},
+        summary="Get package metadata",
+    )
     def retrieve(self, request, path, meta):
         """
         Retrieves the package's core-metadata specified by
@@ -294,8 +308,7 @@ class PyPIView(ViewSet, PyPIMixin):
     authentication_classes = []
     permission_classes = []
 
-    @extend_schema(responses={200: SummarySerializer},
-                   summary="Get index summary")
+    @extend_schema(responses={200: SummarySerializer}, summary="Get index summary")
     def retrieve(self, request, path):
         """Gets package summary stats of index."""
         distro, repo_ver, content = self.get_drvc(path)
@@ -309,9 +322,11 @@ class PyPIView(ViewSet, PyPIMixin):
 class UploadView(ViewSet, PackageUploadMixin):
     """View for the `/legacy` upload endpoint."""
 
-    @extend_schema(request=PackageUploadSerializer,
-                   responses={200: PackageUploadTaskSerializer},
-                   summary="Upload a package")
+    @extend_schema(
+        request=PackageUploadSerializer,
+        responses={200: PackageUploadTaskSerializer},
+        summary="Upload a package",
+    )
     def create(self, request, path):
         """
         Upload package to the index.

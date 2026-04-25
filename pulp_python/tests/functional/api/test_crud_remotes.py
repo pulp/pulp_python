@@ -1,19 +1,13 @@
 # coding=utf-8
 """Tests that CRUD python remotes."""
-from random import choice
+
 import unittest
+from random import choice
+from tempfile import NamedTemporaryFile
 
 from pulp_smash import utils
-
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.constants import ON_DEMAND_DOWNLOAD_POLICIES
-
-from pulp_python.tests.functional.utils import (
-    gen_python_client,
-    gen_python_remote,
-    skip_if,
-)
-from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulp_python import RemotesPythonApi
 from pulpcore.client.pulp_python.exceptions import ApiException
@@ -21,11 +15,16 @@ from pulpcore.client.pulp_python.exceptions import ApiException
 from pulp_python.tests.functional.constants import (
     BANDERSNATCH_CONF,
     DEFAULT_BANDER_REMOTE_BODY,
-    PYTHON_INVALID_SPECIFIER_NO_NAME,
     PYTHON_INVALID_SPECIFIER_BAD_VERSION,
+    PYTHON_INVALID_SPECIFIER_NO_NAME,
     PYTHON_VALID_SPECIFIER_NO_VERSION,
 )
-from tempfile import NamedTemporaryFile
+from pulp_python.tests.functional.utils import (
+    gen_python_client,
+    gen_python_remote,
+    skip_if,
+)
+from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class CRUDRemotesTestCase(unittest.TestCase):
@@ -243,9 +242,7 @@ class RemoteDownloadPolicyTestCase(unittest.TestCase):
         """
         remote = self.remote_api.read(self.remote["pulp_href"]).to_dict()
         with self.assertRaises(ApiException):
-            self.remote_api.partial_update(
-                self.remote["pulp_href"], {"policy": utils.uuid4()}
-            )
+            self.remote_api.partial_update(self.remote["pulp_href"], {"policy": utils.uuid4()})
         self.remote.update(self.remote_api.read(self.remote["pulp_href"]).to_dict())
         self.assertEqual(remote["policy"], self.remote["policy"], self.remote)
 

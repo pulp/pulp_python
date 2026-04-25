@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("requirements.txt") as requirements:
     requirements = requirements.readlines()
@@ -32,5 +32,9 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ),
-    entry_points={"pulpcore.plugin": ["pulp_python = pulp_python:default_app_config", ]},
+    entry_points={
+        "pulpcore.plugin": [
+            "pulp_python = pulp_python:default_app_config",
+        ]
+    },
 )
