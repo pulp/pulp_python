@@ -1,27 +1,29 @@
 # coding=utf-8
 """Tests that verify download of content served by Pulp."""
-import pytest
+
 import hashlib
 from random import choice
 from urllib.parse import urljoin
 
+import pytest
 from pulp_smash import utils
 from pulp_smash.pulp3.utils import (
     download_content_unit,
     get_content_summary,
 )
+
 from pulp_python.tests.functional.constants import (
     PYTHON_FIXTURE_URL,
-    PYTHON_MD_PROJECT_SPECIFIER,
-    PYTHON_MD_FIXTURE_SUMMARY,
     PYTHON_LG_FIXTURE_SUMMARY,
     PYTHON_LG_PROJECT_SPECIFIER,
+    PYTHON_MD_FIXTURE_SUMMARY,
+    PYTHON_MD_PROJECT_SPECIFIER,
 )
 from pulp_python.tests.functional.utils import (
-    cfg,
-    get_python_content_paths,
     TestCaseUsingBindings,
     TestHelpersMixin,
+    cfg,
+    get_python_content_paths,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -60,14 +62,10 @@ class DownloadContentTestCase(TestCaseUsingBindings, TestHelpersMixin):
         pub = self._create_publication(repo)
         distro = self._create_distribution_from_publication(pub)
         # Pick a content unit (of each type), and download it from both Pulp Fixtures…
-        unit_paths = [
-            choice(paths) for paths in get_python_content_paths(repo.to_dict()).values()
-        ]
+        unit_paths = [choice(paths) for paths in get_python_content_paths(repo.to_dict()).values()]
         fixtures_hashes = [
             hashlib.sha256(
-                utils.http_get(
-                    urljoin(urljoin(PYTHON_FIXTURE_URL, "packages/"), unit_path[0])
-                )
+                utils.http_get(urljoin(urljoin(PYTHON_FIXTURE_URL, "packages/"), unit_path[0]))
             ).hexdigest()
             for unit_path in unit_paths
         ]
@@ -100,12 +98,7 @@ class PublishPyPIJSON(TestCaseUsingBindings, TestHelpersMixin):
         repo = self._create_repo_and_sync_with_remote(remote)
         pub = self._create_publication(repo)
         distro = self._create_distribution_from_publication(pub)
-        url_fragments = [
-            cfg.get_content_host_base_url(),
-            "pulp/content",
-            distro.base_path,
-            ""
-        ]
+        url_fragments = [cfg.get_content_host_base_url(), "pulp/content", distro.base_path, ""]
         unit_url = "/".join(url_fragments)
 
         # Sync using old Pulp content api

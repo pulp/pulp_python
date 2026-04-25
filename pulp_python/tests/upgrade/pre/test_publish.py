@@ -1,15 +1,27 @@
 """Tests that publish file plugin repositories."""
+
 import unittest
 from random import choice
 
 from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
+    gen_distribution,
     gen_repo,
     get_content,
-    gen_distribution,
     get_versions,
 )
+
+from pulpcore.client.pulp_python import (
+    DistributionsPypiApi,
+    PublicationsPypiApi,
+    PythonPythonPublication,
+    RemotesPythonApi,
+    RepositoriesPythonApi,
+    RepositoryAddRemoveContent,
+    RepositorySyncURL,
+)
+from pulpcore.client.pulp_python.exceptions import ApiException
 
 from pulp_python.tests.functional.constants import PYTHON_CONTENT_NAME
 from pulp_python.tests.functional.utils import (
@@ -17,17 +29,6 @@ from pulp_python.tests.functional.utils import (
     gen_python_remote,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_python import (
-    DistributionsPypiApi,
-    PublicationsPypiApi,
-    RepositoryAddRemoveContent,
-    RepositoriesPythonApi,
-    RepositorySyncURL,
-    RemotesPythonApi,
-    PythonPythonPublication,
-)
-from pulpcore.client.pulp_python.exceptions import ApiException
 
 
 class PublishAnyRepoVersionTestCase(unittest.TestCase):

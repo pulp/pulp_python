@@ -4,11 +4,14 @@ Tests PulpExporter and PulpExport functionality.
 NOTE: assumes ALLOWED_EXPORT_PATHS setting contains "/tmp" - all tests will fail if this is not
 the case.
 """
-import pytest
+
 import uuid
 
+import pytest
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_XS_PROJECT_SPECIFIER, PYTHON_SM_PROJECT_SPECIFIER
+    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_XS_PROJECT_SPECIFIER,
 )
 
 
@@ -32,12 +35,8 @@ def test_export_then_import(
     remote_b = python_remote_factory(includes=PYTHON_SM_PROJECT_SPECIFIER, policy="immediate")
     repo_a = python_repo_factory()
     repo_b = python_repo_factory()
-    sync_response_a = python_repo_api_client.sync(
-        repo_a.pulp_href, {"remote": remote_a.pulp_href}
-    )
-    sync_response_b = python_repo_api_client.sync(
-        repo_b.pulp_href, {"remote": remote_b.pulp_href}
-    )
+    sync_response_a = python_repo_api_client.sync(repo_a.pulp_href, {"remote": remote_a.pulp_href})
+    sync_response_b = python_repo_api_client.sync(repo_b.pulp_href, {"remote": remote_b.pulp_href})
     monitor_task(sync_response_a.task)
     monitor_task(sync_response_b.task)
 

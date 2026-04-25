@@ -1,23 +1,24 @@
-import pytest
 import subprocess
 import uuid
 
+import pytest
 from pulp_smash.pulp3.utils import gen_distribution
-from pulp_python.tests.functional.utils import gen_python_remote
-from pulp_python.tests.functional.constants import PYTHON_URL, PYTHON_EGG_FILENAME
 
 from pulpcore.client.pulp_python import (
     ApiClient,
     ContentPackagesApi,
     DistributionsPypiApi,
     PublicationsPypiApi,
+    RemotesPythonApi,
     RepositoriesPythonApi,
     RepositoriesPythonVersionsApi,
-    RemotesPythonApi,
 )
 
+from pulp_python.tests.functional.constants import PYTHON_EGG_FILENAME, PYTHON_URL
+from pulp_python.tests.functional.utils import gen_python_remote
 
 # Bindings API Fixtures
+
 
 @pytest.fixture
 def python_bindings_client(cid, bindings_cfg):
@@ -65,9 +66,11 @@ def python_publication_api_client(python_bindings_client):
 
 # Object Generation Fixtures
 
+
 @pytest.fixture
 def python_repo_factory(python_repo_api_client, gen_object_with_cleanup):
     """A factory to generate a Python Repository with auto-cleanup."""
+
     def _gen_python_repo(**kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
         return gen_object_with_cleanup(python_repo_api_client, kwargs)
@@ -84,6 +87,7 @@ def python_repo(python_repo_factory):
 @pytest.fixture
 def python_distribution_factory(python_distro_api_client, gen_object_with_cleanup):
     """A factory to generate a Python Distribution with auto-cleanup."""
+
     def _gen_python_distribution(**kwargs):
         distro_data = gen_distribution(**kwargs)
         return gen_object_with_cleanup(python_distro_api_client, distro_data)
@@ -94,6 +98,7 @@ def python_distribution_factory(python_distro_api_client, gen_object_with_cleanu
 @pytest.fixture
 def python_publication_factory(python_publication_api_client, gen_object_with_cleanup):
     """A factory to generate a Python Publication with auto-cleanup."""
+
     def _gen_python_publication(repository, version=None):
         if version:
             body = {"repository_version": f"{repository.versions_href}{version}/"}
@@ -107,6 +112,7 @@ def python_publication_factory(python_publication_api_client, gen_object_with_cl
 @pytest.fixture
 def python_remote_factory(python_remote_api_client, gen_object_with_cleanup):
     """A factory to generate a Python Remote with auto-cleanup."""
+
     def _gen_python_remote(**kwargs):
         body = gen_python_remote(**kwargs)
         return gen_object_with_cleanup(python_remote_api_client, body)
@@ -119,6 +125,7 @@ def python_repo_with_sync(
     python_repo_api_client, python_repo_factory, python_remote_factory, monitor_task
 ):
     """A factory to generate a Python Repository synced with the passed in Remote."""
+
     def _gen_python_repo_sync(remote=None, mirror=False, repository=None, **body):
         kwargs = {}
         if pulp_domain := body.get("pulp_domain"):
@@ -135,6 +142,7 @@ def python_repo_with_sync(
 @pytest.fixture
 def download_python_file(tmp_path, http_get):
     """Download a Python file and return its path."""
+
     def _download_python_file(relative_path, url):
         file_path = tmp_path / relative_path
         with open(file_path, mode="wb") as f:
@@ -153,6 +161,7 @@ def python_file(download_python_file):
 @pytest.fixture
 def python_content_factory(python_content_api_client, download_python_file, monitor_task):
     """A factory to create a Python Package Content."""
+
     def _gen_python_content(relative_path=PYTHON_EGG_FILENAME, url=None, **body):
         body["relative_path"] = relative_path
         if url:
@@ -185,6 +194,7 @@ def shelf_reader_cleanup():
 @pytest.fixture
 def python_content_summary(python_repo_api_client, python_repo_version_api_client):
     """Get a summary of the repository version's content."""
+
     def _gen_summary(repository_version=None, repository=None, version=None):
         if repository_version is None:
             repo_href = get_href(repository)

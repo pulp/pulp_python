@@ -1,28 +1,29 @@
 # coding=utf-8
 """Tests that perform actions over content unit."""
-import pytest
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
 
+from tempfile import NamedTemporaryFile
+from urllib.parse import urljoin
+
+import pytest
+from pulp_smash.pulp3.bindings import PulpTaskError, delete_orphans, monitor_task
+from pulp_smash.utils import http_get
+from pypi_simple import PyPISimple
+
+from pulp_python.tests.functional.constants import (
+    PYTHON_EGG_FILENAME,
+    PYTHON_EGG_URL,
+    PYTHON_FIXTURES_URL,
+    PYTHON_PACKAGE_DATA,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+)
 from pulp_python.tests.functional.utils import (
+    TestCaseUsingBindings,
+    TestHelpersMixin,
     gen_artifact,
     gen_python_content_attrs,
     skip_if,
-    TestCaseUsingBindings,
-    TestHelpersMixin,
 )
 from pulp_python.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from tempfile import NamedTemporaryFile
-from urllib.parse import urljoin
-from pypi_simple import PyPISimple
-
-from pulp_smash.utils import http_get
-from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURES_URL,
-    PYTHON_PACKAGE_DATA,
-    PYTHON_EGG_FILENAME,
-    PYTHON_EGG_URL,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
-)
 
 
 class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
@@ -82,9 +83,7 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         """
         attrs = gen_python_content_attrs(self.artifact)
         with self.assertRaises(AttributeError) as exc:
-            self.content_api.partial_update(
-                self.content_unit["pulp_href"], attrs
-            )
+            self.content_api.partial_update(self.content_unit["pulp_href"], attrs)
         msg = "object has no attribute 'partial_update'"
         self.assertIn(msg, exc.exception.args[0])
 
@@ -195,9 +194,7 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         response = self.do_upload(repository=repo.pulp_href, remote_path=url)
         created_resources = monitor_task(response.task).created_resources
         content_unit2 = self.content_api.read(created_resources[1])
-        content_list_search = self.content_api.list(
-            repository_version=created_resources[0]
-        ).results
+        content_list_search = self.content_api.list(repository_version=created_resources[0]).results
         self.assertEqual(len(content_list_search), 1)
         self.assertEqual(content_unit2.pulp_href, content_list_search[0].pulp_href)
 
@@ -214,9 +211,7 @@ class ContentUnitTestCase(TestCaseUsingBindings, TestHelpersMixin):
         msg = "The uploaded artifact's sha256 checksum does not match the one provided"
         self.assertTrue(msg in task_report["error"]["description"])
 
-    def do_upload(
-        self, filename=PYTHON_EGG_FILENAME, remote_path=PYTHON_EGG_URL, **kwargs
-    ):
+    def do_upload(self, filename=PYTHON_EGG_FILENAME, remote_path=PYTHON_EGG_URL, **kwargs):
         """Takes in attributes dict for a file and creates content from it"""
         with NamedTemporaryFile() as file_to_upload:
             file_to_upload.write(http_get(remote_path))

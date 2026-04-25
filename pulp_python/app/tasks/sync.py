@@ -1,13 +1,18 @@
 import logging
 import tempfile
-from typing import Optional, Any, AsyncGenerator
-
-import aiohttp
-from aiohttp import ClientResponseError, ClientError
-from lxml.etree import LxmlError
 from gettext import gettext as _
 from os import environ
+from typing import Any, AsyncGenerator, Optional
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
+import aiohttp
+from aiohttp import ClientError, ClientResponseError
+from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.master import Master
+from bandersnatch.mirror import Mirror
+from lxml.etree import LxmlError
+from packaging.requirements import Requirement
+from pypi_simple import parse_repo_index_page
 from rest_framework import serializers
 
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
@@ -22,14 +27,7 @@ from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
-from pypi_simple import parse_repo_index_page
-
-from bandersnatch.mirror import Mirror
-from bandersnatch.master import Master
-from bandersnatch.configuration import BandersnatchConfig
-from packaging.requirements import Requirement
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from pulp_python.app.utils import PYPI_LAST_SERIAL, parse_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +51,7 @@ def sync(remote_pk, repository_pk, mirror):
     repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise serializers.ValidationError(
-            detail=_("A remote must have a url attribute to sync.")
-        )
+        raise serializers.ValidationError(detail=_("A remote must have a url attribute to sync."))
 
     first_stage = PythonBanderStage(remote)
     DeclarativeVersion(first_stage, repository, mirror).create()
@@ -125,8 +121,8 @@ class PythonBanderStage(Stage):
                 creds = f"{self.remote.proxy_username}:{self.remote.proxy_password}"
                 netloc = f"{creds}@{parsed_proxy.netloc}"
                 proxy_url = urlunsplit((parsed_proxy.scheme, netloc, "", "", ""))
-            environ['http_proxy'] = proxy_url
-            environ['https_proxy'] = proxy_url
+            environ["http_proxy"] = proxy_url
+            environ["https_proxy"] = proxy_url
         # Bandersnatch includes leading slash when forming API urls
         url = self.remote.url.rstrip("/")
         # local & global timeouts defaults to 10secs and 5 hours
@@ -146,9 +142,7 @@ class PythonBanderStage(Stage):
                 )
                 packages_to_sync = None
                 if self.remote.includes:
-                    packages_to_sync = [
-                        Requirement(pkg).name for pkg in self.remote.includes
-                    ]
+                    packages_to_sync = [Requirement(pkg).name for pkg in self.remote.includes]
                 await pmirror.synchronize(packages_to_sync)
 
 
@@ -176,9 +170,7 @@ class PulpMirror(Mirror):
     Pulp Mirror Class to perform syncing using Bandersnatch
     """
 
-    def __init__(
-        self, serial, master, workers, deferred_download, python_stage, progress_report
-    ):
+    def __init__(self, serial, master, workers, deferred_download, python_stage, progress_report):
         """Initialize Bandersnatch Mirror"""
         super().__init__(master=master, workers=workers)
         self.synced_serial = serial
@@ -193,11 +185,7 @@ class PulpMirror(Mirror):
         """
         number_xmlrpc_attempts = 3
         for attempt in range(number_xmlrpc_attempts):
-            logger.info(
-                "Attempt {} to get package list from {}".format(
-                    attempt, self.master.url
-                )
-            )
+            logger.info("Attempt {} to get package list from {}".format(attempt, self.master.url))
             try:
                 if not self.synced_serial:
                     logger.info("Syncing all packages.")
@@ -209,9 +197,7 @@ class PulpMirror(Mirror):
                     )
                 else:
                     logger.info("Syncing based on changelog.")
-                    changed_packages = await self.master.changed_packages(
-                        self.synced_serial
-                    )
+                    changed_packages = await self.master.changed_packages(self.synced_serial)
                     self.packages_to_sync.update(changed_packages)
                     self.target_serial = max(
                         [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
