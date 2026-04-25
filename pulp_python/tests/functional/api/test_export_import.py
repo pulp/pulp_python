@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-from pulpcore.app import settings
+from pulpcore.app import settings  # noqa: TID251
 
 from pulp_python.tests.functional.constants import (
     PYTHON_SM_PROJECT_SPECIFIER,
