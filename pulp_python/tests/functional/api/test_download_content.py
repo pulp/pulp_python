@@ -1,10 +1,10 @@
 import pytest
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_LG_PACKAGE_COUNT,
     PYTHON_LG_PROJECT_SPECIFIER,
     PYTHON_MD_PACKAGE_COUNT,
-    PYTHON_LG_PACKAGE_COUNT,
+    PYTHON_MD_PROJECT_SPECIFIER,
 )
 
 

@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
@@ -44,9 +45,9 @@ def try_action(python_bindings, monitor_task):
         except python_bindings.module.ApiException as e:
             assert e.status == outcome, f"{e}"
         else:
-            assert (
-                status_code == outcome
-            ), f"User performed {action} when they shouldn't been able to"
+            assert status_code == outcome, (
+                f"User performed {action} when they shouldn't been able to"
+            )
             return data
 
     return _try_action

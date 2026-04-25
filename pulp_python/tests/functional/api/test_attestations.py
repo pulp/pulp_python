@@ -1,11 +1,11 @@
-import pytest
 import json
-import requests
 import shutil
 import subprocess
 from pathlib import Path
 from urllib.parse import urljoin
 
+import pytest
+import requests
 from pypi_simple import PyPISimple
 
 from pulpcore.tests.functional.utils import PulpTaskError
