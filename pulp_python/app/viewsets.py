@@ -1,7 +1,8 @@
+from pathlib import Path
+
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response

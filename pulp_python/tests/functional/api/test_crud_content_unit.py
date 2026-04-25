@@ -1,14 +1,15 @@
-import pytest
-
 from urllib.parse import urljoin
+
+import pytest
 from pypi_simple import PyPISimple
 
 from pulpcore.tests.functional.utils import PulpTaskError
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURES_URL,
-    PYTHON_PACKAGE_DATA,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,
+    PYTHON_FIXTURES_URL,
+    PYTHON_PACKAGE_DATA,
     PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_URL,

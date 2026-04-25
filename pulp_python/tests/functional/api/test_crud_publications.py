@@ -1,13 +1,14 @@
-import pytest
 import random
-from pypi_simple import PyPISimple
 from urllib.parse import urljoin
 
+import pytest
+from pypi_simple import PyPISimple
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_EGG_FILENAME,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
 )
 from pulp_python.tests.functional.utils import ensure_simple

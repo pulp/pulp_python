@@ -1,13 +1,15 @@
 import logging
 from gettext import gettext as _
 
-from rest_framework import serializers
+from django.db.utils import IntegrityError
 from pydantic import TypeAdapter, ValidationError
-from pulp_python.app.provenance import Attestation
-from pulp_python.app.utils import DIST_EXTENSIONS, SUPPORTED_METADATA_VERSIONS
+from rest_framework import serializers
+
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
-from django.db.utils import IntegrityError
+
+from pulp_python.app.provenance import Attestation
+from pulp_python.app.utils import DIST_EXTENSIONS, SUPPORTED_METADATA_VERSIONS
 
 log = logging.getLogger(__name__)
 
