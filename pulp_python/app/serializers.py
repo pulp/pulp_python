@@ -2,33 +2,34 @@ import logging
 import os
 import tempfile
 from gettext import gettext as _
+from urllib.parse import urljoin
+
 from django.conf import settings
 from django.db.utils import IntegrityError
 from drf_spectacular.utils import extend_schema_serializer
 from packaging.requirements import Requirement
-from packaging.version import Version, InvalidVersion
-from rest_framework import serializers
-from pypi_attestations import AttestationError
+from packaging.version import InvalidVersion, Version
 from pydantic import TypeAdapter, ValidationError
-from urllib.parse import urljoin
+from pypi_attestations import AttestationError
+from rest_framework import serializers
 
 from pulpcore.plugin import models as core_models
 from pulpcore.plugin import serializers as core_serializers
-from pulpcore.plugin.util import get_domain, get_prn, get_current_authenticated_user, reverse
+from pulpcore.plugin.util import get_current_authenticated_user, get_domain, get_prn, reverse
 
 from pulp_python.app import models as python_models
-from pulp_python.app.utils import canonicalize_name
 from pulp_python.app.provenance import (
+    AnyPublisher,
     Attestation,
+    AttestationBundle,
     Provenance,
     verify_provenance,
-    AttestationBundle,
-    AnyPublisher,
 )
 from pulp_python.app.utils import (
     DIST_EXTENSIONS,
     artifact_to_metadata_artifact,
     artifact_to_python_content_data,
+    canonicalize_name,
     get_project_metadata_from_file,
     parse_project_metadata,
 )
@@ -238,7 +239,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "The maintainer's name at a minimum; " "additional contact information may be provided."
+            "The maintainer's name at a minimum; additional contact information may be provided."
         ),
     )
     maintainer_email = serializers.CharField(
@@ -729,7 +730,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     package_types = MultipleChoiceArrayField(
         required=False,
         help_text=_(
-            "The package types to sync for Python content. Leave blank to get every" "package type."
+            "The package types to sync for Python content. Leave blank to get everypackage type."
         ),
         choices=python_models.PACKAGE_TYPES,
         default=list,

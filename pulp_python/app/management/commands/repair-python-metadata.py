@@ -1,11 +1,12 @@
-import re
 import os
-from django.core.management import BaseCommand, CommandError
+import re
 from gettext import gettext as _
 
 from django.conf import settings
+from django.core.management import BaseCommand, CommandError
 
 from pulpcore.plugin.util import extract_pk
+
 from pulp_python.app.models import PythonPackageContent, PythonRepository
 from pulp_python.app.utils import artifact_to_python_content_data
 

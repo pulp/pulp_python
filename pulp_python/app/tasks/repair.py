@@ -7,6 +7,10 @@ from uuid import UUID
 
 from django.db.models import Prefetch
 from django.db.models.query import QuerySet
+
+from pulpcore.plugin.models import ContentArtifact, ProgressReport
+from pulpcore.plugin.util import get_domain
+
 from pulp_python.app.models import PythonPackageContent, PythonRepository
 from pulp_python.app.utils import (
     artifact_to_python_content_data,
@@ -16,8 +20,6 @@ from pulp_python.app.utils import (
     metadata_content_to_artifact,
     parse_metadata,
 )
-from pulpcore.plugin.models import ContentArtifact, ProgressReport
-from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)
 

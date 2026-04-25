@@ -1,6 +1,7 @@
-import pytest
 import subprocess
 from urllib.parse import urljoin
+
+import pytest
 
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
