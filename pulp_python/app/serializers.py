@@ -388,7 +388,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             else:
                 attestations = TypeAdapter(list[Attestation]).validate_python(value)
         except ValidationError as e:
-            raise serializers.ValidationError(_("Invalid attestations: {}".format(e)))
+            raise serializers.ValidationError(_("Invalid attestations: {}").format(e))
         return attestations
 
     def handle_attestations(self, filename, sha256, attestations, offline=True):
@@ -401,7 +401,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             verify_provenance(filename, sha256, provenance, offline=offline)
         except AttestationError as e:
             raise serializers.ValidationError(
-                {"attestations": _("Attestations failed verification: {}".format(e))}
+                {"attestations": _("Attestations failed verification: {}").format(e)}
             )
         return provenance.model_dump(mode="json")
 
@@ -656,13 +656,13 @@ class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerial
             data["provenance"] = provenance.model_dump(mode="json")
         except ValidationError as e:
             raise serializers.ValidationError(
-                _("The uploaded provenance is not valid: {}".format(e))
+                _("The uploaded provenance is not valid: {}").format(e)
             )
         if data.pop("verify"):
             try:
                 verify_provenance(data["package"].filename, data["package"].sha256, provenance)
             except AttestationError as e:
-                raise serializers.ValidationError(_("Provenance verification failed: {}".format(e)))
+                raise serializers.ValidationError(_("Provenance verification failed: {}").format(e))
         return data
 
     def retrieve(self, validated_data):
@@ -765,7 +765,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("includes specifier {} is invalid. {}".format(pkg, ve))
+                    _("includes specifier {} is invalid. {}").format(pkg, ve)
                 )
         return value
 
@@ -776,7 +776,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
                 Requirement(pkg)
             except ValueError as ve:
                 raise serializers.ValidationError(
-                    _("excludes specifier {} is invalid. {}".format(pkg, ve))
+                    _("excludes specifier {} is invalid. {}").format(pkg, ve)
                 )
         return value
 
