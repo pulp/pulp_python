@@ -1,6 +1,7 @@
 import pytest
 
 from pulpcore.tests.functional.utils import PulpTaskError
+
 from pulp_python.tests.functional.constants import PYTHON_EGG_FILENAME, PYTHON_EGG_URL
 
 CONTENT_BODY = {"relative_path": PYTHON_EGG_FILENAME, "file_url": PYTHON_EGG_URL}

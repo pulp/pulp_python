@@ -1,6 +1,6 @@
-from gettext import gettext as _
 import logging
 import os
+from gettext import gettext as _
 
 from django.core.files import File
 from packaging.utils import canonicalize_name
@@ -10,7 +10,7 @@ from pulpcore.plugin.util import get_domain
 
 from pulp_python.app import models as python_models
 from pulp_python.app.serializers import PythonPublicationSerializer
-from pulp_python.app.utils import write_simple_index, write_simple_detail
+from pulp_python.app.utils import write_simple_detail, write_simple_index
 
 log = logging.getLogger(__name__)
 

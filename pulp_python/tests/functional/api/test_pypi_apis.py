@@ -1,15 +1,15 @@
+import subprocess
+from urllib.parse import urljoin
+
 import pytest
 import requests
-import subprocess
-
-from urllib.parse import urljoin
 
 from pulp_python.tests.functional.constants import (
     PYPI_SERIAL_CONSTANT,
-    PYTHON_MD_PROJECT_SPECIFIER,
-    PYTHON_MD_PYPI_SUMMARY,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
+    PYTHON_MD_PROJECT_SPECIFIER,
+    PYTHON_MD_PYPI_SUMMARY,
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,

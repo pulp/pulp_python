@@ -1,44 +1,45 @@
 import hashlib
 import json
 from logging import getLogger
+from pathlib import PurePath
 
 from aiohttp.web import json_response
+from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.conf import settings
 from django_lifecycle import (
     BEFORE_SAVE,
     hook,
 )
 from rest_framework.serializers import ValidationError
+
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     BaseModel,
     Content,
-    Publication,
     Distribution,
+    Publication,
     Remote,
     Repository,
-)
-from pulpcore.plugin.responses import ArtifactResponse
-
-from pathlib import PurePath
-from .provenance import Provenance
-from .utils import (
-    artifact_to_python_content_data,
-    artifact_to_metadata_artifact,
-    canonicalize_name,
-    python_content_to_json,
-    PYPI_LAST_SERIAL,
-    PYPI_SERIAL_CONSTANT,
 )
 from pulpcore.plugin.repo_version_utils import (
     collect_duplicates,
     remove_duplicates,
     validate_repo_version,
 )
-from pulpcore.plugin.util import get_domain_pk, get_domain
+from pulpcore.plugin.responses import ArtifactResponse
+from pulpcore.plugin.util import get_domain, get_domain_pk
+
+from .provenance import Provenance
+from .utils import (
+    PYPI_LAST_SERIAL,
+    PYPI_SERIAL_CONSTANT,
+    artifact_to_metadata_artifact,
+    artifact_to_python_content_data,
+    canonicalize_name,
+    python_content_to_json,
+)
 
 log = getLogger(__name__)
 
@@ -453,8 +454,9 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
                         break
         if blocked:
             raise ValidationError(
-                "Blocklisted packages cannot be added to this repository: "
-                "{}".format(", ".join(blocked))
+                "Blocklisted packages cannot be added to this repository: {}".format(
+                    ", ".join(blocked)
+                )
             )
 
 

@@ -1,16 +1,17 @@
-import pytest
-import uuid
 import json
 import subprocess
+import uuid
+from urllib.parse import urlsplit
+
+import pytest
 
 from pulpcore.app import settings
 
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
-    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
+    PYTHON_SM_PROJECT_SPECIFIER,
 )
-from urllib.parse import urlsplit
 
 pytestmark = pytest.mark.skipif(not settings.DOMAIN_ENABLED, reason="Domain not enabled")
 
