@@ -1,18 +1,18 @@
-import pytest
-import uuid
 import json
 import subprocess
+import uuid
+from urllib.parse import urlsplit
+
+import pytest
 
 from pulpcore.app import settings
 
 from pulp_python.tests.functional.constants import (
-    PYTHON_URL,
     PYTHON_EGG_FILENAME,
-    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_PACKAGE_COUNT,
+    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_URL,
 )
-from urllib.parse import urlsplit
-
 
 pytestmark = pytest.mark.skipif(not settings.DOMAIN_ENABLED, reason="Domain not enabled")
 
@@ -73,7 +73,9 @@ def test_domain_object_creation(
 
     with pytest.raises(python_bindings.ApiException) as e:
         distro_body = {
-            "name": str(uuid.uuid4()), "base_path": str(uuid.uuid4()), "repository": repo.pulp_href
+            "name": str(uuid.uuid4()),
+            "base_path": str(uuid.uuid4()),
+            "repository": repo.pulp_href,
         }
         python_bindings.DistributionsPypiApi.create(distro_body)
     assert e.value.status == 400

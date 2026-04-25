@@ -1,14 +1,15 @@
-import pytest
-
 from urllib.parse import urljoin
+
+import pytest
 from pypi_simple import PyPISimple
 
 from pulpcore.tests.functional.utils import PulpTaskError
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURES_URL,
-    PYTHON_PACKAGE_DATA,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,
+    PYTHON_FIXTURES_URL,
+    PYTHON_PACKAGE_DATA,
     PYTHON_SM_FIXTURE_CHECKSUMS,
 )
 
@@ -102,7 +103,9 @@ def test_content_crud(
     monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"orphan_protection_time": 0}).task)
     mismatch_sha256 = PYTHON_SM_FIXTURE_CHECKSUMS["aiohttp-3.3.0.tar.gz"]
     content_body = {
-        "relative_path": PYTHON_EGG_FILENAME, "file": python_file, "sha256": mismatch_sha256
+        "relative_path": PYTHON_EGG_FILENAME,
+        "file": python_file,
+        "sha256": mismatch_sha256,
     }
     with pytest.raises(PulpTaskError) as e:
         response = python_bindings.ContentPackagesApi.create(**content_body)

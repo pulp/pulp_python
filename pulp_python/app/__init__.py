@@ -1,6 +1,8 @@
-from django.db.models.signals import post_migrate
-from pulpcore.plugin import PulpPluginAppConfig
 from gettext import gettext as _
+
+from django.db.models.signals import post_migrate
+
+from pulpcore.plugin import PulpPluginAppConfig
 
 
 class PulpPythonPluginAppConfig(PulpPluginAppConfig):
@@ -26,7 +28,7 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
 
 # TODO: Remove this when https://github.com/pulp/pulpcore/issues/5500 is resolved
 def _populate_pypi_access_policies(sender, apps, verbosity, **kwargs):
-    from pulp_python.app.pypi.views import PyPIView, SimpleView, UploadView, MetadataView
+    from pulp_python.app.pypi.views import MetadataView, PyPIView, SimpleView, UploadView
 
     try:
         AccessPolicy = apps.get_model("core", "AccessPolicy")

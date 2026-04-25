@@ -7,6 +7,6 @@
 
 bump-my-version
 check-manifest
-flake8
 packaging
+ruff
 yamllint
