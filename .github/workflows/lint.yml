@@ -36,14 +36,13 @@ jobs:
         run: |
           yamllint -s -d '{extends: relaxed, rules: {line-length: disable}}' .github/workflows
 
-      # Lint code.
-      - name: "Run flake8"
+      - name: "Check formating"
         run: |
-          flake8
+          ruff format --check --diff
 
-      - name: "Check for common gettext problems"
+      - name: "Lint code"
         run: |
-          sh .ci/scripts/check_gettext.sh
+          ruff check
 
       - name: "Run extra lint checks"
         run: |

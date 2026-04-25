@@ -1,14 +1,14 @@
+import subprocess
+from urllib.parse import urljoin, urlsplit
+
 import pytest
 import requests
-import subprocess
+from pypi_simple import ProjectPage
 
 from pulp_python.tests.functional.constants import (
     PYPI_URL,
     PYTHON_XS_FIXTURE_CHECKSUMS,
 )
-
-from pypi_simple import ProjectPage
-from urllib.parse import urljoin, urlsplit
 
 
 def test_pull_through_install(

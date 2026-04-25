@@ -1,11 +1,12 @@
-import pytest
 import uuid
+
+import pytest
 
 from pulp_python.tests.functional.constants import (
     BANDERSNATCH_CONF,
     DEFAULT_BANDER_REMOTE_BODY,
-    PYTHON_INVALID_SPECIFIER_NO_NAME,
     PYTHON_INVALID_SPECIFIER_BAD_VERSION,
+    PYTHON_INVALID_SPECIFIER_NO_NAME,
     PYTHON_VALID_SPECIFIER_NO_VERSION,
 )
 

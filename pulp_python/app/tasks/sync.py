@@ -1,10 +1,15 @@
 import logging
-
-from aiohttp import ClientResponseError, ClientError
-from lxml.etree import LxmlError
-from gettext import gettext as _
 from functools import partial
+from gettext import gettext as _
+from urllib.parse import urljoin
 
+from aiohttp import ClientError, ClientResponseError
+from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.master import Master
+from bandersnatch.mirror import Mirror
+from lxml.etree import LxmlError
+from packaging.requirements import Requirement
+from pypi_simple import IndexPage
 from rest_framework import serializers
 
 from pulpcore.plugin.download import HttpDownloader
@@ -20,14 +25,7 @@ from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
 )
-from pulp_python.app.utils import parse_metadata, PYPI_LAST_SERIAL
-from pypi_simple import IndexPage
-
-from bandersnatch.mirror import Mirror
-from bandersnatch.master import Master
-from bandersnatch.configuration import BandersnatchConfig
-from packaging.requirements import Requirement
-from urllib.parse import urljoin
+from pulp_python.app.utils import PYPI_LAST_SERIAL, parse_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +49,7 @@ def sync(remote_pk, repository_pk, mirror):
     repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise serializers.ValidationError(
-            detail=_("A remote must have a url attribute to sync.")
-        )
+        raise serializers.ValidationError(detail=_("A remote must have a url attribute to sync."))
 
     first_stage = PythonBanderStage(remote)
     DeclarativeVersion(first_stage, repository, mirror).create()
@@ -146,9 +142,7 @@ class PythonBanderStage(Stage):
                 )
                 packages_to_sync = None
                 if self.remote.includes:
-                    packages_to_sync = [
-                        Requirement(pkg).name for pkg in self.remote.includes
-                    ]
+                    packages_to_sync = [Requirement(pkg).name for pkg in self.remote.includes]
                 await pmirror.synchronize(packages_to_sync)
             # place back old session so that it is properly closed
             master.session = old_session
@@ -159,9 +153,7 @@ class PulpMirror(Mirror):
     Pulp Mirror Class to perform syncing using Bandersnatch
     """
 
-    def __init__(
-        self, serial, master, workers, deferred_download, python_stage, progress_report
-    ):
+    def __init__(self, serial, master, workers, deferred_download, python_stage, progress_report):
         """Initialize Bandersnatch Mirror"""
         super().__init__(master=master, workers=workers)
         self.synced_serial = serial
@@ -176,11 +168,7 @@ class PulpMirror(Mirror):
         """
         number_xmlrpc_attempts = 3
         for attempt in range(number_xmlrpc_attempts):
-            logger.info(
-                "Attempt {} to get package list from {}".format(
-                    attempt, self.master.url
-                )
-            )
+            logger.info("Attempt {} to get package list from {}".format(attempt, self.master.url))
             try:
                 if not self.synced_serial:
                     logger.info("Syncing all packages.")
@@ -192,9 +180,7 @@ class PulpMirror(Mirror):
                     )
                 else:
                     logger.info("Syncing based on changelog.")
-                    changed_packages = await self.master.changed_packages(
-                        self.synced_serial
-                    )
+                    changed_packages = await self.master.changed_packages(self.synced_serial)
                     self.packages_to_sync.update(changed_packages)
                     self.target_serial = max(
                         [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]

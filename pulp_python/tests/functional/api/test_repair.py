@@ -1,5 +1,6 @@
-import pytest
 import subprocess
+
+import pytest
 
 from pulp_python.tests.functional.constants import PYTHON_EGG_FILENAME
 
@@ -65,7 +66,7 @@ def test_metadata_repair_command(
     move_to_repository(python_repo.pulp_href, [content.pulp_href])
     process = subprocess.run(
         ["pulpcore-manager", "repair-python-metadata", "--repositories", python_repo.pulp_href],
-        capture_output=True
+        capture_output=True,
     )
     assert process.returncode == 0
     output = process.stdout.decode().strip()
