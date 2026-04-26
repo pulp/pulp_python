@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import path
 
-from pulp_python.app.pypi.views import SimpleView, MetadataView, PyPIView, UploadView
+from pulp_python.app.pypi.views import MetadataView, PyPIView, SimpleView, UploadView
 
 if settings.DOMAIN_ENABLED:
     PYPI_API_URL = "pypi/<slug:pulp_domain>/<path:path>/"

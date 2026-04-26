@@ -1,4 +1,5 @@
 import pytest
+
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_URL,

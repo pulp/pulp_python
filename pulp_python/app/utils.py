@@ -1,16 +1,17 @@
-import pkginfo
+import json
 import re
 import shutil
 import tempfile
-import json
 from collections import defaultdict
+
+import pkginfo
 from django.conf import settings
 from jinja2 import Template
-from packaging.utils import canonicalize_name
 from packaging.requirements import Requirement
-from packaging.version import parse, InvalidVersion
-from pulpcore.plugin.models import Remote
+from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, parse
 
+from pulpcore.plugin.models import Remote
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""

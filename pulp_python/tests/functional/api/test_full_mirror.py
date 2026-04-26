@@ -1,18 +1,18 @@
+import subprocess
+from random import sample
+from urllib.parse import urljoin, urlsplit
+
 import pytest
 import requests
-import subprocess
+from packaging.version import parse
+from pypi_simple import ProjectPage
 
 from pulp_python.tests.functional.constants import (
     PYPI_URL,
-    PYTHON_XS_FIXTURE_CHECKSUMS,
-    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_XS_FIXTURE_CHECKSUMS,
 )
-
-from pypi_simple import ProjectPage
-from packaging.version import parse
-from urllib.parse import urljoin, urlsplit
-from random import sample
 
 
 def test_pull_through_install(

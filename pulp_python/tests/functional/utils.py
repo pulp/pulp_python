@@ -1,6 +1,6 @@
-import requests
-
 from urllib.parse import urljoin
+
+import requests
 from lxml import html
 
 

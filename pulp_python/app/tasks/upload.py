@@ -1,9 +1,10 @@
 import time
-
 from datetime import datetime, timezone
-from django.db import transaction
+
 from django.contrib.sessions.models import Session
-from pulpcore.plugin.models import Artifact, CreatedResource, ContentArtifact
+from django.db import transaction
+
+from pulpcore.plugin.models import Artifact, ContentArtifact, CreatedResource
 from pulpcore.plugin.util import get_domain
 
 from pulp_python.app.models import PythonPackageContent, PythonRepository
