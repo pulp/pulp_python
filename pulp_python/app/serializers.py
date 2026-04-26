@@ -1,6 +1,7 @@
 import logging
 import os
 from gettext import gettext as _
+
 from django.conf import settings
 from django.db.utils import IntegrityError
 from packaging.requirements import Requirement
@@ -17,7 +18,6 @@ from pulp_python.app.utils import (
     get_project_metadata_from_file,
     parse_project_metadata,
 )
-
 
 log = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         required=False,
         allow_blank=True,
         help_text=_(
-            "The maintainer's name at a minimum; " "additional contact information may be provided."
+            "The maintainer's name at a minimum; additional contact information may be provided."
         ),
     )
     maintainer_email = serializers.CharField(
@@ -489,7 +489,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
     package_types = MultipleChoiceArrayField(
         required=False,
         help_text=_(
-            "The package types to sync for Python content. Leave blank to get every" "package type."
+            "The package types to sync for Python content. Leave blank to get everypackage type."
         ),
         choices=python_models.PACKAGE_TYPES,
         default=list,

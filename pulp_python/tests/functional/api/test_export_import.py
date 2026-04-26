@@ -5,15 +5,16 @@ NOTE: assumes ALLOWED_EXPORT_PATHS setting contains "/tmp" - all tests will fail
 the case.
 """
 
-import pytest
 import uuid
 
-from pulpcore.app import settings
-from pulp_python.tests.functional.constants import (
-    PYTHON_XS_PROJECT_SPECIFIER,
-    PYTHON_SM_PROJECT_SPECIFIER,
-)
+import pytest
 
+from pulpcore.app import settings
+
+from pulp_python.tests.functional.constants import (
+    PYTHON_SM_PROJECT_SPECIFIER,
+    PYTHON_XS_PROJECT_SPECIFIER,
+)
 
 pytestmark = [
     pytest.mark.skipif(settings.DOMAIN_ENABLED, reason="Domains do not support export."),

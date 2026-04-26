@@ -1,15 +1,16 @@
-import pytest
-import uuid
 import subprocess
+import uuid
+
+import pytest
 
 from pulpcore.tests.functional.utils import BindingsNamespace
-from pulp_python.tests.functional.constants import (
-    PYTHON_FIXTURE_URL,
-    PYTHON_XS_PROJECT_SPECIFIER,
-    PYTHON_EGG_FILENAME,
-    PYTHON_URL,
-)
 
+from pulp_python.tests.functional.constants import (
+    PYTHON_EGG_FILENAME,
+    PYTHON_FIXTURE_URL,
+    PYTHON_URL,
+    PYTHON_XS_PROJECT_SPECIFIER,
+)
 
 # Bindings API Fixtures
 

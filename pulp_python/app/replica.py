@@ -1,10 +1,11 @@
-from pulpcore.plugin.replica import Replicator
-
 from pulp_glue.python.context import (
     PulpPythonDistributionContext,
     PulpPythonPublicationContext,
     PulpPythonRepositoryContext,
 )
+
+from pulpcore.plugin.replica import Replicator
+
 from pulp_python.app.models import PythonDistribution, PythonRemote, PythonRepository
 from pulp_python.app.tasks import sync as python_sync
 

@@ -1,26 +1,24 @@
-import pytest
-import requests
 import subprocess
-
 from urllib.parse import urljoin
 
+import pytest
+import requests
+
 from pulp_python.tests.functional.constants import (
-    PYTHON_SM_PROJECT_SPECIFIER,
-    PYTHON_SM_FIXTURE_RELEASES,
-    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_EGG_FILENAME,
+    PYTHON_EGG_SHA256,
+    PYTHON_EGG_URL,
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_PYPI_SUMMARY,
-    PYTHON_EGG_FILENAME,
-    PYTHON_EGG_URL,
-    PYTHON_EGG_SHA256,
+    PYTHON_SM_FIXTURE_CHECKSUMS,
+    PYTHON_SM_FIXTURE_RELEASES,
+    PYTHON_SM_PROJECT_SPECIFIER,
     PYTHON_WHEEL_FILENAME,
-    PYTHON_WHEEL_URL,
     PYTHON_WHEEL_SHA256,
+    PYTHON_WHEEL_URL,
     SHELF_PYTHON_JSON,
 )
-
 from pulp_python.tests.functional.utils import ensure_simple
-
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 PYPI_SERIAL_CONSTANT = 1000000000

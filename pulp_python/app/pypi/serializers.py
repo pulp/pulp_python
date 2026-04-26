@@ -1,11 +1,13 @@
 import logging
 from gettext import gettext as _
 
+from django.db.utils import IntegrityError
 from rest_framework import serializers
-from pulp_python.app.utils import DIST_EXTENSIONS
+
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
-from django.db.utils import IntegrityError
+
+from pulp_python.app.utils import DIST_EXTENSIONS
 
 log = logging.getLogger(__name__)
 

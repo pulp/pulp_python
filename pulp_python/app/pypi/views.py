@@ -1,56 +1,55 @@
 import json
 import logging
+from datetime import datetime, timedelta, timezone
+from itertools import chain
+from pathlib import PurePath
+from urllib.parse import urljoin, urlparse, urlunsplit
 
 from aiohttp.client_exceptions import ClientError
-from rest_framework.viewsets import ViewSet
-from rest_framework.response import Response
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import redirect
-from datetime import datetime, timezone, timedelta
-
 from django.contrib.sessions.models import Session
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.utils import DatabaseError
 from django.http.response import (
     Http404,
-    HttpResponseForbidden,
-    HttpResponseBadRequest,
-    StreamingHttpResponse,
     HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    StreamingHttpResponse,
 )
+from django.shortcuts import redirect
 from drf_spectacular.utils import extend_schema
 from dynaconf import settings
-from itertools import chain
 from packaging.utils import canonicalize_name
-from urllib.parse import urljoin, urlparse, urlunsplit
-from pathlib import PurePath
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
-from pulpcore.plugin.viewsets import OperationPostponedResponse
+from pulpcore.plugin.exceptions import TimeoutException
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
-from pulpcore.plugin.exceptions import TimeoutException
+from pulpcore.plugin.viewsets import OperationPostponedResponse
+
+from pulp_python.app import tasks
 from pulp_python.app.models import (
     PythonDistribution,
     PythonPackageContent,
     PythonPublication,
 )
 from pulp_python.app.pypi.serializers import (
-    SummarySerializer,
     PackageMetadataSerializer,
     PackageUploadSerializer,
     PackageUploadTaskSerializer,
+    SummarySerializer,
 )
 from pulp_python.app.utils import (
-    write_simple_index,
-    write_simple_detail,
-    python_content_to_json,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
     get_remote_package_filter,
+    python_content_to_json,
+    write_simple_detail,
+    write_simple_index,
 )
-
-from pulp_python.app import tasks
 
 log = logging.getLogger(__name__)
 
