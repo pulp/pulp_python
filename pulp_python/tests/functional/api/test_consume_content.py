@@ -20,6 +20,7 @@ def test_pip_consume_content(
         "install",
         "--no-deps",
         "--no-cache-dir",
+        "--no-build-isolation",
         "--force-reinstall",
         "--trusted-host",
         urlsplit(distro.base_url).hostname,
