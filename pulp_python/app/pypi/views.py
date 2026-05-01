@@ -15,6 +15,7 @@ from django.http.response import (
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
+    HttpResponseNotFound,
     StreamingHttpResponse,
 )
 from django.shortcuts import redirect
@@ -255,7 +256,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
 
         rfilter = get_remote_package_filter(remote)
         if not rfilter.filter_project(package):
-            raise Http404(f"{package} does not exist.")
+            return {}
 
         url = remote.get_remote_artifact_url(f"simple/{package}/")
         remote.headers = remote.headers or []
@@ -263,19 +264,19 @@ class SimpleView(PackageUploadMixin, ViewSet):
         downloader = remote.get_downloader(url=url, max_retries=1)
         try:
             d = downloader.fetch()
-        except ClientError:
-            return HttpResponse(f"Failed to fetch {package} from {remote.url}.", status=502)
-        except TimeoutException:
-            return HttpResponse(f"{remote.url} timed out while fetching {package}.", status=504)
+        except (ClientError, TimeoutException):
+            log.info(f"Failed to fetch {package} simple page from {remote.url}")
+            return {}
 
         if d.headers["content-type"] == "application/vnd.pypi.simple.v1+json":
             page = ProjectPage.from_json_data(json.load(open(d.path, "rb")), base_url=url)
         else:
             page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
-        packages = [
-            parse_package(p) for p in page.packages if rfilter.filter_release(package, p.version)
-        ]
-        return HttpResponse(write_simple_detail(package, packages))
+        return {
+            p.filename: parse_package(p)
+            for p in page.packages
+            if rfilter.filter_release(package, p.version)
+        }
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     def retrieve(self, request, path, package):
@@ -283,24 +284,25 @@ class SimpleView(PackageUploadMixin, ViewSet):
         repo_ver, content = self.get_rvc()
         # Should I redirect if the normalized name is different?
         normalized = canonicalize_name(package)
+        releases = {}
         if self.distribution.remote:
-            return self.pull_through_package_simple(normalized, path, self.distribution.remote)
-        if self.should_redirect(repo_version=repo_ver):
+            releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
+        elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
-        packages = (
-            content.filter(name__normalize=normalized)
-            .values_list("filename", "sha256", "name")
-            .iterator()
-        )
-        try:
-            present = next(packages)
-        except StopIteration:
-            raise Http404(f"{normalized} does not exist.")
-        else:
-            packages = chain([present], packages)
-            name = present[2]
-        releases = ((f, urljoin(self.base_content_url, f"{path}/{f}"), d) for f, d, _ in packages)
-        return StreamingHttpResponse(write_simple_detail(name, releases, streamed=True))
+        if content:
+            packages = content.filter(name__normalize=normalized).values("filename", "sha256")
+            local_releases = {
+                p["filename"]: (
+                    p["filename"],
+                    urljoin(self.base_content_url, f"{path}/{p['filename']}"),
+                    p["sha256"],
+                )
+                for p in packages
+            }
+            releases.update(local_releases)
+        if not releases:
+            return HttpResponseNotFound(f"{normalized} does not exist.")
+        return HttpResponse(write_simple_detail(normalized, releases.values()))
 
     @extend_schema(
         request=PackageUploadSerializer,
