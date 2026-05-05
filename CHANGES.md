@@ -275,6 +275,17 @@
 
 ---
 
+## 3.19.3 (2026-05-04) {: #3.19.3 }
+
+#### Bugfixes {: #3.19.3-bugfix }
+
+- Fixed pull-through caching not checking the repository if package was not present on remote.
+  [#1004](https://github.com/pulp/pulp_python/issues/1004)
+- Fixed pull-through caching failing for packages with bad names.
+  [#1040](https://github.com/pulp/pulp_python/issues/1040)
+
+---
+
 ## 3.19.2 (2026-04-28) {: #3.19.2 }
 
 No significant changes.
