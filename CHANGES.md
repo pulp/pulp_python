@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.30.0 (2026-05-13) {: #3.30.0 }
+
+#### Features {: #3.30.0-feature }
+
+- Added filtering by `name`, `version`, and `filename` to the blocklist entries API endpoint.
+  [#1229](https://github.com/pulp/pulp_python/issues/1229)
+
+#### Deprecations and Removals {: #3.30.0-removal }
+
+- Deprecated the `repair-python-metadata` management command in favor of the repository `repair_metadata` task.
+  [#1207](https://github.com/pulp/pulp_python/issues/1207)
+
+---
+
 ## 3.29.0 (2026-04-17) {: #3.29.0 }
 
 #### Features {: #3.29.0-feature }
