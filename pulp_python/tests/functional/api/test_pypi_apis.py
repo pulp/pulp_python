@@ -1,4 +1,6 @@
 import subprocess
+import time
+from datetime import datetime
 from urllib.parse import urljoin
 
 import pytest
@@ -6,6 +8,7 @@ import requests
 
 from pulp_python.tests.functional.constants import (
     PYPI_SERIAL_CONSTANT,
+    PYPI_SIMPLE_V1_JSON,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
     PYTHON_MD_PROJECT_SPECIFIER,
@@ -13,6 +16,8 @@ from pulp_python.tests.functional.constants import (
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
     SHELF_PYTHON_JSON,
+    TWINE_WHEEL_FILENAME,
+    TWINE_WHEEL_URL,
 )
 from pulp_python.tests.functional.utils import ensure_metadata
 
@@ -328,3 +333,41 @@ def assert_download_info(expected, received, message="Failed to match"):
                 matched = True
                 break
         assert matched is True, message
+
+
+@pytest.mark.parallel
+def test_upload_time_reflects_repo_addition(
+    monitor_task,
+    python_bindings,
+    python_content_factory,
+    python_distribution_factory,
+    python_repo_factory,
+):
+    """
+    Test that upload_time reflects repository addition time instead of content creation time.
+    Checks both Simple and JSON APIs.
+    """
+    content = python_content_factory(TWINE_WHEEL_FILENAME, url=TWINE_WHEEL_URL)
+    content_created = datetime.fromisoformat(
+        str(python_bindings.ContentPackagesApi.read(content.pulp_href).pulp_created)
+    )
+    time.sleep(2)
+
+    repo = python_repo_factory()
+    body = {"add_content_units": [content.pulp_href]}
+    monitor_task(python_bindings.RepositoriesPythonApi.modify(repo.pulp_href, body).task)
+    distro = python_distribution_factory(repository=repo)
+
+    # Simple API
+    headers = {"Accept": PYPI_SIMPLE_V1_JSON}
+    resp = requests.get(f"{urljoin(distro.base_url, 'simple/')}twine", headers=headers)
+    assert resp.status_code == 200
+    simple_time = datetime.fromisoformat(resp.json()["files"][0]["upload-time"])
+    assert simple_time > content_created
+
+    # JSON API
+    json_resp = requests.get(urljoin(distro.base_url, "pypi/twine/json"))
+    assert json_resp.status_code == 200
+    json_time = datetime.fromisoformat(json_resp.json()["urls"][0]["upload_time"])
+    assert json_time > content_created
+    assert json_time == simple_time

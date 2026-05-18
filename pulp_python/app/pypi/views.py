@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlparse, urlunsplit
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import OuterRef, Subquery
 from django.db.utils import DatabaseError
 from django.http.response import (
     Http404,
@@ -25,6 +26,7 @@ from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, Templat
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
+from pulpcore.plugin.models import RepositoryContent
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
 from pulpcore.plugin.viewsets import OperationPostponedResponse
@@ -366,13 +368,20 @@ class SimpleView(PackageUploadMixin, ViewSet):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content is not None:
             local_packages = content.filter(name_normalized=normalized)
-            packages = local_packages.values(
+            repo_added_subquery = RepositoryContent.objects.filter(
+                content_id=OuterRef("pk"),
+                repository=repo_ver.repository,
+                version_removed=None,
+            ).values("pulp_created")[:1]
+            packages = local_packages.annotate(
+                repo_added_time=Subquery(repo_added_subquery)
+            ).values(
                 "filename",
                 "sha256",
                 "metadata_sha256",
                 "requires_python",
                 "size",
-                "pulp_created",
+                "repo_added_time",
                 "version",
             )
             provenances = PackageProvenance.objects.filter(package__in=local_packages).values_list(
@@ -382,7 +391,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 p["filename"]: {
                     **p,
                     "url": urljoin(self.base_content_url, f"{path}/{p['filename']}"),
-                    "upload_time": p["pulp_created"],
+                    "upload_time": p["repo_added_time"],
                     "provenance": (
                         self.get_provenance_url(normalized, p["version"], p["filename"])
                         if p["filename"] in provenances
@@ -464,7 +473,11 @@ class MetadataView(PyPIMixin, ViewSet):
             if settings.DOMAIN_ENABLED:
                 domain = get_domain()
             json_body = python_content_to_json(
-                path, package_content, version=version, domain=domain
+                path,
+                package_content,
+                version=version,
+                domain=domain,
+                repository_version=repo_ver,
             )
             if json_body:
                 return Response(data=json_body, headers=headers)
