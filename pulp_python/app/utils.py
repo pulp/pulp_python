@@ -11,6 +11,7 @@ from datetime import timezone
 import pkginfo
 from aiohttp.client_exceptions import ClientError
 from django.conf import settings
+from django.db.models import OuterRef, Subquery
 from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
@@ -19,7 +20,7 @@ from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.exceptions import TimeoutException
-from pulpcore.plugin.models import Artifact, Remote
+from pulpcore.plugin.models import Artifact, Remote, RepositoryContent
 from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)
@@ -359,7 +360,9 @@ def fetch_json_release_metadata(name: str, version: str, remotes: set[Remote]) -
         raise Exception(f"Failed to fetch {url} from any remote.")
 
 
-def python_content_to_json(base_path, content_query, version=None, domain=None):
+def python_content_to_json(
+    base_path, content_query, version=None, domain=None, repository_version=None
+):
     """
     Converts a QuerySet of PythonPackageContent into the PyPi JSON format
     https://www.python.org/dev/peps/pep-0566/
@@ -371,6 +374,13 @@ def python_content_to_json(base_path, content_query, version=None, domain=None):
 
     Returns None if version is specified but not found within content_query
     """
+    if repository_version:
+        repo_added_subquery = RepositoryContent.objects.filter(
+            content_id=OuterRef("pk"),
+            repository=repository_version.repository,
+            version_removed=None,
+        ).values("pulp_created")[:1]
+        content_query = content_query.annotate(repo_added_time=Subquery(repo_added_subquery))
     full_metadata = {"last_serial": 0}  # For now the serial field isn't supported by Pulp
     latest_content = latest_content_version(content_query, version)
     if not latest_content:
@@ -515,8 +525,10 @@ def python_content_to_download_info(content, base_path, domain=None):
         "python_version": content.python_version,
         "requires_python": content.requires_python or None,
         "size": content.size,
-        "upload_time": str(content.pulp_created),
-        "upload_time_iso_8601": str(content.pulp_created.isoformat()),
+        "upload_time": str(getattr(content, "repo_added_time", None) or content.pulp_created),
+        "upload_time_iso_8601": str(
+            (getattr(content, "repo_added_time", None) or content.pulp_created).isoformat()
+        ),
         "url": url,
         "yanked": False,
         "yanked_reason": None,

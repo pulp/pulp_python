@@ -382,3 +382,7 @@ VULNERABILITY_REPORT_TEST_PACKAGES = [
 ]
 
 PYPI_SERIAL_CONSTANT = 1000000000
+
+PYPI_TEXT_HTML = "text/html"
+PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
+PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
