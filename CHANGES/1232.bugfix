@@ -1,0 +1,1 @@
+Fixed `upload_time` in Simple and JSON APIs to reflect repository addition time instead of content creation time.

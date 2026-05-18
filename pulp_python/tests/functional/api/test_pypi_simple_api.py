@@ -5,6 +5,9 @@ import requests
 
 from pulp_python.tests.functional.constants import (
     PYPI_SERIAL_CONSTANT,
+    PYPI_SIMPLE_V1_HTML,
+    PYPI_SIMPLE_V1_JSON,
+    PYPI_TEXT_HTML,
     PYTHON_SM_FIXTURE_CHECKSUMS,
     PYTHON_SM_FIXTURE_RELEASES,
     PYTHON_SM_PROJECT_SPECIFIER,
@@ -26,10 +29,6 @@ from pulp_python.tests.functional.constants import (
 from pulp_python.tests.functional.utils import ensure_simple
 
 API_VERSION = "1.1"
-
-PYPI_TEXT_HTML = "text/html"
-PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
-PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
 
 
 @pytest.mark.parallel
