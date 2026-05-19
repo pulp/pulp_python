@@ -260,7 +260,7 @@ class PythonBlocklistEntryViewSet(
     parent_lookup_kwargs = {"repository_pk": "repository__pk"}
     serializer_class = python_serializers.PythonBlocklistEntrySerializer
     queryset = python_models.PythonBlocklistEntry.objects.all()
-    filterset_fields = {"name": ["exact"], "version": ["exact"], "filename": ["exact"]}
+    filterset_fields = {"name": ["exact"], "version": ["exact", "isnull"], "filename": ["exact"]}
     ordering = ("-pulp_created",)
 
     DEFAULT_ACCESS_POLICY = {
