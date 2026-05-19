@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.30.2 (2026-05-19) {: #3.30.2 }
+
+#### Bugfixes {: #3.30.2-bugfix }
+
+- Fixed blocklist entries API to support `isnull` filter lookup on `version` to uniquely identify name-only entries.
+  [#1238](https://github.com/pulp/pulp_python/issues/1238)
+
+---
+
 ## 3.30.1 (2026-05-19) {: #3.30.1 }
 
 #### Bugfixes {: #3.30.1-bugfix }

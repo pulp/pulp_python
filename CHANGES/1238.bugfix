@@ -1,1 +1,0 @@
-Fixed blocklist entries API to support `isnull` filter lookup on `version` to uniquely identify name-only entries.
