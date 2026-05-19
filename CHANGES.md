@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.27.3 (2026-05-19) {: #3.27.3 }
+
+#### Bugfixes {: #3.27.3-bugfix }
+
+- Fixed `upload_time` in Simple and JSON APIs to reflect repository addition time instead of content creation time.
+  [#1232](https://github.com/pulp/pulp_python/issues/1232)
+
+---
+
 ## 3.27.2 (2026-04-14) {: #3.27.2 }
 
 #### Bugfixes {: #3.27.2-bugfix }
