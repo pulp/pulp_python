@@ -8,6 +8,24 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.30.2 (2026-05-19) {: #3.30.2 }
+
+#### Bugfixes {: #3.30.2-bugfix }
+
+- Fixed blocklist entries API to support `isnull` filter lookup on `version` to uniquely identify name-only entries.
+  [#1238](https://github.com/pulp/pulp_python/issues/1238)
+
+---
+
+## 3.30.1 (2026-05-19) {: #3.30.1 }
+
+#### Bugfixes {: #3.30.1-bugfix }
+
+- Fixed `upload_time` in Simple and JSON APIs to reflect repository addition time instead of content creation time.
+  [#1232](https://github.com/pulp/pulp_python/issues/1232)
+
+---
+
 ## 3.30.0 (2026-05-13) {: #3.30.0 }
 
 #### Features {: #3.30.0-feature }
@@ -68,6 +86,15 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.3 (2026-05-19) {: #3.27.3 }
+
+#### Bugfixes {: #3.27.3-bugfix }
+
+- Fixed `upload_time` in Simple and JSON APIs to reflect repository addition time instead of content creation time.
+  [#1232](https://github.com/pulp/pulp_python/issues/1232)
 
 ---
 
