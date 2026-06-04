@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse, urlunsplit
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import OuterRef, Subquery
+from django.db.models import Exists, F, FilteredRelation, OuterRef, Q
 from django.db.utils import DatabaseError
 from django.http.response import (
     Http404,
@@ -26,7 +26,6 @@ from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, Templat
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from pulpcore.plugin.models import RepositoryContent
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_domain, get_url
 from pulpcore.plugin.viewsets import OperationPostponedResponse
@@ -368,13 +367,16 @@ class SimpleView(PackageUploadMixin, ViewSet):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content is not None:
             local_packages = content.filter(name_normalized=normalized)
-            repo_added_subquery = RepositoryContent.objects.filter(
-                content_id=OuterRef("pk"),
-                repository=repo_ver.repository,
-                version_removed=None,
-            ).values("pulp_created")[:1]
             packages = local_packages.annotate(
-                repo_added_time=Subquery(repo_added_subquery)
+                active_membership=FilteredRelation(
+                    "version_memberships",
+                    condition=Q(
+                        version_memberships__repository=repo_ver.repository,
+                        version_memberships__version_removed=None,
+                    ),
+                ),
+                repo_added_time=F("active_membership__pulp_created"),
+                has_provenance=Exists(PackageProvenance.objects.filter(package_id=OuterRef("pk"))),
             ).values(
                 "filename",
                 "sha256",
@@ -383,9 +385,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "size",
                 "repo_added_time",
                 "version",
-            )
-            provenances = PackageProvenance.objects.filter(package__in=local_packages).values_list(
-                "package__filename", flat=True
+                "has_provenance",
             )
             local_releases = {
                 p["filename"]: {
@@ -394,7 +394,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                     "upload_time": p["repo_added_time"],
                     "provenance": (
                         self.get_provenance_url(normalized, p["version"], p["filename"])
-                        if p["filename"] in provenances
+                        if p["has_provenance"]
                         else None
                     ),
                 }
