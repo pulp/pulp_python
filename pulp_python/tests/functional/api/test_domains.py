@@ -174,7 +174,10 @@ def test_domain_content_replication(
         pulpcore_bindings.UpstreamPulpsApi, upstream_pulp_body, pulp_domain=replica_domain.name
     )
     # Run the replicate task and assert that all tasks successfully complete.
-    response = pulpcore_bindings.UpstreamPulpsApi.replicate(upstream_pulp.pulp_href)
+    response = pulpcore_bindings.UpstreamPulpsApi.replicate(
+        upstream_pulp.pulp_href,
+        upstream_pulp_replicate=pulpcore_bindings.module.UpstreamPulpReplicate(),
+    )
     monitor_task_group(response.task_group)
 
     counts = {}
@@ -198,7 +201,10 @@ def test_domain_content_replication(
     body = {"remote": remote.pulp_href}
     monitor_task(python_bindings.RepositoriesPythonApi.sync(repo.pulp_href, body).task)
 
-    response = pulpcore_bindings.UpstreamPulpsApi.replicate(upstream_pulp.pulp_href)
+    response = pulpcore_bindings.UpstreamPulpsApi.replicate(
+        upstream_pulp.pulp_href,
+        upstream_pulp_replicate=pulpcore_bindings.module.UpstreamPulpReplicate(),
+    )
     monitor_task_group(response.task_group)
 
     response = python_bindings.ContentPackagesApi.list(pulp_domain=replica_domain.name)
