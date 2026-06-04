@@ -11,7 +11,7 @@ from datetime import timezone
 import pkginfo
 from aiohttp.client_exceptions import ClientError
 from django.conf import settings
-from django.db.models import OuterRef, Subquery
+from django.db.models import F, FilteredRelation, Q
 from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
@@ -20,7 +20,7 @@ from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.exceptions import TimeoutException
-from pulpcore.plugin.models import Artifact, Remote, RepositoryContent
+from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)
@@ -375,12 +375,16 @@ def python_content_to_json(
     Returns None if version is specified but not found within content_query
     """
     if repository_version:
-        repo_added_subquery = RepositoryContent.objects.filter(
-            content_id=OuterRef("pk"),
-            repository=repository_version.repository,
-            version_removed=None,
-        ).values("pulp_created")[:1]
-        content_query = content_query.annotate(repo_added_time=Subquery(repo_added_subquery))
+        content_query = content_query.annotate(
+            active_membership=FilteredRelation(
+                "version_memberships",
+                condition=Q(
+                    version_memberships__repository=repository_version.repository,
+                    version_memberships__version_removed=None,
+                ),
+            ),
+            repo_added_time=F("active_membership__pulp_created"),
+        )
     full_metadata = {"last_serial": 0}  # For now the serial field isn't supported by Pulp
     latest_content = latest_content_version(content_query, version)
     if not latest_content:
