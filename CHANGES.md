@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.30.3 (2026-06-05) {: #3.30.3 }
+
+#### Bugfixes {: #3.30.3-bugfix }
+
+- Optimized `upload_time` lookups in Simple and JSON APIs.
+  [#1242](https://github.com/pulp/pulp_python/issues/1242)
+- Optimized `provenance` lookups in Simple API.
+  [#1243](https://github.com/pulp/pulp_python/issues/1243)
+
+---
+
 ## 3.30.2 (2026-05-19) {: #3.30.2 }
 
 #### Bugfixes {: #3.30.2-bugfix }
