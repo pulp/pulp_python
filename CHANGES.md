@@ -8,6 +8,25 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.31.0 (2026-06-09) {: #3.31.0 }
+
+#### Features {: #3.31.0-feature }
+
+- Add more Pulp Exceptions.
+
+#### Bugfixes {: #3.31.0-bugfix }
+
+- Fixed `upload_time` in Simple and JSON APIs to reflect repository addition time instead of content creation time.
+  [#1232](https://github.com/pulp/pulp_python/issues/1232)
+- Fixed blocklist entries API to support `isnull` filter lookup on `version` to uniquely identify name-only entries.
+  [#1238](https://github.com/pulp/pulp_python/issues/1238)
+- Optimized `upload_time` lookups in Simple and JSON APIs.
+  [#1242](https://github.com/pulp/pulp_python/issues/1242)
+- Optimized `provenance` lookups in Simple API.
+  [#1243](https://github.com/pulp/pulp_python/issues/1243)
+
+---
+
 ## 3.30.3 (2026-06-05) {: #3.30.3 }
 
 #### Bugfixes {: #3.30.3-bugfix }
