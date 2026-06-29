@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
 import tempfile
@@ -206,7 +207,7 @@ def get_project_metadata_from_file(filename):
     else:
         pyver = ""
         regex = DIST_REGEXES[extensions[pkg_type_index]]
-        if bdist_name := regex.match(filename):
+        if bdist_name := regex.match(os.path.basename(filename)):
             pyver = bdist_name.group("pyver") or ""
         metadata.python_version = pyver
     return metadata
