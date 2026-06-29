@@ -1,0 +1,1 @@
+Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
