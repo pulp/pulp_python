@@ -12,7 +12,7 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_python.app"
     label = "python"
-    version = "3.19.4"
+    version = "3.19.5.dev"
     python_package_name = "pulp-python"
     domain_compatible = True
 
