@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.13.7 (2026-06-30) {: #3.13.7 }
+
+#### Bugfixes {: #3.13.7-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
+
+---
+
 ## 3.13.6 (2026-04-01) {: #3.13.6 }
 
 #### Bugfixes {: #3.13.6-bugfix }
