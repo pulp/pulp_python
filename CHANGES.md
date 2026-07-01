@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.31.1 (2026-06-30) {: #3.31.1 }
+
+#### Bugfixes {: #3.31.1-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
+
+---
+
 ## 3.31.0 (2026-06-09) {: #3.31.0 }
 
 #### Features {: #3.31.0-feature }
@@ -116,6 +124,14 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.5 (2026-06-30) {: #3.27.5 }
+
+#### Bugfixes {: #3.27.5-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
 
 ---
 
@@ -357,6 +373,14 @@
 
 ---
 
+## 3.19.4 (2026-06-30) {: #3.19.4 }
+
+#### Bugfixes {: #3.19.4-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
+
+---
+
 ## 3.19.3 (2026-05-04) {: #3.19.3 }
 
 #### Bugfixes {: #3.19.3-bugfix }
@@ -477,6 +501,14 @@ No significant changes.
 #### Misc {: #3.14.0-misc }
 
 - [#809](https://github.com/pulp/pulp_python/issues/809)
+
+---
+
+## 3.13.7 (2026-06-30) {: #3.13.7 }
+
+#### Bugfixes {: #3.13.7-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
 
 ---
 
