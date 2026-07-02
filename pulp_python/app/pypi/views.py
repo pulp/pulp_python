@@ -390,7 +390,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
             local_releases = {
                 p["filename"]: {
                     **p,
-                    "url": urljoin(self.base_content_url, f"{path}/{p['filename']}"),
+                    "url": urljoin(self.base_content_url, f"{path}/packages/{p['filename']}"),
                     "upload_time": p["repo_added_time"],
                     "provenance": (
                         self.get_provenance_url(normalized, p["version"], p["filename"])

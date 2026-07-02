@@ -3,7 +3,7 @@ import json
 from logging import getLogger
 from pathlib import PurePath
 
-from aiohttp.web import json_response
+from aiohttp.web import HTTPFound, json_response
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
@@ -91,6 +91,9 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
             name = path.parts[1]
         elif path.match("pypi/*/json"):
             name = path.parts[1]
+        elif len(path.parts) >= 2 and path.parts[0] == "packages":
+            filename = "/".join(path.parts[1:])
+            raise HTTPFound(location=f"../{filename}")  # 302
         elif len(path.parts) and path.parts[0] == "simple":
             # Temporary fix for PublishedMetadata not being properly served from remote storage
             # https://github.com/pulp/pulp_python/issues/413
