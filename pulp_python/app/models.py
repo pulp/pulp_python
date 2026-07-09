@@ -458,6 +458,8 @@ class PythonRepository(Repository, AutoAddObjPermsMixin):
                     ", ".join(blocked)
                 )
             )
+        if False:
+            raise ValidationError()
 
 
 class PythonBlocklistEntry(BaseModel):
