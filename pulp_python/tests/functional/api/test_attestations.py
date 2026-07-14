@@ -8,6 +8,7 @@ import pytest
 import requests
 from pypi_simple import PyPISimple
 
+from pulpcore.app import settings  # noqa: TID251
 from pulpcore.tests.functional.utils import PulpTaskError
 
 
@@ -152,6 +153,55 @@ def test_attestation_sync_upload(python_bindings, twine_package, download_python
     att_bundle = prov.provenance["attestation_bundles"][0]
     assert att_bundle["attestations"] == attestations
     assert att_bundle["publisher"]["kind"] == "Pulp User"
+
+
+@pytest.mark.skipif(not settings.DOMAIN_ENABLED, reason="Domain not enabled")
+@pytest.mark.parallel
+def test_sync_pulp_created_provenance(
+    domain_factory,
+    python_bindings,
+    twine_package,
+    python_repo_factory,
+    python_distribution_factory,
+    python_remote_factory,
+    python_repo_with_sync,
+    python_content_summary,
+    monitor_task,
+):
+    """Test syncing provenance across domains from a Pulp upload."""
+    source_domain = domain_factory()
+    attestations = get_attestations(twine_package.provenance_url)
+    source_repo = python_repo_factory(pulp_domain=source_domain.name)
+    body = {
+        "relative_path": twine_package.filename,
+        "file_url": twine_package.url,
+        "attestations": json.dumps(attestations),
+        "repository": source_repo.pulp_href,
+    }
+    task = python_bindings.ContentPackagesApi.create(pulp_domain=source_domain.name, **body).task
+    monitor_task(task)
+
+    source_distro = python_distribution_factory(
+        repository=source_repo, pulp_domain=source_domain.name
+    )
+    dest_domain = domain_factory()
+    remote = python_remote_factory(
+        url=source_distro.base_url,
+        provenance=True,
+        includes=[f"twine=={twine_package.version}"],
+        pulp_domain=dest_domain.name,
+    )
+    dest_repo = python_repo_with_sync(remote=remote, pulp_domain=dest_domain.name)
+
+    summary = python_content_summary(repository_version=dest_repo.latest_version_href)
+    assert summary.present["python.provenance"]["count"] == 1
+
+    provs = python_bindings.ContentProvenanceApi.list(
+        repository_version=dest_repo.latest_version_href,
+        pulp_domain=dest_domain.name,
+    )
+    assert provs.count == 1
+    assert provs.results[0].provenance["attestation_bundles"][0]["publisher"]["kind"] == "Pulp User"
 
 
 def test_attestation_twine_upload(
