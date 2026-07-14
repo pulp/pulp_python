@@ -8,7 +8,6 @@ import pytest
 import requests
 from pypi_simple import PyPISimple
 
-from pulpcore.app import settings  # noqa: TID251
 from pulpcore.tests.functional.utils import PulpTaskError
 
 
@@ -155,7 +154,6 @@ def test_attestation_sync_upload(python_bindings, twine_package, download_python
     assert att_bundle["publisher"]["kind"] == "Pulp User"
 
 
-@pytest.mark.skipif(not settings.DOMAIN_ENABLED, reason="Domain not enabled")
 @pytest.mark.parallel
 def test_sync_pulp_created_provenance(
     domain_factory,
