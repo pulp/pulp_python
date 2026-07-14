@@ -203,7 +203,6 @@ def test_package_creation_with_metadata(
     )
 
 
-@pytest.mark.parallel
 def test_disallow_package_substitution(
     monitor_task,
     python_bindings,
@@ -272,7 +271,6 @@ def test_disallow_package_substitution(
     assert repo.latest_version_href.endswith("/2/")
 
 
-@pytest.mark.parallel
 def test_package_substitution_allowed_by_default(
     monitor_task,
     python_bindings,
