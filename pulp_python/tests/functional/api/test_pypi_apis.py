@@ -245,8 +245,9 @@ def test_simple_redirect_with_publications(
     assert response.url == str(urljoin(pulp_content_url, f"{distro.base_path}/simple/"))
 
 
-@pytest.mark.parallel
-def test_pypi_json(python_remote_factory, python_repo_with_sync, python_distribution_factory):
+def test_pypi_json(
+    delete_orphans_pre, python_remote_factory, python_repo_with_sync, python_distribution_factory
+):
     """Checks the data of `pypi/{package_name}/json` endpoint."""
     remote = python_remote_factory(policy="immediate")
     repo = python_repo_with_sync(remote)
@@ -260,8 +261,8 @@ def test_pypi_json(python_remote_factory, python_repo_with_sync, python_distribu
     assert_pypi_json(response.json())
 
 
-@pytest.mark.parallel
 def test_pypi_json_content_app(
+    delete_orphans_pre,
     python_remote_factory,
     python_repo_with_sync,
     python_publication_factory,
