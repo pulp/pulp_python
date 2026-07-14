@@ -1,0 +1,1 @@
+Fixed provenance sync failing when syncing Pulp-created attestations that use a `Pulp User` publisher.
