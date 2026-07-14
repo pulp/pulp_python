@@ -9,7 +9,6 @@ from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from lxml.etree import LxmlError
 from packaging.requirements import Requirement
-from pypi_attestations import Provenance
 from pypi_simple import IndexPage
 
 from pulpcore.plugin.download import HttpDownloader
@@ -28,6 +27,7 @@ from pulp_python.app.models import (
     PythonPackageContent,
     PythonRemote,
 )
+from pulp_python.app.provenance import Provenance
 from pulp_python.app.utils import PYPI_LAST_SERIAL, aget_remote_simple_page, parse_metadata
 
 logger = logging.getLogger(__name__)
