@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.31.2 (2026-07-15) {: #3.31.2 }
+
+#### Bugfixes {: #3.31.2-bugfix }
+
+- Fixed provenance sync failing when syncing Pulp-created attestations that use a `Pulp User` publisher.
+
+---
+
 ## 3.31.1 (2026-06-30) {: #3.31.1 }
 
 #### Bugfixes {: #3.31.1-bugfix }
