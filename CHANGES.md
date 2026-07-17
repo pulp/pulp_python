@@ -135,6 +135,14 @@
 
 ---
 
+## 3.27.6 (2026-07-16) {: #3.27.6 }
+
+#### Bugfixes {: #3.27.6-bugfix }
+
+- Fixed provenance sync failing when syncing Pulp-created attestations that use a `Pulp User` publisher.
+
+---
+
 ## 3.27.5 (2026-06-30) {: #3.27.5 }
 
 #### Bugfixes {: #3.27.5-bugfix }
