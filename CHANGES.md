@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.32.0 (2026-07-21) {: #3.32.0 }
+
+#### Features {: #3.32.0-feature }
+
+- Added server-side caching and HTTP cache headers (`Cache-Control`, `ETag`) to Simple API responses.
+  [#1254](https://github.com/pulp/pulp_python/issues/1254)
+
+#### Bugfixes {: #3.32.0-bugfix }
+
+- Fixed a bug where the `python_version` field was not parsed correctly when Pulp workers had hyphens in their name.
+- Fixed provenance sync failing when syncing Pulp-created attestations that use a `Pulp User` publisher.
+
+---
+
 ## 3.31.2 (2026-07-15) {: #3.31.2 }
 
 #### Bugfixes {: #3.31.2-bugfix }
