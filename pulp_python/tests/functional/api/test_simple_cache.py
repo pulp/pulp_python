@@ -6,6 +6,7 @@ import requests
 from pulp_python.tests.functional.constants import (
     PYPI_SIMPLE_V1_HTML,
     PYPI_SIMPLE_V1_JSON,
+    PYPI_TEXT_HTML,
     PYTHON_SM_PROJECT_SPECIFIER,
 )
 
@@ -59,7 +60,7 @@ def test_simple_cache_hit_miss_and_headers(synced_distro):
 @pytest.mark.parallel
 def test_simple_cache_separate_accept_headers(synced_distro):
     """
-    HTML and JSON responses are cached separately.
+    HTML and JSON responses are cached separately by negotiated media type.
     """
     url = urljoin(synced_distro.base_url, "simple/")
 
@@ -72,6 +73,45 @@ def test_simple_cache_separate_accept_headers(synced_distro):
         r = requests.get(url, headers={"Accept": header})
         assert r.status_code == 200
         assert r.headers["X-PULP-CACHE"] == "HIT"
+
+
+@pytest.mark.parallel
+def test_simple_cache_format_json_does_not_poison_html(synced_distro):
+    """
+    A ?format=json response must not poison a later request with the same Accept.
+
+    Clients like uv/pip send an Accept that allows both JSON and HTML. DRF's
+    ?format=json overrides negotiation to JSON, while the same Accept without
+    that query param selects HTML. Caching must key on the negotiated type so
+    the JSON entry is not served (and re-rendered) for the HTML request.
+    """
+    url = f"{urljoin(synced_distro.base_url, 'simple/')}aiohttp"
+    # pip/uv-style Accept: JSON preferred, HTML still acceptable
+    headers = {
+        "Accept": (f"{PYPI_SIMPLE_V1_JSON}, {PYPI_SIMPLE_V1_HTML};q=0.1, {PYPI_TEXT_HTML};q=0.01")
+    }
+
+    r_json = requests.get(url, headers=headers, params={"format": "json"})
+    assert r_json.status_code == 200
+    assert PYPI_SIMPLE_V1_JSON in r_json.headers["Content-Type"]
+    assert r_json.headers["X-PULP-CACHE"] == "MISS"
+    assert r_json.json()["name"] == "aiohttp"
+
+    r_html = requests.get(url, headers=headers)
+    assert r_html.status_code == 200
+    assert PYPI_TEXT_HTML in r_html.headers["Content-Type"]
+    assert r_html.headers["X-PULP-CACHE"] == "MISS"
+    assert b"<a href=" in r_html.content
+
+    r_html_hit = requests.get(url, headers=headers)
+    assert r_html_hit.status_code == 200
+    assert r_html_hit.headers["X-PULP-CACHE"] == "HIT"
+    assert PYPI_TEXT_HTML in r_html_hit.headers["Content-Type"]
+
+    r_json_hit = requests.get(url, headers=headers, params={"format": "json"})
+    assert r_json_hit.status_code == 200
+    assert r_json_hit.headers["X-PULP-CACHE"] == "HIT"
+    assert PYPI_SIMPLE_V1_JSON in r_json_hit.headers["Content-Type"]
 
 
 @pytest.mark.parallel

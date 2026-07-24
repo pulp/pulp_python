@@ -1,25 +1,26 @@
 from pulpcore.plugin.cache import CacheKeys, SyncContentCache
 from pulpcore.plugin.util import cache_key
 
-ACCEPT_HEADER_KEY = "accept_header"
+MEDIA_TYPE_KEY = "media_type"
 
 
 class PythonApiCache(SyncContentCache):
     """
     Cache for the Simple API.
 
-    Adds Accept header to the cache key so HTML and JSON responses are cached separately.
+    Keys on the negotiated media type so HTML and JSON are cached separately,
+    including when the same Accept header is used with `?format=json`.
     """
 
     def __init__(self, base_key=None):
-        keys = (CacheKeys.path, CacheKeys.method, ACCEPT_HEADER_KEY)
+        keys = (CacheKeys.path, CacheKeys.method, MEDIA_TYPE_KEY)
         super().__init__(base_key=base_key, keys=keys)
 
     def make_key(self, request):
         all_keys = {
             CacheKeys.path: request.path,
             CacheKeys.method: request.method,
-            ACCEPT_HEADER_KEY: request.headers.get("accept", ""),
+            MEDIA_TYPE_KEY: getattr(request, "accepted_media_type", "") or "",
         }
         return ":".join(all_keys[k] for k in self.keys)
 
