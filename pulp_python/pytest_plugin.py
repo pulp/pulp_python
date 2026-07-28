@@ -7,11 +7,8 @@ from pulpcore.tests.functional.utils import BindingsNamespace
 
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
-    PYTHON_EGG_URL,
     PYTHON_FIXTURE_URL,
     PYTHON_URL,
-    PYTHON_WHEEL_FILENAME,
-    PYTHON_WHEEL_URL,
     PYTHON_XS_PROJECT_SPECIFIER,
 )
 
@@ -239,12 +236,17 @@ def get_href(item):
 
 @pytest.fixture(scope="session")
 def python_package_dist_directory(tmp_path_factory, http_get):
-    """Creates a temp dir to hold package distros for uploading."""
-    dist_dir = tmp_path_factory.mktemp("dist")
-    egg_file = dist_dir / PYTHON_EGG_FILENAME
-    wheel_file = dist_dir / PYTHON_WHEEL_FILENAME
-    with open(egg_file, "wb") as f:
-        f.write(http_get(PYTHON_EGG_URL))
-    with open(wheel_file, "wb") as f:
-        f.write(http_get(PYTHON_WHEEL_URL))
-    yield dist_dir, egg_file, wheel_file
+    """Returns a factory that downloads packages into a temp directory."""
+
+    def _download(*urls):
+        dist_dir = tmp_path_factory.mktemp("dist")
+        paths = []
+        for url in urls:
+            filename = url.rsplit("/", 1)[-1]
+            path = dist_dir / filename
+            with open(path, "wb") as f:
+                f.write(http_get(url))
+            paths.append(path)
+        return (dist_dir, *paths)
+
+    return _download
