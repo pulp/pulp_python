@@ -82,7 +82,7 @@ def test_synchronous_package_upload_with_metadata(
 def test_legacy_upload_invalid_protocol_version(
     python_empty_repo_distro, python_package_dist_directory
 ):
-    _, egg_file, _ = python_package_dist_directory
+    _, egg_file, _ = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     _, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
     with open(egg_file, "rb") as f:
@@ -108,7 +108,7 @@ def test_legacy_upload_invalid_protocol_version(
 
 @pytest.mark.parallel
 def test_legacy_upload_invalid_filetype(python_empty_repo_distro, python_package_dist_directory):
-    _, egg_file, wheel_file = python_package_dist_directory
+    _, egg_file, wheel_file = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     _, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
     with open(egg_file, "rb") as f:
@@ -140,7 +140,7 @@ def test_legacy_upload_invalid_filetype(python_empty_repo_distro, python_package
 def test_legacy_upload_invalid_metadata_version(
     python_empty_repo_distro, python_package_dist_directory
 ):
-    _, egg_file, _ = python_package_dist_directory
+    _, egg_file, _ = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     _, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
     with open(egg_file, "rb") as f:

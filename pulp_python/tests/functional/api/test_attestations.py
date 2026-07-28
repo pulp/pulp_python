@@ -1,7 +1,5 @@
 import json
-import shutil
 import subprocess
-from pathlib import Path
 from urllib.parse import urljoin
 
 import pytest
@@ -9,6 +7,8 @@ import requests
 from pypi_simple import PyPISimple
 
 from pulpcore.tests.functional.utils import PulpTaskError
+
+from pulp_python.tests.functional.constants import PYTHON_FIXTURES_URL
 
 
 @pytest.fixture(scope="session")
@@ -207,24 +207,22 @@ def test_attestation_twine_upload(
     python_content_summary,
     python_empty_repo_distro,
     python_package_dist_directory,
+    http_get,
     monitor_task,
 ):
     """Tests that packages with attestations can be properly uploaded through Twine."""
+    packages_url = urljoin(PYTHON_FIXTURES_URL, "packages/")
+    filenames = ("twine-6.2.0.tar.gz", "twine-6.2.0-py3-none-any.whl")
+    dist_dir = python_package_dist_directory(*(urljoin(packages_url, f) for f in filenames))[0]
+
+    for filename in filenames:
+        provenance = json.loads(http_get(urljoin(packages_url, f"{filename}.provenance.json")))
+        attestation = provenance["attestation_bundles"][0]["attestations"][0]
+        with open(dist_dir / f"{filename}.publish.attestation", "w") as f:
+            json.dump(attestation, f)
+
     repo, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
-    dist_dir, _, _ = python_package_dist_directory
-
-    # Copy attestation files from test assets to dist_dir
-    assets_dir = Path(__file__).parent.parent / "assets"
-    attestation_files = [
-        "shelf-reader-0.1.tar.gz.publish.attestation",
-        "shelf_reader-0.1-py2-none-any.whl.publish.attestation",
-    ]
-    for attestation_file in attestation_files:
-        src = assets_dir / attestation_file
-        dst = dist_dir / attestation_file
-        shutil.copy2(src, dst)
-
     username, password = "admin", "password"
     subprocess.run(
         (
@@ -245,7 +243,7 @@ def test_attestation_twine_upload(
     tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.pulp_href).results
     for task in reversed(tasks):
         t = monitor_task(task.pulp_href)
-        repo_ver_href = t.created_resources[0]
+        repo_ver_href = [r for r in t.created_resources if "versions" in r][0]
 
     assert repo_ver_href.endswith("versions/2/")
     summary = python_content_summary(repository_version=repo_ver_href)
