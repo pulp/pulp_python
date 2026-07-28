@@ -11,10 +11,13 @@ from pulp_python.tests.functional.constants import (
     PYPI_SIMPLE_V1_JSON,
     PYTHON_EGG_FILENAME,
     PYTHON_EGG_SHA256,
+    PYTHON_EGG_URL,
+    PYTHON_FIXTURES_URL,
     PYTHON_MD_PROJECT_SPECIFIER,
     PYTHON_MD_PYPI_SUMMARY,
     PYTHON_WHEEL_FILENAME,
     PYTHON_WHEEL_SHA256,
+    PYTHON_WHEEL_URL,
     SHELF_PYTHON_JSON,
     TWINE_WHEEL_FILENAME,
     TWINE_WHEEL_URL,
@@ -70,7 +73,7 @@ def test_package_upload(
 ):
     """Tests that packages can be uploaded."""
     repo, distro = python_empty_repo_distro()
-    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    dist_dir, egg_file, wheel_file = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     url = urljoin(distro.base_url, "legacy/")
     response = requests.post(
         url,
@@ -100,7 +103,7 @@ def test_package_upload_session(
     """Tests that multiple uploads will be broken up into multiple tasks."""
     repo, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
-    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    dist_dir, egg_file, wheel_file = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     session = requests.Session()
     response = session.post(
         url,
@@ -130,7 +133,7 @@ def test_package_upload_simple(
     """Tests that the package upload endpoint exposed at `/simple/` works."""
     repo, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "simple/")
-    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    dist_dir, egg_file, wheel_file = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     response = requests.post(
         url,
         data={"sha256_digest": PYTHON_EGG_SHA256},
@@ -156,7 +159,7 @@ def test_package_upload_with_metadata(
     """
     repo, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "simple/")
-    dist_dir, egg_file, wheel_file = python_package_dist_directory
+    dist_dir, egg_file, wheel_file = python_package_dist_directory(PYTHON_EGG_URL, PYTHON_WHEEL_URL)
     response = requests.post(
         url,
         data={"sha256_digest": PYTHON_WHEEL_SHA256},
@@ -183,9 +186,14 @@ def test_twine_upload(
     monitor_task,
 ):
     """Tests that packages can be properly uploaded through Twine."""
+    packages_url = urljoin(PYTHON_FIXTURES_URL, "packages/")
+    dist_dir, _, _ = python_package_dist_directory(
+        urljoin(packages_url, "pytz-2023.3.tar.gz"),
+        urljoin(packages_url, "pytz-2023.3-py2.py3-none-any.whl"),
+    )
+
     repo, distro = python_empty_repo_distro()
     url = urljoin(distro.base_url, "legacy/")
-    dist_dir, _, _ = python_package_dist_directory
     username, password = "admin", "password"
     subprocess.run(
         (
@@ -205,7 +213,7 @@ def test_twine_upload(
     tasks = pulpcore_bindings.TasksApi.list(reserved_resources=repo.pulp_href).results
     for task in reversed(tasks):
         t = monitor_task(task.pulp_href)
-        repo_ver_href = t.created_resources[-1]
+        repo_ver_href = [r for r in t.created_resources if "versions" in r][0]
     summary = python_content_summary(repository_version=repo_ver_href)
     assert summary.present["python.python"]["count"] == 2
 
