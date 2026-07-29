@@ -1,6 +1,7 @@
 pytest<8
 lxml
-twine
+# test_attestation_twine_upload and test_twine_upload use shelf-reader 0.1 with Metadata-Version 2.0, rejected by twine>=7
+twine<7
 pypi-simple
 pytest-custom_exit_code
 pytest-xdist
