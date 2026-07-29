@@ -170,9 +170,9 @@ def test_upload_requires_python(python_content_factory):
 @pytest.mark.parallel
 def test_upload_metadata_24_spec(python_content_factory):
     """Test that packages using metadata spec 2.4 can be uploaded to pulp."""
-    filename = "setuptools-80.9.0.tar.gz"
+    filename = "attrs-26.1.0.tar.gz"
     with PyPISimple() as client:
-        page = client.get_project_page("setuptools")
+        page = client.get_project_page("attrs")
         for package in page.packages:
             if package.filename == filename:
                 content = python_content_factory(filename, url=package.url)
