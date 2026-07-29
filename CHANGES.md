@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.32.1 (2026-07-29) {: #3.32.1 }
+
+#### Bugfixes {: #3.32.1-bugfix }
+
+- Fixed Simple API cache incorrectly serving JSON responses for HTML requests when clients used `?format=json`.
+  [#1302](https://github.com/pulp/pulp_python/issues/1302)
+
+---
+
 ## 3.32.0 (2026-07-21) {: #3.32.0 }
 
 #### Features {: #3.32.0-feature }
