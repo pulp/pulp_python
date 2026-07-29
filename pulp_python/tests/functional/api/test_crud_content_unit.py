@@ -174,8 +174,8 @@ def test_upload_requires_python(python_content_factory):
 @pytest.mark.parallel
 def test_upload_metadata_24_spec(python_content_factory):
     """Test that packages using metadata spec 2.4 can be uploaded to pulp."""
-    filename = "setuptools-80.9.0.tar.gz"
-    url = get_package_url("setuptools", filename)
+    filename = "attrs-26.1.0.tar.gz"
+    url = get_package_url("attrs", filename)
     content = python_content_factory(filename, url=url)
     assert content.metadata_version == "2.4"
     assert content.license_expression == "MIT"
