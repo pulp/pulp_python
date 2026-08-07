@@ -1,1 +1,0 @@
-Fixed Simple API cache incorrectly serving JSON responses for HTML requests when clients used `?format=json`.
