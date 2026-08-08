@@ -8,6 +8,24 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.33.0 (2026-08-07) {: #3.33.0 }
+
+#### Features {: #3.33.0-feature }
+
+- Added yank support (PEP 592).
+  [#1270](https://github.com/pulp/pulp_python/issues/1270)
+- Added `version_specifier` filter to package content API for PEP 440 version matching.
+  [#1277](https://github.com/pulp/pulp_python/issues/1277)
+- Added support for uploading packages with Core Metadata 2.5 via twine.
+  [#1321](https://github.com/pulp/pulp_python/issues/1321)
+
+#### Bugfixes {: #3.33.0-bugfix }
+
+- Fixed Simple API cache incorrectly serving JSON responses for HTML requests when clients used `?format=json`.
+  [#1302](https://github.com/pulp/pulp_python/issues/1302)
+
+---
+
 ## 3.32.1 (2026-07-29) {: #3.32.1 }
 
 #### Bugfixes {: #3.32.1-bugfix }
