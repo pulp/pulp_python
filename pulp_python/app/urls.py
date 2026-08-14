@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.urls import path
 
+from pulp_python.app.pypi.feeds import FeedView
 from pulp_python.app.pypi.views import (
     MetadataView,
     ProvenanceView,
@@ -43,5 +44,20 @@ urlpatterns = [
     ),
     path(PYPI_API_URL + "yank/", YankView.as_view({"post": "yank"}), name="yank"),
     path(PYPI_API_URL + "unyank/", YankView.as_view({"post": "unyank"}), name="unyank"),
+    path(
+        PYPI_API_URL + "rss/updates.xml",
+        FeedView.as_view({"get": "updates"}),
+        name="rss-updates",
+    ),
+    path(
+        PYPI_API_URL + "rss/packages.xml",
+        FeedView.as_view({"get": "packages"}),
+        name="rss-packages",
+    ),
+    path(
+        PYPI_API_URL + "rss/project/<str:package>/releases.xml",
+        FeedView.as_view({"get": "project_releases"}),
+        name="rss-project-releases",
+    ),
     path(PYPI_API_URL, PyPIView.as_view({"get": "retrieve"}), name="pypi-detail"),
 ]
