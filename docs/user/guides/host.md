@@ -103,6 +103,27 @@ pip install --trusted-host localhost shelf-reader
 
 See the [pip docs](https://pip.pypa.io/en/stable/topics/configuration) for more details.
 
+## Discover new packages with RSS feeds
+
+Each index exposes PyPI-compatible RSS feeds so clients can learn about newly added projects and
+releases without polling the simple or JSON APIs. Items are grouped by project or by
+`(name, version)` release, not by individual wheel or sdist files. Timestamps reflect when the
+package was added to **this index**, not when the content unit was first stored in Pulp.
+
+```bash
+http "${BASE_ADDR}/pypi/foo/rss/updates.xml"
+http "${BASE_ADDR}/pypi/foo/rss/packages.xml"
+http "${BASE_ADDR}/pypi/foo/rss/project/shelf-reader/releases.xml"
+```
+
+- `rss/updates.xml` lists the latest releases added to the index (up to 100).
+- `rss/packages.xml` lists projects that are new to the index (up to 40). Adding another version of
+  an existing project does not create a new packages entry.
+- `rss/project/<name>/releases.xml` lists the latest releases of one project (up to 40). A missing
+  project returns 404.
+
+Pull-through packages appear in the feeds only after they have been stored in the repository.
+Item links point at the existing JSON metadata URLs for that project or release.
 
 ## Migrating off Publications
 
