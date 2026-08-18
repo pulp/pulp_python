@@ -1,1 +1,0 @@
-Added an `error_on_reject` boolean field to PythonRepository (default: `True`). When `False`, packages rejected by the blocklist or package substitution policies are skipped instead of failing the entire repository version.

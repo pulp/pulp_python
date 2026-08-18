@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.34.0 (2026-08-18) {: #3.34.0 }
+
+#### Features {: #3.34.0-feature }
+
+- Added an `error_on_reject` boolean field to PythonRepository (default: `True`). When `False`, packages rejected by the blocklist or package substitution policies are skipped instead of failing the entire repository version.
+  [#1278](https://github.com/pulp/pulp_python/issues/1278)
+
+---
+
 ## 3.33.0 (2026-08-07) {: #3.33.0 }
 
 #### Features {: #3.33.0-feature }
