@@ -441,7 +441,7 @@ def json_to_dict(data):
         dictionary: of JSON string
 
     """
-    if isinstance(data, dict):
+    if isinstance(data, (dict, list)):
         return data
 
     return json.loads(data)
