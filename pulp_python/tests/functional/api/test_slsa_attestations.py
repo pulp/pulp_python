@@ -1,10 +1,9 @@
-"""Functional tests for Konflux-style attestation verification.
+"""Functional tests for SLSA provenance attestation verification.
 
 These tests exercise the attestation / provenance upload paths with
-attestations that carry an RSA signature instead of a Sigstore certificate,
-mirroring the format produced by Konflux / Calunga builds.
+attestations that carry an RSA signature instead of a Sigstore certificate.
 
-The test signing key is generated at image build time and the matching
+A static test keypair is shipped in .ci/assets/keys/ and the matching
 public key is configured as PULP_ATTESTATION_VERIFICATION_KEY so that
 signature verification is fully exercised end-to-end.
 """
@@ -31,7 +30,7 @@ TEST_PUBLIC_KEY_PATH = "/etc/pki/attestation/test-key.pem"
 
 
 def _build_statement(filename, sha256):
-    """Build a minimal in-toto statement for a Konflux attestation."""
+    """Build a minimal in-toto statement for an SLSA attestation."""
     return json.dumps(
         {
             "_type": "https://in-toto.io/Statement/v0.1",
@@ -69,7 +68,7 @@ def _b64(data: bytes) -> str:
 
 
 def _make_attestation(statement_bytes, signature_bytes):
-    """Return a single PEP-740 Attestation dict (Konflux flavour)."""
+    """Return a single PEP-740 Attestation dict (SLSA flavour)."""
     return {
         "version": 1,
         "verification_material": None,
@@ -128,10 +127,10 @@ def _provenance_file(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_konflux_provenance_stored(
+def test_slsa_provenance_stored(
     python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
 ):
-    """A Konflux-style provenance is accepted and stored when verify=True."""
+    """An SLSA provenance is accepted and stored when verify=True."""
     content = python_content_factory()
 
     stmt = _build_statement(content.filename, content.sha256)
@@ -155,10 +154,10 @@ def test_konflux_provenance_stored(
     assert publisher["kind"] == "Konflux"
 
 
-def test_konflux_wrong_subject_name_rejected(
+def test_slsa_wrong_subject_name_rejected(
     python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
 ):
-    """Verification rejects a Konflux attestation whose subject name does not match."""
+    """Verification rejects an SLSA attestation whose subject name does not match."""
     content = python_content_factory()
 
     wrong_name = "wrong-package-0.1.tar.gz"
@@ -177,10 +176,10 @@ def test_konflux_wrong_subject_name_rejected(
     assert "subject does not match distribution name" in exc_info.value.task.error["description"]
 
 
-def test_konflux_wrong_digest_rejected(
+def test_slsa_wrong_digest_rejected(
     python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
 ):
-    """Verification rejects a Konflux attestation whose digest does not match."""
+    """Verification rejects an SLSA attestation whose digest does not match."""
     content = python_content_factory()
 
     bad_digest = "0" * 64
@@ -199,10 +198,10 @@ def test_konflux_wrong_digest_rejected(
     assert "subject does not match distribution digest" in exc_info.value.task.error["description"]
 
 
-def test_konflux_bad_signature_rejected(
+def test_slsa_bad_signature_rejected(
     python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
 ):
-    """An attestation with a valid subject but tampered signature is rejected."""
+    """An SLSA attestation with a valid subject but tampered signature is rejected."""
     content = python_content_factory()
 
     stmt = _build_statement(content.filename, content.sha256)
@@ -221,10 +220,10 @@ def test_konflux_bad_signature_rejected(
     assert "signature verification failed" in exc_info.value.task.error["description"]
 
 
-def test_konflux_attestation_via_content_upload(
+def test_slsa_attestation_via_content_upload(
     python_bindings, python_content_factory, monitor_task, test_private_key
 ):
-    """Konflux-style attestations can be uploaded alongside a package via the content API."""
+    """SLSA attestations can be uploaded alongside a package via the content API."""
     content = python_content_factory()
 
     stmt = _build_statement(content.filename, content.sha256)

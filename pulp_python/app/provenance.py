@@ -10,9 +10,10 @@ from cryptography.x509 import load_der_x509_certificate
 from django.conf import settings
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_snake
+from pypi_attestations import Attestation as _UpstreamAttestation
 from pypi_attestations import (
     Distribution,
-    Envelope,
+    Envelope,  # noqa - needed in module namespace for Pydantic model rebuild
     Publisher,
     VerificationError,
     VerificationMaterial,
@@ -57,22 +58,18 @@ _ExtendedPublisherUnion = Union[_ExtendedPublisherTypes]
 ExtendedPublisher = Annotated[_ExtendedPublisherUnion, Field(union_mode="left_to_right")]
 
 
-class Attestation(BaseModel):
-    """Attestation object as defined in PEP 740."""
-
-    version: Literal[1]
+class Attestation(_UpstreamAttestation):
     """
-    The attestation format's version, which is always 1.
+    Attestation object as defined in PEP 740.
+
+    Inherits from the upstream pypi_attestations.Attestation to keep Sigstore
+    verification methods (to_bundle, verify), but makes verification_material
+    optional to support attestations signed with a custom key instead of Sigstore.
     """
 
     verification_material: VerificationMaterial | None = None
     """
     Cryptographic materials used to verify `message_signature`.
-    """
-
-    envelope: Envelope
-    """
-    The enveloped attestation statement and signature.
     """
 
 
@@ -184,7 +181,14 @@ def _verify_signature(attestation, public_key):
 
 
 def verify_provenance(filename, sha256, provenance, offline=True):
-    """Verify the provenance object is valid for the package."""
+    """Verify the provenance object is valid for the package.
+
+    Attestations with valid Sigstore certificates are verified through the
+    standard Sigstore path. Attestations without certificates are verified
+    against a custom public key configured via ATTESTATION_VERIFICATION_KEY.
+    Currently, it supports RSA PKCS1v15 signatures and SLSA v0.2 provenance
+    publisher enrichment.
+    """
     dist = Distribution(name=filename, digest=sha256)
     verification_key = _load_verification_key()
     for bundle in provenance.attestation_bundles:
@@ -202,7 +206,7 @@ def verify_provenance(filename, sha256, provenance, offline=True):
                 if verification_key:
                     _verify_signature(attestation, verification_key)
                 else:
-                    log.warning(
-                        "Attestation without valid certificate accepted without "
-                        "signature verification (ATTESTATION_VERIFICATION_KEY not set)"
+                    raise VerificationError(
+                        "Attestation has no Sigstore certificate and no custom "
+                        "verification key is configured (ATTESTATION_VERIFICATION_KEY)"
                     )
