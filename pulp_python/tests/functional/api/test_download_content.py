@@ -48,7 +48,7 @@ def test_full_fixtures_to_pulp_sync(
 ):
     """
     This test checks that Pulp can fully sync another Python Package repository that is not
-    PyPI. This reads the repository's simple page if XMLRPC isn't supported.
+    PyPI. This lists projects via the Simple JSON API, falling back to HTML /simple/.
     """
     # Repository we are syncing from is the fixtures (default url)
     remote = python_remote_factory(includes=[], prereleases=True)

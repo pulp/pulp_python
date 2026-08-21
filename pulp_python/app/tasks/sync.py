@@ -3,11 +3,10 @@ import logging
 from functools import partial
 from urllib.parse import urljoin, urlparse
 
-from aiohttp import ClientError, ClientResponseError
+from aiohttp import ClientError
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
-from lxml.etree import LxmlError
 from packaging.requirements import Requirement
 from pypi_simple import IndexPage
 
@@ -169,41 +168,36 @@ class PulpMirror(Mirror):
 
     async def determine_packages_to_sync(self):
         """
-        Calling this means that includes wasn't specified,
-        so try to get all of the packages from Mirror (hopefully PyPi)
+        Called when includes wasn't specified. List all projects from the remote
+        via the PEP 691 Simple JSON API, falling back to HTML /simple/.
         """
-        number_xmlrpc_attempts = 3
-        for attempt in range(number_xmlrpc_attempts):
-            logger.info("Attempt {} to get package list from {}".format(attempt, self.master.url))
-            try:
-                if not self.synced_serial:
-                    logger.info("Syncing all packages.")
-                    # First get the current serial, then start to sync.
-                    all_packages = await self.master.all_packages()
-                    self.packages_to_sync.update(all_packages)
-                    self.target_serial = max(
-                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-                    )
-                else:
-                    logger.info("Syncing based on changelog.")
-                    changed_packages = await self.master.changed_packages(self.synced_serial)
-                    self.packages_to_sync.update(changed_packages)
-                    self.target_serial = max(
-                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-                    )
-                break
-            except (ClientError, ClientResponseError, LxmlError):
-                # Retry if XMLRPC endpoint failed, server might not support it.
-                continue
-        else:
-            logger.info("Failed to get package list using XMLRPC, trying parse simple page.")
+        logger.info("Syncing all packages from %s", self.master.url)
+        try:
+            simple_index = await self.master.fetch_simple_index()
+            if not isinstance(simple_index, dict) or "projects" not in simple_index:
+                raise ValueError("Simple JSON index is missing a projects list")
+            for project in simple_index["projects"]:
+                name = project.get("name")
+                if name is None:
+                    continue
+                # _last-serial is a PyPI extension; default to 0 when absent
+                self.packages_to_sync[name] = project.get("_last-serial", 0)
+            self.target_serial = max(
+                [self.synced_serial or 0] + [int(v) for v in self.packages_to_sync.values()]
+            )
+        except (ClientError, ValueError, TypeError, AttributeError) as exc:
+            logger.info(
+                "Failed to list packages via Simple JSON API (%s); "
+                "falling back to HTML simple index.",
+                exc,
+            )
             url = urljoin(self.remote.url, "simple/")
             downloader = self.remote.get_downloader(url=url)
             result = await downloader.run()
             with open(result.path) as f:
                 index = IndexPage.from_html(f.read())
-                self.packages_to_sync.update({p: 0 for p in index.projects})
-                self.target_serial = result.headers.get(PYPI_LAST_SERIAL, 0)
+            self.packages_to_sync.update({p: 0 for p in index.projects})
+            self.target_serial = result.headers.get(PYPI_LAST_SERIAL, 0)
 
         self._filter_packages()
         if self.target_serial:
