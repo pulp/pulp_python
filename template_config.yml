@@ -63,6 +63,7 @@ pulp_settings_azure:
   domain_enabled: true
 pulp_settings_gcp: null
 pulp_settings_s3:
+  ENABLE_V4_API: true
   MEDIA_ROOT: ""
   STORAGES:
     default:
