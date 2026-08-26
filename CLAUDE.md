@@ -58,3 +58,9 @@ When patchback fails to cherry-pick a PR into an older branch, you need to manua
 ## Contributing
 
 When preparing to commit and create a PR you **must** follow our [PR checklist](https://pulpproject.org/pulpcore/docs/dev/guides/pull-request-walkthrough/) Important to note is the AI attribution requirement in our commit messages. Also, note that our changelog entries are markdown.
+
+## Rebuild suffix stripping (catalog / collapse_builds)
+
+Python ``re`` treats ``\d`` as digits. PostgreSQL POSIX ``REGEXP_REPLACE`` does **not**. When adding SQL that strips a trailing rebuild suffix ``\.[a-zA-Z]+-\d+$``, use ``[0-9]`` in the SQL pattern (see ``BUILD_SUFFIX_PG_REGEX`` in ``pulp_python/app/utils.py`` and ``base_version_annotation`` in ``pulp_python/app/catalog.py``). Do not hard-code ``rhlw``. Do not import Django ``RegexpReplace`` — it is missing from some Django versions Pulp runs; use ``Func(..., function="REGEXP_REPLACE")``.
+
+Repository ``@action`` GET handlers that accept extra query params (e.g. ``name_normalized__istartswith``) must skip the repository FilterSet. pulpcore rejects unknown filters with ``Invalid Filter``. See ``PythonRepositoryViewSet.filter_queryset``. New viewset actions also need to be listed on ``DEFAULT_ACCESS_POLICY``; existing installs pick that up on migrate when the policy is not customized.

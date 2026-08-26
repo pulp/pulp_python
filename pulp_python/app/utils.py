@@ -26,6 +26,18 @@ from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)
 
+# Rebuild suffix (Lightwell-style): 5.3.18.rhlw-00003 -> 5.3.18. Not hard-coded to "rhlw".
+# Python ``re`` treats ``\d`` as digits; PostgreSQL POSIX regex does not, so SQL uses ``[0-9]``.
+BUILD_SUFFIX_RE = re.compile(r"\.[a-zA-Z]+-\d+$")
+BUILD_SUFFIX_PG_REGEX = r"\.[a-zA-Z]+-[0-9]+$"
+
+
+def strip_build_suffix(version):
+    """Return ``version`` with a trailing rebuild suffix removed, else unchanged."""
+    if not version:
+        return version
+    return BUILD_SUFFIX_RE.sub("", version)
+
 
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""

@@ -12,6 +12,7 @@ The REST API documentation for `pulp_python` is available [here](site:pulp_pytho
 
 - [Create local mirrors of PyPI](site:pulp_python/docs/user/guides/sync/) that you have full control over
 - [Upload your own Python packages](site:pulp_python/docs/user/guides/upload/)
+- [Browse the package catalog](site:pulp_python/docs/user/guides/catalog/) over the REST API
 - [Perform pip install](site:pulp_python/docs/user/guides/host/) from your Pulp Python repositories
 - Download packages on-demand to reduce disk usage
 - Every operation creates a restorable snapshot with Versioned Repositories

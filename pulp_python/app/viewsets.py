@@ -4,7 +4,8 @@ from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from django_filters import CharFilter
 from django_filters.rest_framework import filters as drf_filters
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from rest_framework import status
@@ -32,6 +33,14 @@ from pulpcore.plugin.util import extract_pk
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
+from pulp_python.app.catalog import (
+    apply_package_prefix_filters,
+    assemble_package_index,
+    collapse_python_builds,
+    distinct_package_names_qs,
+    python_packages_in_version,
+    repository_metrics,
+)
 
 
 class PythonRepositoryViewSet(
@@ -64,7 +73,7 @@ class PythonRepositoryViewSet(
                 ],
             },
             {
-                "action": ["retrieve"],
+                "action": ["retrieve", "packages", "metrics"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
@@ -137,6 +146,12 @@ class PythonRepositoryViewSet(
         ],
         "python.pythonrepository_viewer": ["python.view_pythonrepository"],
     }
+
+    def filter_queryset(self, queryset):
+        """Do not apply the repository FilterSet to package-index query params."""
+        if getattr(self, "action", None) in ("packages", "metrics"):
+            return queryset
+        return super().filter_queryset(queryset)
 
     @extend_schema(
         description="Trigger an asynchronous task to create a new repository version.",
@@ -246,6 +261,85 @@ class PythonRepositoryViewSet(
             },
         )
         return core_viewsets.OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        operation_id="repositories_python_packages",
+        summary="List packages",
+        description=(
+            "Return one row per distinct package name in the latest complete repository "
+            "version. Pagination count is the number of distinct packages, not files. "
+            "Each row includes versions (logical version keys after rebuild-suffix strip) "
+            "and latest_releases (one object per logical version). "
+            "created_at is the earliest repository-membership time "
+            "(RepositoryContent.pulp_created) of any file of that logical version, "
+            "falling back to the content unit's pulp_created. "
+            "release is empty until Python rebuilds are stored. "
+            "set(versions) === set(latest_releases[].version)."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="name_normalized__istartswith",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Case-insensitive prefix on the PEP 503 normalized package name.",
+            ),
+            OpenApiParameter(
+                name="name__istartswith",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Case-insensitive prefix on the original package name.",
+            ),
+        ],
+        responses={200: python_serializers.PythonRepositoryPackageSerializer(many=True)},
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=python_serializers.PythonRepositoryPackageSerializer,
+    )
+    def packages(self, request, pk):
+        """List distinct packages in the latest complete repository version."""
+        repository = self.get_object()
+        content_qs = python_packages_in_version(repository.latest_version())
+        content_qs = apply_package_prefix_filters(
+            content_qs,
+            name_normalized_prefix=request.query_params.get("name_normalized__istartswith"),
+            name_prefix=request.query_params.get("name__istartswith"),
+        )
+        names_qs = distinct_package_names_qs(content_qs)
+        page = self.paginate_queryset(names_qs)
+        rows = assemble_package_index(
+            content_qs, page if page is not None else list(names_qs), repository
+        )
+        serializer = self.get_serializer(rows, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+    @extend_schema(
+        operation_id="repositories_python_metrics",
+        summary="Repository metrics",
+        description=(
+            "Distinct counts for Python package content in the latest complete repository "
+            "version. package_count is distinct name_normalized. version_count is distinct "
+            "(name_normalized, base_version) after rebuild-suffix strip. build_count is "
+            "distinct (name_normalized, full version). Counts are not filtered by "
+            "packagetype. Until rebuild suffixes exist, version_count equals build_count."
+        ),
+        responses={200: python_serializers.PythonRepositoryMetricsSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=python_serializers.PythonRepositoryMetricsSerializer,
+    )
+    def metrics(self, request, pk):
+        """Return package / version / build counts for the latest complete repository version."""
+        repository = self.get_object()
+        serializer = self.get_serializer(
+            repository_metrics(python_packages_in_version(repository.latest_version()))
+        )
+        return Response(serializer.data)
 
 
 class PythonBlocklistEntryViewSet(
@@ -502,10 +596,31 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
     name = NormalizedNameFilter(field_name="name_normalized", lookup_expr="exact")
     name__in = NormalizedNameInFilter(field_name="name_normalized", lookup_expr="in")
     name__contains = CharFilter(field_name="name", lookup_expr="contains")
+    name_normalized = NormalizedNameFilter(field_name="name_normalized", lookup_expr="exact")
+    name_normalized__in = NormalizedNameInFilter(field_name="name_normalized", lookup_expr="in")
     version_specifier = VersionSpecifierFilter(
         field_name="version",
         help_text="Filter by PEP 440 version specifier (e.g., >=2.4,<3.0 or ~=1.26)",
     )
+    collapse_builds = drf_filters.BooleanFilter(
+        method="filter_collapse_builds",
+        help_text=(
+            "When true, collapse rebuilds of the same logical version: strip a trailing "
+            r"suffix matching \.[a-zA-Z]+-\d+$ from version, then keep one content unit "
+            "per (name_normalized, base_version) with the latest pulp_created. "
+            "Pass packagetype=sdist so wheel and sdist files are not collapsed together. "
+            "Default false."
+        ),
+    )
+
+    def filter_collapse_builds(self, qs, name, value):
+        """Documented on the FilterSet; applied in the viewset after ordering.
+
+        DISTINCT ON requires ORDER BY to start with the distinct columns. The
+        viewset applies collapse after other filter backends so that ordering
+        cannot break it.
+        """
+        return qs
 
     class Meta:
         model = python_models.PythonPackageContent
@@ -538,6 +653,18 @@ class PythonPackageSingleArtifactContentUploadViewSet(
     serializer_class = python_serializers.PythonPackageContentSerializer
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
     filterset_class = PythonPackageContentFilter
+
+    def filter_queryset(self, queryset):
+        """Apply ``collapse_builds`` after other backends so DISTINCT ON stays valid."""
+        queryset = super().filter_queryset(queryset)
+        if getattr(self, "action", "") != "list":
+            return queryset
+        raw = self.request.query_params.get("collapse_builds")
+        if raw is None or raw == "":
+            return queryset
+        if str(raw).lower() in ("true", "t", "yes", "y", "1"):
+            return collapse_python_builds(queryset)
+        return queryset
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
