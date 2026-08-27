@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.35.0 (2026-08-26) {: #3.35.0 }
+
+#### Features {: #3.35.0-feature }
+
+- Added conditional request support (`Last-Modified` / `If-Modified-Since` and `ETag` / `If-None-Match`) to the Simple API and JSON Metadata API for improved cache efficiency.
+  [#1338](https://github.com/pulp/pulp_python/issues/1338)
+
+---
+
 ## 3.34.0 (2026-08-18) {: #3.34.0 }
 
 #### Features {: #3.34.0-feature }
