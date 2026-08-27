@@ -1,4 +1,4 @@
-from pulp_python.app.utils import osv_to_pypi_vulnerabilities
+from pulp_python.app.osv import osv_to_pypi_vulnerabilities
 
 
 def test_osv_to_pypi_maps_fixed_versions_and_skips_git_shas():

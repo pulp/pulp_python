@@ -17,12 +17,14 @@ from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
-from packaging.version import InvalidVersion, Version, parse
+from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.exceptions import TimeoutException
 from pulpcore.plugin.models import Artifact, Remote, VulnerabilityReport
 from pulpcore.plugin.util import get_domain
+
+from pulp_python.app.osv import osv_to_pypi_vulnerabilities
 
 log = logging.getLogger(__name__)
 
@@ -408,56 +410,20 @@ def python_content_to_json(
     full_metadata["info"] = python_content_to_info(latest_content[0])
     full_metadata["releases"] = python_content_to_releases(all_content, base_path, domain)
     full_metadata["urls"] = python_content_to_urls(latest_content, base_path, domain)
-    full_metadata["vulnerabilities"] = _vulnerabilities_for_content(latest_content)
+    full_metadata["vulnerabilities"] = _vulnerabilities_for_content(
+        latest_content, repository_version
+    )
     return full_metadata
 
 
-def _osv_fixed_in(vuln):
-    """Extract PEP 440 fixed versions from an OSV vulnerability record."""
-    fixed = []
-    seen = set()
-    for affected in vuln.get("affected") or []:
-        for range_ in affected.get("ranges") or []:
-            for event in range_.get("events") or []:
-                if "fixed" not in event:
-                    continue
-                version = event["fixed"]
-                if version in seen:
-                    continue
-                try:
-                    Version(version)
-                except InvalidVersion:
-                    continue
-                seen.add(version)
-                fixed.append(version)
-    return fixed
-
-
-def osv_to_pypi_vulnerabilities(vulns):
-    """Trim OSV vulnerability records to the Warehouse JSON API shape."""
-    seen = {}
-    for vuln in vulns or []:
-        vuln_id = vuln.get("id")
-        if not vuln_id or vuln_id in seen:
-            continue
-        seen[vuln_id] = {
-            "id": vuln_id,
-            "source": "osv",
-            "link": f"https://osv.dev/vulnerability/{vuln_id}",
-            "aliases": vuln.get("aliases") or [],
-            "details": vuln.get("details"),
-            "summary": vuln.get("summary"),
-            "fixed_in": _osv_fixed_in(vuln),
-            "withdrawn": vuln.get("withdrawn"),
-        }
-    return list(seen.values())
-
-
-def _vulnerabilities_for_content(contents):
-    """Load VulnerabilityReports for content units and trim them to Warehouse shape."""
-    if not contents:
+def _vulnerabilities_for_content(contents, repository_version=None):
+    """Load VulnerabilityReports scanned for this repository version and trim to Warehouse shape."""
+    if not contents or repository_version is None:
         return []
-    reports = VulnerabilityReport.objects.filter(content_id__in=[c.pk for c in contents])
+    reports = VulnerabilityReport.objects.filter(
+        content_id__in=[c.pk for c in contents],
+        repo_versions=repository_version,
+    )
     merged = []
     for vulns in reports.values_list("vulns", flat=True):
         if vulns:

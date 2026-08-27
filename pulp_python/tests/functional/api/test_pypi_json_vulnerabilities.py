@@ -59,6 +59,7 @@ def test_pypi_json_vulnerabilities_from_manual_scan(
     python_bindings,
     python_remote_factory,
     python_repo,
+    python_repo_factory,
     python_distribution_factory,
     monitor_task,
 ):
@@ -94,11 +95,26 @@ def test_pypi_json_vulnerabilities_from_manual_scan(
         repository_version=repo.latest_version_href,
     )
     assert packages.count >= 2
+    hrefs = []
     for content in packages.results:
         assert content.vuln_report is not None
         report = pulpcore_bindings.VulnReportApi.read(content.vuln_report)
         assert report.vulns
         assert "affected" in report.vulns[0]
+        hrefs.append(content.pulp_href)
+
+    other = python_repo_factory()
+    monitor_task(
+        python_bindings.RepositoriesPythonApi.modify(
+            other.pulp_href, {"add_content_units": hrefs}
+        ).task
+    )
+    other = python_bindings.RepositoriesPythonApi.read(other.pulp_href)
+    other_distro = python_distribution_factory(repository=other)
+    other_json = requests.get(
+        urljoin(_index_url(other_distro, bindings_cfg), f"pypi/{name}/json")
+    ).json()
+    assert other_json["vulnerabilities"] == []
 
 
 @pytest.mark.parallel
