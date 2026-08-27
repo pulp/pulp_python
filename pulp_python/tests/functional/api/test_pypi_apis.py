@@ -324,6 +324,7 @@ def assert_pypi_json(package):
             package["releases"][version],
             "Failed to match version",
         )
+    assert package["vulnerabilities"] == []
 
 
 def assert_download_info(expected, received, message="Failed to match"):
@@ -377,6 +378,8 @@ def test_upload_time_reflects_repo_addition(
     # JSON API
     json_resp = requests.get(urljoin(distro.base_url, "pypi/twine/json"))
     assert json_resp.status_code == 200
-    json_time = datetime.fromisoformat(json_resp.json()["urls"][0]["upload_time"])
+    package = json_resp.json()
+    json_time = datetime.fromisoformat(package["urls"][0]["upload_time"])
     assert json_time > content_created
     assert json_time == simple_time
+    assert package["vulnerabilities"] == []
