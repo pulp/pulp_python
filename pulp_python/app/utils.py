@@ -26,7 +26,6 @@ from pulpcore.plugin.util import get_domain
 
 log = logging.getLogger(__name__)
 
-
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000

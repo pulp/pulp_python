@@ -34,6 +34,7 @@ from pulp_python.app.utils import (
     get_project_metadata_from_file,
     parse_project_metadata,
 )
+from pulp_python.app.versions import BUILD_SUFFIX_PATTERN, strip_build_suffix
 
 log = logging.getLogger(__name__)
 PYPI_BASE_URL = urljoin(settings.PYPI_API_HOSTNAME, settings.PYPI_PATH_PREFIX)
@@ -231,6 +232,17 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
         help_text=_("The packages version number."),
         read_only=True,
     )
+    base_version = serializers.SerializerMethodField(
+        help_text=_(
+            "The package version with a trailing rebuild suffix stripped "
+            "(matching %s). Equal to version when no suffix is present."
+        )
+        % BUILD_SUFFIX_PATTERN,
+    )
+
+    def get_base_version(self, obj):
+        return strip_build_suffix(obj.version)
+
     # Version 1.1
     classifiers = serializers.JSONField(
         required=False,
@@ -518,6 +530,7 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
             "platform",
             "summary",
             "version",
+            "base_version",
             "classifiers",
             "download_url",
             "supported_platform",
@@ -636,9 +649,77 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
             "packagetype",
             "name",
             "version",
+            "base_version",
             "sha256",
         )
         model = python_models.PythonPackageContent
+
+
+class PythonPackageReleaseSerializer(serializers.Serializer):
+    """One logical version on the repository package index."""
+
+    version = serializers.CharField(
+        help_text=_("Logical version key (rebuild suffix stripped)."),
+    )
+    release = serializers.CharField(
+        help_text=_(
+            "Rebuild/release qualifier within the version line "
+            "(e.g. rhlw-00001 or rhlw-00001-n0001). "
+            "Empty when the selected unit has no rebuild suffix."
+        ),
+        allow_blank=True,
+    )
+    created_at = serializers.DateTimeField(
+        help_text=_(
+            "When this logical version entered the repository: RepositoryContent.pulp_created "
+            "of the newest rebuild, falling back to the content unit's pulp_created."
+        ),
+    )
+
+
+class PythonRepositoryPackageSerializer(serializers.Serializer):
+    """One distinct package in a repository version (not per wheel/sdist file)."""
+
+    name = serializers.CharField(help_text=_("A representative project name for this package."))
+    name_normalized = serializers.CharField(
+        help_text=_("PEP 503 normalized package name. Index rows are unique on this field."),
+    )
+    last_updated = serializers.DateTimeField(
+        help_text=_(
+            "When this package was last updated in the repository: the latest "
+            "RepositoryContent.pulp_created among all Python package units for this "
+            "name (any rebuild), falling back to the content unit's pulp_created."
+        ),
+        allow_null=True,
+    )
+    versions = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_(
+            "Distinct logical version keys after rebuild-suffix strip, newest first "
+            "(PEP 440). The set of values matches latest_releases[].version."
+        ),
+    )
+    latest_releases = PythonPackageReleaseSerializer(
+        many=True,
+        help_text=_(
+            "Newest rebuild per logical version (latest pulp_created), newest version first. "
+            "set(versions) === set(latest_releases[].version)."
+        ),
+    )
+
+
+class PythonRepositoryMetricsSerializer(serializers.Serializer):
+    """Distinct package / version / build counts for a repository version."""
+
+    package_count = serializers.IntegerField(
+        help_text=_("Distinct name_normalized values among Python package content units."),
+    )
+    version_count = serializers.IntegerField(
+        help_text=_("Distinct (name_normalized, base_version) pairs after rebuild-suffix strip."),
+    )
+    build_count = serializers.IntegerField(
+        help_text=_("Distinct (name_normalized, full version) pairs among package content units."),
+    )
 
 
 class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerializer):
