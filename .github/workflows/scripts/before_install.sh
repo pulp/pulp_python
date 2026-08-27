@@ -50,7 +50,7 @@ legacy_component_name: "pulp_python"
 component_name: "python"
 component_version: "${COMPONENT_VERSION}"
 pulp_env: {}
-pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "api_root": "/pulp/", "orphan_protection_time": 0, "pypi_api_hostname": "https://pulp:443"}
+pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "api_root": "/pulp/", "attestation_verification_key": "/etc/pki/attestation/test-key.pem", "orphan_protection_time": 0, "pypi_api_hostname": "https://pulp:443"}
 pulp_scheme: "https"
 image:
   name: "pulp"
@@ -64,6 +64,10 @@ image:
 extra_files:
   - origin: "pulp_python"
     destination: "pulp_python"
+  - origin: "pulp_python/.ci/assets/keys/test-key.pem"
+    destination: "/etc/pki/attestation/test-key.pem"
+  - origin: "pulp_python/.ci/assets/keys/test-key-private.pem"
+    destination: "/etc/pki/attestation/test-key-private.pem"
 services:
   - name: "pulp"
     image: "pulp:ci_build"

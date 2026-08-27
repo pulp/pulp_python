@@ -20,7 +20,11 @@ deploy_client_to_rubygems: true
 deploy_to_pypi: true
 disabled_redis_runners: []
 docker_fixtures: false
-extra_files: []
+extra_files:
+  - origin: "pulp_python/.ci/assets/keys/test-key.pem"
+    destination: "/etc/pki/attestation/test-key.pem"
+  - origin: "pulp_python/.ci/assets/keys/test-key-private.pem"
+    destination: "/etc/pki/attestation/test-key-private.pem"
 github_org: "pulp"
 latest_release_branch: "3.35"
 lint_ignore: []
@@ -43,6 +47,7 @@ pulp_settings:
   allowed_import_paths: "/tmp"
   api_root: "/pulp/"
   orphan_protection_time: 0
+  attestation_verification_key: "/etc/pki/attestation/test-key.pem"
   pypi_api_hostname: "https://pulp:443"
 pulp_settings_azure:
   MEDIA_ROOT: ""
