@@ -5,6 +5,7 @@ from itertools import chain
 from pathlib import PurePath
 from urllib.parse import urljoin, urlparse, urlunsplit
 
+import packaging_legacy.version
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -452,14 +453,18 @@ class SimpleView(PackageUploadMixin, ViewSet):
         if not releases:
             return HttpResponseNotFound(f"{normalized} does not exist.")
 
+        sorted_releases = sorted(
+            releases.values(),
+            key=lambda r: (packaging_legacy.version.parse(r["version"]), r["filename"]),
+        )
         media_type = request.accepted_renderer.media_type
         headers = {"X-PyPI-Last-Serial": str(PYPI_SERIAL_CONSTANT)}
 
         if media_type == PYPI_SIMPLE_V1_JSON:
-            detail_data = write_simple_detail_json(normalized, releases.values())
+            detail_data = write_simple_detail_json(normalized, sorted_releases)
             return Response(detail_data, headers=headers)
         else:
-            detail_data = write_simple_detail(normalized, releases.values())
+            detail_data = write_simple_detail(normalized, sorted_releases)
             kwargs = {"content_type": media_type, "headers": headers}
             return HttpResponse(detail_data, **kwargs)
 
