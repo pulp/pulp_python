@@ -20,15 +20,14 @@ classifiers=[
   "Framework :: Django",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "pulpcore>=3.105.0,<3.130",
   "pkginfo>=1.12.0,<1.13.0",
-  "bandersnatch>=6.6.0,<6.7",
+  "bandersnatch>=8.0.0,<8.1",
   "pypi-simple>=1.8.0,<2.0",
   "pypi-attestations==0.0.28",  # API is not stable
 ]
