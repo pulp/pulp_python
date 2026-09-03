@@ -1,1 +1,0 @@
-Improved repair_metadata task logging to show repository and package names instead of UUIDs.
