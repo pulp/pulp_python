@@ -8,6 +8,19 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.36.0 (2026-09-03) {: #3.36.0 }
+
+#### Features {: #3.36.0-feature }
+
+- Added PyPI-compatible RSS feeds on Python distributions at `rss/updates.xml`, `rss/packages.xml`, and `rss/project/<name>/releases.xml`.
+  [#1320](https://github.com/pulp/pulp_python/issues/1320)
+
+#### Misc {: #3.36.0-misc }
+
+- [#1352](https://github.com/pulp/pulp_python/issues/1352)
+
+---
+
 ## 3.35.0 (2026-08-26) {: #3.35.0 }
 
 #### Features {: #3.35.0-feature }
