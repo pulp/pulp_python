@@ -789,6 +789,11 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
         help_text=_("Whether to sync available provenances for Python packages."),
         default=False,
     )
+    vulnerabilities = serializers.BooleanField(
+        required=False,
+        help_text=_("Whether to scan the new repository version for vulnerabilities after a sync."),
+        default=False,
+    )
 
     def validate_includes(self, value):
         """Validates the includes"""
@@ -821,6 +826,7 @@ class PythonRemoteSerializer(core_serializers.RemoteSerializer):
             "keep_latest_packages",
             "exclude_platforms",
             "provenance",
+            "vulnerabilities",
         )
         model = python_models.PythonRemote
 

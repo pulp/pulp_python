@@ -35,6 +35,9 @@ class PackageMetadataSerializer(serializers.Serializer):
     info = serializers.JSONField(help_text=_("Core metadata of the package"))
     releases = serializers.JSONField(help_text=_("List of all the releases of the package"))
     urls = serializers.JSONField()
+    vulnerabilities = serializers.JSONField(
+        help_text=_("Known vulnerabilities for the selected package version."),
+    )
 
 
 class PackageUploadSerializer(serializers.Serializer):

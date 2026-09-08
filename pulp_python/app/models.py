@@ -130,7 +130,11 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
             if not settings.DOMAIN_ENABLED:
                 domain = None
             json_body = python_content_to_json(
-                self.base_path, package_content, version=version, domain=domain
+                self.base_path,
+                package_content,
+                version=version,
+                domain=domain,
+                repository_version=self.publication.repository_version,
             )
             if json_body:
                 return json_response(json_body, headers=headers)
@@ -350,6 +354,7 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
         models.CharField(max_length=10, blank=True), choices=PLATFORMS, default=list
     )
     provenance = models.BooleanField(default=False)
+    vulnerabilities = models.BooleanField(default=False)
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
         """Get url for remote_artifact"""

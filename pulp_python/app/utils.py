@@ -21,8 +21,10 @@ from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
 from pulpcore.plugin.exceptions import TimeoutException
-from pulpcore.plugin.models import Artifact, Remote
+from pulpcore.plugin.models import Artifact, Remote, VulnerabilityReport
 from pulpcore.plugin.util import get_domain
+
+from pulp_python.app.osv import osv_to_pypi_vulnerabilities
 
 log = logging.getLogger(__name__)
 
@@ -377,6 +379,7 @@ def python_content_to_json(
         last_serial: int
         releases: Dict
         urls: Dict
+        vulnerabilities: List
 
     Returns None if version is specified but not found within content_query
     """
@@ -407,7 +410,25 @@ def python_content_to_json(
     full_metadata["info"] = python_content_to_info(latest_content[0])
     full_metadata["releases"] = python_content_to_releases(all_content, base_path, domain)
     full_metadata["urls"] = python_content_to_urls(latest_content, base_path, domain)
+    full_metadata["vulnerabilities"] = _vulnerabilities_for_content(
+        latest_content, repository_version
+    )
     return full_metadata
+
+
+def _vulnerabilities_for_content(contents, repository_version=None):
+    """Load VulnerabilityReports scanned for this repository version and trim to Warehouse shape."""
+    if not contents or repository_version is None:
+        return []
+    reports = VulnerabilityReport.objects.filter(
+        content_id__in=[c.pk for c in contents],
+        repo_versions=repository_version,
+    )
+    merged = []
+    for vulns in reports.values_list("vulns", flat=True):
+        if vulns:
+            merged.extend(vulns)
+    return osv_to_pypi_vulnerabilities(merged)
 
 
 def latest_content_version(all_content, version):
