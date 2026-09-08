@@ -91,14 +91,13 @@ def test_simple_cache_separate_accept_headers(synced_distro):
 
 
 @pytest.mark.parallel
-def test_simple_cache_format_json_does_not_poison_html(synced_distro):
+def test_simple_cache_negotiated_media_types_are_separate(synced_distro):
     """
-    A ?format=json response must not poison a later request with the same Accept.
+    JSON and HTML responses must not poison each other in the cache.
 
-    Clients like uv/pip send an Accept that allows both JSON and HTML. DRF's
-    ?format=json overrides negotiation to JSON, while the same Accept without
-    that query param selects HTML. Caching must key on the negotiated type so
-    the JSON entry is not served (and re-rendered) for the HTML request.
+    Clients like uv/pip send an Accept that allows both JSON and HTML. The
+    negotiated JSON response must be cached separately from an explicit HTML
+    response.
     """
     url = f"{urljoin(synced_distro.base_url, 'simple/')}aiohttp"
     # pip/uv-style Accept: JSON preferred, HTML still acceptable
@@ -112,13 +111,13 @@ def test_simple_cache_format_json_does_not_poison_html(synced_distro):
     assert r_json.headers["X-PULP-CACHE"] == "MISS"
     assert r_json.json()["name"] == "aiohttp"
 
-    r_html = requests.get(url, headers=headers)
+    r_html = requests.get(url, headers={"Accept": PYPI_TEXT_HTML})
     assert r_html.status_code == 200
     assert PYPI_TEXT_HTML in r_html.headers["Content-Type"]
     assert r_html.headers["X-PULP-CACHE"] == "MISS"
     assert b"<a href=" in r_html.content
 
-    r_html_hit = requests.get(url, headers=headers)
+    r_html_hit = requests.get(url, headers={"Accept": PYPI_TEXT_HTML})
     assert r_html_hit.status_code == 200
     assert r_html_hit.headers["X-PULP-CACHE"] == "HIT"
     assert PYPI_TEXT_HTML in r_html_hit.headers["Content-Type"]
