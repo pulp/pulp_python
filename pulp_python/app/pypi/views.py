@@ -318,8 +318,17 @@ class SimpleView(PackageUploadMixin, ViewSet):
         Uses custom renderers for PyPI Simple API endpoints, defaulting to standard ones.
         """
         if self.action in ["list", "retrieve"]:
-            # Ordered by priority if multiple content types are present
-            return [TemplateHTMLRenderer(), PyPISimpleHTMLRenderer(), PyPISimpleJSONRenderer()]
+            # DRF resolves equally-specific media types in renderer order and does not
+            # account for q-values.  Put the PyPI JSON renderer first when the client
+            # explicitly advertises it (as pip and uv do), otherwise retain HTML as the
+            # default for browser and legacy clients.
+            accept = self.request.META.get("HTTP_ACCEPT", "").lower()
+            renderers = [TemplateHTMLRenderer(), PyPISimpleHTMLRenderer()]
+            if PYPI_SIMPLE_V1_JSON in accept:
+                renderers.insert(0, PyPISimpleJSONRenderer())
+            else:
+                renderers.append(PyPISimpleJSONRenderer())
+            return renderers
         else:
             return [JSONRenderer(), BrowsableAPIRenderer()]
 
