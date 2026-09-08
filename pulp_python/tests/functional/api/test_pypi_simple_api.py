@@ -169,8 +169,8 @@ def test_simple_json_detail_api(
         (PYPI_TEXT_HTML, PYPI_TEXT_HTML),
         (PYPI_SIMPLE_V1_HTML, PYPI_SIMPLE_V1_HTML),
         (PYPI_SIMPLE_V1_JSON, PYPI_SIMPLE_V1_JSON),
-        # Follows defined ordering (html, pypi html, pypi json)
-        (f"{PYPI_SIMPLE_V1_JSON}, {PYPI_SIMPLE_V1_HTML}", PYPI_SIMPLE_V1_HTML),
+        # Clients such as pip and uv advertise JSON first, with HTML as a fallback.
+        (f"{PYPI_SIMPLE_V1_JSON}, {PYPI_SIMPLE_V1_HTML}", PYPI_SIMPLE_V1_JSON),
         # Everything else should be html
         ("", PYPI_TEXT_HTML),
         ("application/json", PYPI_TEXT_HTML),
@@ -191,3 +191,5 @@ def test_simple_api_content_headers(
         response = requests.get(url, headers={"Accept": header})
         assert response.status_code == 200
         assert result in response.headers["Content-Type"]
+        if url == detail_url and result == PYPI_SIMPLE_V1_JSON:
+            assert all(file["upload-time"] for file in response.json()["files"])

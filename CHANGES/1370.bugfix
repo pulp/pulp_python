@@ -1,0 +1,1 @@
+Prefer the PyPI Simple API JSON response when clients such as pip and uv advertise JSON alongside HTML.
