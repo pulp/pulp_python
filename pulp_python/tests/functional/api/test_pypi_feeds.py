@@ -125,8 +125,40 @@ def test_pinned_version_feeds(
 
     item = _parse_items(_get_feed(distro, "rss/updates.xml", bindings_cfg))[0]
     assert item.findtext("link").endswith("pypi/shelf-reader/0.1/json")
-    assert item.findtext("guid").endswith("pypi/shelf-reader/0.1/json")
+    assert "pypi/shelf-reader/0.1/json#" in item.findtext("guid")
 
     python_content_factory(TWINE_WHEEL_FILENAME, url=TWINE_WHEEL_URL, repository=repo)
     update_titles = _titles(_parse_items(_get_feed(distro, "rss/updates.xml", bindings_cfg)))
     assert update_titles == ["shelf-reader 0.1"]
+
+
+@pytest.mark.parallel
+def test_new_file_for_existing_version_updates_guid(
+    bindings_cfg, python_content_factory, python_empty_repo_distro
+):
+    """Adding a new file for an existing (name, version) produces a new guid and updated date."""
+    repo, distro = python_empty_repo_distro()
+
+    python_content_factory(PYTHON_EGG_FILENAME, url=PYTHON_EGG_URL, repository=repo)
+
+    items = _parse_items(_get_feed(distro, "rss/updates.xml", bindings_cfg))
+    assert len(items) == 1
+    first_guid = items[0].findtext("guid")
+    first_date = items[0].findtext("pubDate")
+    assert "pypi/shelf-reader/0.1/json" in first_guid
+
+    python_content_factory(PYTHON_WHEEL_FILENAME, url=PYTHON_WHEEL_URL, repository=repo)
+
+    items = _parse_items(_get_feed(distro, "rss/updates.xml", bindings_cfg))
+    assert len(items) == 1
+    second_guid = items[0].findtext("guid")
+    second_date = items[0].findtext("pubDate")
+
+    assert second_guid != first_guid
+    assert second_date >= first_date
+
+    release_items = _parse_items(
+        _get_feed(distro, "rss/project/shelf-reader/releases.xml", bindings_cfg)
+    )
+    assert len(release_items) == 1
+    assert release_items[0].findtext("guid") == second_guid
