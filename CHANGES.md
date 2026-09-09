@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.36.1 (2026-09-09) {: #3.36.1 }
+
+#### Bugfixes {: #3.36.1-bugfix }
+
+- Prefer the PyPI Simple API JSON response when clients such as pip and uv advertise JSON alongside HTML.
+  [#1370](https://github.com/pulp/pulp_python/issues/1370)
+
+---
+
 ## 3.36.0 (2026-09-03) {: #3.36.0 }
 
 #### Features {: #3.36.0-feature }
