@@ -2,7 +2,7 @@ import re
 from email.utils import getaddresses
 from urllib.parse import urljoin
 
-from django.db.models import F, FilteredRelation, Min, Q
+from django.db.models import F, FilteredRelation, Max, Min, Q
 from django.http.response import HttpResponse, HttpResponseNotFound
 from django.utils.decorators import method_decorator
 from django.utils.feedgenerator import Rss201rev2Feed
@@ -15,7 +15,7 @@ from rest_framework.viewsets import ViewSet
 from pulp_python.app.cache import PythonApiCache, find_base_path_cached
 from pulp_python.app.pypi.views import PyPIMixin, _etag_func
 
-UPDATES_LIMIT = 100
+UPDATES_LIMIT = 500
 PACKAGES_LIMIT = 40
 PROJECT_RELEASES_LIMIT = 40
 RSS_CONTENT_TYPE = "application/rss+xml; charset=utf-8"
@@ -66,7 +66,7 @@ def iter_releases(content, repo_ver, name_normalized=None, limit=UPDATES_LIMIT):
         qs.order_by()
         .values("name_normalized", "version")
         .annotate(
-            added_at=Min("file_added_at"),
+            added_at=Max("file_added_at"),
             name=Min("name"),
             summary=Min("summary"),
             author_email=Min("author_email"),
@@ -82,7 +82,7 @@ def iter_projects(content, repo_ver, limit=PACKAGES_LIMIT):
         qs.order_by()
         .values("name_normalized")
         .annotate(
-            added_at=Min("file_added_at"),
+            added_at=Max("file_added_at"),
             name=Min("name"),
             summary=Min("summary"),
             author_email=Min("author_email"),
@@ -98,7 +98,7 @@ def _item_dict(title, link, description, author_email, pubdate):
         "description": sanitize_xml_text(description),
         "author_email": format_author(author_email),
         "pubdate": pubdate,
-        "unique_id": link,
+        "unique_id": f"{link}#{pubdate.isoformat()}",
     }
 
 
@@ -118,7 +118,7 @@ def render_rss(title, link, description, items):
             author_email=item["author_email"],
             pubdate=item["pubdate"],
             unique_id=item["unique_id"],
-            unique_id_is_permalink=True,
+            unique_id_is_permalink=False,
         )
     return feed.writeString("utf-8")
 
