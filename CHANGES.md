@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.36.2 (2026-09-10) {: #3.36.2 }
+
+#### Bugfixes {: #3.36.2-bugfix }
+
+- RSS feeds now reflect the most recently added file for each release, produce unique guids when content is updated, and support up to 500 entries in `updates.xml`.
+  [#1374](https://github.com/pulp/pulp_python/issues/1374)
+
+---
+
 ## 3.36.1 (2026-09-09) {: #3.36.1 }
 
 #### Bugfixes {: #3.36.1-bugfix }
