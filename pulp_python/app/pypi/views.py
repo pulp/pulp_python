@@ -27,6 +27,7 @@ from packaging.utils import canonicalize_name
 from rest_framework.exceptions import NotAcceptable
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.viewsets import ViewSet
 
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
@@ -70,6 +71,65 @@ BASE_API_URL = urljoin(settings.PYPI_API_HOSTNAME, settings.PYPI_PATH_PREFIX)
 
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
+PYPI_TEXT_HTML = "text/html"
+
+# Tie-break order (equal q, specificity, and header position all match).
+_SIMPLE_MEDIA_TYPES = (PYPI_TEXT_HTML, PYPI_SIMPLE_V1_HTML, PYPI_SIMPLE_V1_JSON)
+
+
+def _parse_accept_ranges(accept_header):
+    ranges = []
+    for index, token in enumerate(accept_header.split(",")):
+        media_type, _, params = token.strip().partition(";")
+        main, _, sub = media_type.strip().lower().partition("/")
+        if not main or not sub:
+            continue
+        q = 1.0
+        for param in params.split(";"):
+            param = param.strip()
+            if param.startswith("q="):
+                try:
+                    q = float(param[2:])
+                except ValueError:
+                    q = 1.0
+        ranges.append((main, sub, q, index))
+    return ranges
+
+
+def _best_match(ranges, media_type):
+    """Most specific range matching media_type, as (specificity, q, index)."""
+    main, _, sub = media_type.partition("/")
+    best = None
+    for r_main, r_sub, q, index in ranges:
+        if r_main not in (main, "*") or r_sub not in (sub, "*"):
+            continue
+        specificity = 2 if r_sub != "*" else (0 if r_main == "*" else 1)
+        candidate = (specificity, q, -index)
+        if best is None or candidate > best:
+            best = candidate
+    if best is None:
+        return None
+    specificity, q, neg_index = best
+    return specificity, q, -neg_index
+
+
+def negotiate_simple_media_type(accept_header):
+    """Most preferred Simple API media type; unlike DRF, honors q-values and q=0."""
+    if not accept_header:
+        return PYPI_TEXT_HTML
+    ranges = _parse_accept_ranges(accept_header)
+    best_type, best_key = None, None
+    for priority, media_type in enumerate(_SIMPLE_MEDIA_TYPES):
+        match = _best_match(ranges, media_type)
+        if match is None:
+            continue
+        specificity, q, index = match
+        if q <= 0:
+            continue
+        key = (q, specificity, -index, -priority)
+        if best_key is None or key > best_key:
+            best_key, best_type = key, media_type
+    return best_type or PYPI_TEXT_HTML
 
 
 def _get_repo_version(path):
@@ -305,30 +365,31 @@ class SimpleView(PackageUploadMixin, ViewSet):
     }
 
     def perform_content_negotiation(self, request, force=False):
-        """
-        Uses standard content negotiation, defaulting to HTML if no acceptable renderer is found.
-        """
-        try:
-            return super().perform_content_negotiation(request, force)
-        except NotAcceptable:
-            return TemplateHTMLRenderer(), TemplateHTMLRenderer.media_type  # text/html
+        """Negotiates Simple API responses ourselves; DRF ignores q-values entirely."""
+        if self.action not in ("list", "retrieve"):
+            try:
+                return super().perform_content_negotiation(request, force)
+            except NotAcceptable:
+                return TemplateHTMLRenderer(), TemplateHTMLRenderer.media_type
+
+        fmt = request.query_params.get(api_settings.URL_FORMAT_OVERRIDE)
+        renderer_class = {
+            "json": PyPISimpleJSONRenderer,
+            "html": TemplateHTMLRenderer,
+        }.get(fmt)
+        if renderer_class is None:
+            media_type = negotiate_simple_media_type(request.META.get("HTTP_ACCEPT", ""))
+            renderer_class = {
+                PYPI_SIMPLE_V1_JSON: PyPISimpleJSONRenderer,
+                PYPI_SIMPLE_V1_HTML: PyPISimpleHTMLRenderer,
+                PYPI_TEXT_HTML: TemplateHTMLRenderer,
+            }[media_type]
+        renderer = renderer_class()
+        return renderer, renderer.media_type
 
     def get_renderers(self):
-        """
-        Uses custom renderers for PyPI Simple API endpoints, defaulting to standard ones.
-        """
         if self.action in ["list", "retrieve"]:
-            # DRF resolves equally-specific media types in renderer order and does not
-            # account for q-values.  Put the PyPI JSON renderer first when the client
-            # explicitly advertises it (as pip and uv do), otherwise retain HTML as the
-            # default for browser and legacy clients.
-            accept = self.request.META.get("HTTP_ACCEPT", "").lower()
-            renderers = [TemplateHTMLRenderer(), PyPISimpleHTMLRenderer()]
-            if PYPI_SIMPLE_V1_JSON in accept:
-                renderers.insert(0, PyPISimpleJSONRenderer())
-            else:
-                renderers.append(PyPISimpleJSONRenderer())
-            return renderers
+            return [TemplateHTMLRenderer(), PyPISimpleHTMLRenderer(), PyPISimpleJSONRenderer()]
         else:
             return [JSONRenderer(), BrowsableAPIRenderer()]
 

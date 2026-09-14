@@ -169,12 +169,20 @@ def test_simple_json_detail_api(
         (PYPI_TEXT_HTML, PYPI_TEXT_HTML),
         (PYPI_SIMPLE_V1_HTML, PYPI_SIMPLE_V1_HTML),
         (PYPI_SIMPLE_V1_JSON, PYPI_SIMPLE_V1_JSON),
-        # Clients such as pip and uv advertise JSON first, with HTML as a fallback.
         (f"{PYPI_SIMPLE_V1_JSON}, {PYPI_SIMPLE_V1_HTML}", PYPI_SIMPLE_V1_JSON),
-        # Everything else should be html
+        (
+            f"{PYPI_SIMPLE_V1_JSON}, {PYPI_SIMPLE_V1_HTML};q=0.1, {PYPI_TEXT_HTML};q=0.01",
+            PYPI_SIMPLE_V1_JSON,
+        ),
+        (f"{PYPI_SIMPLE_V1_HTML}, {PYPI_SIMPLE_V1_JSON};q=0.1", PYPI_SIMPLE_V1_HTML),
         ("", PYPI_TEXT_HTML),
         ("application/json", PYPI_TEXT_HTML),
         ("sth/else", PYPI_TEXT_HTML),
+        ("*/*", PYPI_TEXT_HTML),
+        (f"{PYPI_SIMPLE_V1_JSON};q=0.3, */*;q=0.9", PYPI_TEXT_HTML),
+        (f"text/*;q=0.9, {PYPI_SIMPLE_V1_JSON};q=0.3", PYPI_TEXT_HTML),
+        (f"{PYPI_SIMPLE_V1_JSON};q=0, */*", PYPI_TEXT_HTML),
+        (f"{PYPI_TEXT_HTML};q=0, {PYPI_SIMPLE_V1_JSON}", PYPI_SIMPLE_V1_JSON),
     ],
 )
 def test_simple_api_content_headers(
