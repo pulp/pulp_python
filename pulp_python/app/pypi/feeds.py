@@ -2,6 +2,7 @@ import re
 from email.utils import getaddresses
 from urllib.parse import urljoin
 
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, FilteredRelation, Max, Min, Q
 from django.http.response import HttpResponse, HttpResponseNotFound
 from django.utils.decorators import method_decorator
@@ -14,6 +15,8 @@ from rest_framework.viewsets import ViewSet
 
 from pulp_python.app.cache import PythonApiCache, find_base_path_cached
 from pulp_python.app.pypi.views import PyPIMixin, _etag_func
+
+_WHEEL_BUILD_TAG_RE = re.compile(r"^.+?-.+?-(?P<build>\d[^-]*?)-[^-]+-[^-]+-[^-]+\.whl$")
 
 UPDATES_LIMIT = 500
 PACKAGES_LIMIT = 40
@@ -70,6 +73,7 @@ def iter_releases(content, repo_ver, name_normalized=None, limit=UPDATES_LIMIT):
             name=Min("name"),
             summary=Min("summary"),
             author_email=Min("author_email"),
+            filenames=ArrayAgg("filename", distinct=True, ordering="filename"),
         )
         .order_by("-added_at", "name_normalized", "version")[:limit]
     )
@@ -91,14 +95,30 @@ def iter_projects(content, repo_ver, limit=PACKAGES_LIMIT):
     )
 
 
-def _item_dict(title, link, description, author_email, pubdate):
+def _build_tag_fragment(filenames):
+    """Extract sorted distinct build tags from wheel filenames for GUID stability.
+
+    Returns a fragment like ``#builds=1,2`` when build tags are present,
+    or an empty string for sdists and wheels without build tags.
+    """
+    tags = set()
+    for fn in filenames or ():
+        m = _WHEEL_BUILD_TAG_RE.match(fn)
+        if m:
+            tags.add(m.group("build"))
+    if not tags:
+        return ""
+    return "#builds=" + ",".join(sorted(tags))
+
+
+def _item_dict(title, link, description, author_email, pubdate, filenames=()):
     return {
         "title": sanitize_xml_text(title),
         "link": link,
         "description": sanitize_xml_text(description),
         "author_email": format_author(author_email),
         "pubdate": pubdate,
-        "unique_id": f"{link}#{pubdate.isoformat()}",
+        "unique_id": f"{link}{_build_tag_fragment(filenames)}",
     }
 
 
@@ -139,6 +159,7 @@ def render_updates_feed(index_url, releases):
             description=release["summary"],
             author_email=release["author_email"],
             pubdate=release["added_at"],
+            filenames=release.get("filenames", ()),
         )
         for release in releases
     ]
@@ -178,6 +199,7 @@ def render_project_releases_feed(index_url, project_name, releases):
             description=release["summary"],
             author_email=release["author_email"],
             pubdate=release["added_at"],
+            filenames=release.get("filenames", ()),
         )
         for release in releases
     ]
