@@ -29,6 +29,7 @@ from pulp_python.app.models import (
     PythonRemote,
 )
 from pulp_python.app.provenance import Provenance
+from pulp_python.app.tasks.vulnerability_report import dispatch_scan
 from pulp_python.app.utils import PYPI_LAST_SERIAL, aget_remote_simple_page, parse_metadata
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,9 @@ def sync(remote_pk, repository_pk, mirror):
         raise SyncError("A remote must have a url attribute to sync.")
 
     first_stage = PythonBanderStage(remote)
-    DeclarativeVersion(first_stage, repository, mirror).create()
+    new_version = DeclarativeVersion(first_stage, repository, mirror).create()
+    if new_version and remote.vulnerabilities:
+        dispatch_scan(repository, new_version)
 
 
 def create_bandersnatch_config(remote):
