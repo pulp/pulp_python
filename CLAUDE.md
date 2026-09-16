@@ -58,3 +58,7 @@ When patchback fails to cherry-pick a PR into an older branch, you need to manua
 ## Contributing
 
 When preparing to commit and create a PR you **must** follow our [PR checklist](https://pulpproject.org/pulpcore/docs/dev/guides/pull-request-walkthrough/) Important to note is the AI attribution requirement in our commit messages. Also, note that our changelog entries are markdown.
+
+## Catalog `strip_build_suffix` and CI unit tests
+
+CI runs unit tests with ``pytest -p no:pulpcore``. Collection must not import Django-backed modules (``pulp_python.app.utils``, ``catalog``, models, viewsets). Keep ``strip_build_suffix``, ``BUILD_SUFFIX_PATTERN``, ``version_sort_key``, ``normalize_package_index_ordering``, and ``normalize_name_normalized_search`` in ``pulp_python/app/versions.py``. The rebuild suffix is the last dot-segment matching POSIX ``\.[a-zA-Z]+-[^.]+$`` (letters, dash, rest of that segment; not hard-coded to ``rhlw``). Python ``re`` and SQL ``REGEXP_REPLACE`` share ``BUILD_SUFFIX_PATTERN``; ``catalog.py`` may import it. Catalog ``latest_releases`` keeps the newest ``pulp_created`` unit per logical version; ``release`` is ``rebuild_release`` of that stored ``version`` (empty when there is no suffix). Catalog ``name_normalized`` prefix/substring filters lowercase the input, use ``LIKE`` (not ``ILIKE``) against the trigram GIN index, and reject values shorter than 3 characters.
