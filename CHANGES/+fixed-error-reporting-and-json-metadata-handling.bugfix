@@ -1,0 +1,1 @@
+Fixed python syncs masking HTTP errors as stale metadata and handling native json list values in package metadata
