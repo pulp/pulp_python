@@ -98,7 +98,7 @@ def iter_projects(content, repo_ver, limit=PACKAGES_LIMIT):
 def _build_tag_fragment(filenames):
     """Extract sorted distinct build tags from wheel filenames for GUID stability.
 
-    Returns a fragment like ``#builds=1,2`` when build tags are present,
+    Returns a fragment like `#builds=1,2` when build tags are present,
     or an empty string for sdists and wheels without build tags.
     """
     tags = set()

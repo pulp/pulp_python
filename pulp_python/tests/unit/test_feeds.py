@@ -1,21 +1,6 @@
-import re
-
 import pytest
 
-# Duplicated here to avoid importing feeds.py, which pulls in Django/DRF and
-# requires a configured Django settings module that the unit test runner lacks.
-_WHEEL_BUILD_TAG_RE = re.compile(r"^.+?-.+?-(?P<build>\d[^-]*?)-[^-]+-[^-]+-[^-]+\.whl$")
-
-
-def _build_tag_fragment(filenames):
-    tags = set()
-    for fn in filenames or ():
-        m = _WHEEL_BUILD_TAG_RE.match(fn)
-        if m:
-            tags.add(m.group("build"))
-    if not tags:
-        return ""
-    return "#builds=" + ",".join(sorted(tags))
+from pulp_python.app.pypi.feeds import _build_tag_fragment
 
 
 @pytest.mark.parametrize(
