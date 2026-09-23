@@ -1,0 +1,1 @@
+RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
