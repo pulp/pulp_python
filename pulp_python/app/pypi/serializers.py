@@ -3,12 +3,19 @@ from gettext import gettext as _
 
 from django.db.utils import IntegrityError
 from pydantic import TypeAdapter, ValidationError
+from pypi_attestations import AttestationError
 from rest_framework import serializers
 
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_domain
 
-from pulp_python.app.provenance import Attestation
+from pulp_python.app.provenance import (
+    AnyPublisher,
+    Attestation,
+    AttestationBundle,
+    Provenance,
+    verify_provenance,
+)
 from pulp_python.app.utils import DIST_EXTENSIONS, SUPPORTED_METADATA_VERSIONS
 
 log = logging.getLogger(__name__)
@@ -107,6 +114,7 @@ class PackageUploadSerializer(serializers.Serializer):
                 }
             )
 
+        sha256 = data.get("sha256_digest")
         if attestations := data.get("attestations"):
             try:
                 attestations = TypeAdapter(list[Attestation]).validate_python(attestations)
@@ -114,8 +122,17 @@ class PackageUploadSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"attestations": _("The uploaded attestations are not valid: {}").format(e)}
                 )
+            if attestations and sha256:
+                publisher = AnyPublisher(kind="Pulp User")
+                att_bundle = AttestationBundle(publisher=publisher, attestations=attestations)
+                provenance = Provenance(attestation_bundles=[att_bundle])
+                try:
+                    verify_provenance(file.name, sha256, provenance, offline=True)
+                except AttestationError as e:
+                    raise serializers.ValidationError(
+                        {"attestations": _("Attestations failed verification: {}").format(e)}
+                    )
 
-        sha256 = data.get("sha256_digest")
         digests = {"sha256": sha256} if sha256 else None
         artifact = Artifact.init_and_validate(file, expected_digests=digests)
         try:
