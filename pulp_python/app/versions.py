@@ -9,7 +9,6 @@ import re
 from packaging.version import InvalidVersion, Version
 
 # Last dot-segment is a rebuild if it is letters, dash, rest of that segment.
-# POSIX string shared with SQL REGEXP_REPLACE. Not hard-coded to "rhlw".
 BUILD_SUFFIX_PATTERN = r"\.[a-zA-Z]+-[^.]+$"
 BUILD_SUFFIX_RE = re.compile(BUILD_SUFFIX_PATTERN)
 

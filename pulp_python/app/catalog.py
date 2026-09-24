@@ -39,11 +39,14 @@ def collapse_python_builds(queryset):
     row per logical version (not per wheel/sdist) should also filter
     ``packagetype``.
     """
+    # DISTINCT ON cannot reuse pulpcore's list prefetches (cloned lookups /
+    # JOINs). Drop them, collapse, then prefetch artifacts for the reduced set.
     return (
         queryset.prefetch_related(None)
         .annotate(_collapse_base_version=base_version_annotation())
         .order_by("name_normalized", "_collapse_base_version", "-pulp_created")
         .distinct("name_normalized", "_collapse_base_version")
+        .prefetch_related("contentartifact_set")
     )
 
 
@@ -52,22 +55,6 @@ def python_packages_in_version(repository_version):
     if repository_version is None:
         return PythonPackageContent.objects.none()
     return PythonPackageContent.objects.filter(pk__in=repository_version.content)
-
-
-def apply_package_prefix_filters(
-    queryset,
-    name_normalized_prefix=None,
-    name_prefix=None,
-    name_normalized_contains=None,
-):
-    """Apply case-insensitive name filters used by the package index."""
-    if name_normalized_prefix:
-        queryset = queryset.filter(name_normalized__startswith=name_normalized_prefix)
-    if name_normalized_contains:
-        queryset = queryset.filter(name_normalized__contains=name_normalized_contains)
-    if name_prefix:
-        queryset = queryset.filter(name__istartswith=name_prefix)
-    return queryset
 
 
 def membership_in_version_q(repository, repository_version):
@@ -129,7 +116,7 @@ def assemble_package_index(content_qs, name_rows, repository, repository_version
 
     newest_units = list(
         content_qs.filter(name_normalized__in=names)
-        .prefetch_related(None)
+        .prefetch_related(None)  # DISTINCT ON; see collapse_python_builds
         .annotate(_base_version=base_version_annotation())
         .order_by("name_normalized", "_base_version", "-pulp_created")
         .distinct("name_normalized", "_base_version")

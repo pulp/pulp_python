@@ -3,6 +3,7 @@ from pathlib import Path
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from django_filters import CharFilter
+from django_filters.rest_framework import FilterSet
 from django_filters.rest_framework import filters as drf_filters
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -39,7 +40,6 @@ from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
 from pulp_python.app.catalog import (
-    apply_package_prefix_filters,
     assemble_package_index,
     collapse_python_builds,
     distinct_package_names_qs,
@@ -51,6 +51,75 @@ from pulp_python.app.versions import (
     normalize_name_normalized_search,
     normalize_package_index_ordering,
 )
+
+
+class CatalogOrderingFilter(drf_filters.OrderingFilter):
+    """Validate catalog ``ordering`` without applying it to the content queryset."""
+
+    def filter(self, qs, value):
+        return qs
+
+
+class PythonRepositoryPackageFilter(FilterSet):
+    """Query parameters for ``GET .../repositories/python/python/{pk}/packages/``."""
+
+    repository_version = CharFilter(
+        method="filter_noop",
+        help_text=(
+            "HREF or PRN of a version of this repository. Defaults to the latest complete version."
+        ),
+    )
+    name_normalized__istartswith = CharFilter(
+        method="filter_name_normalized_prefix",
+        help_text=(
+            "Case-insensitive prefix on the PEP 503 normalized package name. "
+            "At least 3 characters required."
+        ),
+    )
+    name_normalized__icontains = CharFilter(
+        method="filter_name_normalized_contains",
+        help_text=(
+            "Case-insensitive substring on the PEP 503 normalized package name. "
+            "At least 3 characters required."
+        ),
+    )
+    name__istartswith = CharFilter(
+        field_name="name",
+        lookup_expr="istartswith",
+        help_text="Case-insensitive prefix on the original package name.",
+    )
+    ordering = CatalogOrderingFilter(
+        fields=("name", "name_normalized", "last_updated"),
+        help_text=(
+            "Order catalog rows. Allowed: name, name_normalized, last_updated. "
+            "Prefix with '-' for descending. Default is name."
+        ),
+    )
+
+    def filter_noop(self, qs, name, value):
+        return qs
+
+    def filter_name_normalized_prefix(self, qs, name, value):
+        try:
+            value = normalize_name_normalized_search(value)
+        except ValueError as exc:
+            raise ValidationError({"name_normalized__istartswith": str(exc)}) from exc
+        if not value:
+            return qs
+        return qs.filter(name_normalized__startswith=value)
+
+    def filter_name_normalized_contains(self, qs, name, value):
+        try:
+            value = normalize_name_normalized_search(value)
+        except ValueError as exc:
+            raise ValidationError({"name_normalized__icontains": str(exc)}) from exc
+        if not value:
+            return qs
+        return qs.filter(name_normalized__contains=value)
+
+    class Meta:
+        model = python_models.PythonPackageContent
+        fields = []
 
 
 class PythonRepositoryViewSet(
@@ -287,57 +356,10 @@ class PythonRepositoryViewSet(
         description=(
             "Return one row per distinct package name in a repository version "
             "(latest complete version if repository_version is omitted). "
-            "Pagination count is the number of distinct packages, not files. "
-            "Each row includes last_updated (newest membership among any rebuild), "
-            "versions (logical version keys after rebuild-suffix strip, newest first), "
-            "and latest_releases (newest rebuild per logical version, same order). "
-            "set(versions) === set(latest_releases[].version)."
+            "Pagination count is the number of distinct packages, not files."
         ),
         parameters=[
-            OpenApiParameter(
-                name="repository_version",
-                type=OpenApiTypes.URI,
-                location=OpenApiParameter.QUERY,
-                required=False,
-                description=(
-                    "HREF or PRN of a version of this repository. "
-                    "Defaults to the latest complete version."
-                ),
-            ),
-            OpenApiParameter(
-                name="name_normalized__istartswith",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description=(
-                    "Case-insensitive prefix on the PEP 503 normalized package name."
-                    "At least 3 characters required."
-                ),
-            ),
-            OpenApiParameter(
-                name="name_normalized__icontains",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description=(
-                    "Case-insensitive substring on the PEP 503 normalized package name."
-                    "At least 3 characters required."
-                ),
-            ),
-            OpenApiParameter(
-                name="name__istartswith",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Case-insensitive prefix on the original package name.",
-            ),
-            OpenApiParameter(
-                name="ordering",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                many=True,
-                description=(
-                    "Order catalog rows. Allowed: name, name_normalized, last_updated. "
-                    "Prefix with '-' for descending. Default is name."
-                ),
-            ),
+            PythonRepositoryPackageFilter,
             OpenApiParameter(
                 name="limit",
                 type=OpenApiTypes.INT,
@@ -375,29 +397,10 @@ class PythonRepositoryViewSet(
         repository = self.get_object()
         repo_version = self._requested_repository_version(repository)
         content_qs = python_packages_in_version(repo_version)
-        search_errors = {}
-        try:
-            name_normalized_prefix = normalize_name_normalized_search(
-                request.query_params.get("name_normalized__istartswith")
-            )
-        except ValueError as exc:
-            search_errors["name_normalized__istartswith"] = str(exc)
-            name_normalized_prefix = None
-        try:
-            name_normalized_contains = normalize_name_normalized_search(
-                request.query_params.get("name_normalized__icontains")
-            )
-        except ValueError as exc:
-            search_errors["name_normalized__icontains"] = str(exc)
-            name_normalized_contains = None
-        if search_errors:
-            raise ValidationError(search_errors)
-        content_qs = apply_package_prefix_filters(
-            content_qs,
-            name_normalized_prefix=name_normalized_prefix,
-            name_prefix=request.query_params.get("name__istartswith"),
-            name_normalized_contains=name_normalized_contains,
-        )
+        filterset = PythonRepositoryPackageFilter(data=request.query_params, queryset=content_qs)
+        if not filterset.is_valid():
+            raise ValidationError(filterset.errors)
+        content_qs = filterset.qs
         try:
             ordering = normalize_package_index_ordering(request.query_params.getlist("ordering"))
         except ValueError as exc:
@@ -726,13 +729,19 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
     )
 
     def filter_collapse_builds(self, qs, name, value):
-        """Documented on the FilterSet; applied in the viewset after ordering.
-
-        DISTINCT ON requires ORDER BY to start with the distinct columns. The
-        viewset applies collapse after other filter backends so that ordering
-        cannot break it.
-        """
+        """No-op during the per-filter loop; applied in ``filter_queryset``."""
         return qs
+
+    def filter_queryset(self, queryset):
+        """Apply ``collapse_builds`` after other filters, including ordering.
+
+        DISTINCT ON requires ORDER BY to start with the distinct columns, so
+        collapse must run after ``StableOrderingFilter``.
+        """
+        queryset = super().filter_queryset(queryset)
+        if self.form.cleaned_data.get("collapse_builds"):
+            return collapse_python_builds(queryset)
+        return queryset
 
     class Meta:
         model = python_models.PythonPackageContent
@@ -765,18 +774,6 @@ class PythonPackageSingleArtifactContentUploadViewSet(
     serializer_class = python_serializers.PythonPackageContentSerializer
     minimal_serializer_class = python_serializers.MinimalPythonPackageContentSerializer
     filterset_class = PythonPackageContentFilter
-
-    def filter_queryset(self, queryset):
-        """Apply ``collapse_builds`` after other backends so DISTINCT ON stays valid."""
-        queryset = super().filter_queryset(queryset)
-        if getattr(self, "action", "") != "list":
-            return queryset
-        raw = self.request.query_params.get("collapse_builds")
-        if raw is None or raw == "":
-            return queryset
-        if str(raw).lower() in ("true", "t", "yes", "y", "1"):
-            return collapse_python_builds(queryset)
-        return queryset
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [

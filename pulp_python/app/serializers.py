@@ -695,15 +695,13 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
     versions = serializers.ListField(
         child=serializers.CharField(),
         help_text=_(
-            "Distinct logical version keys after rebuild-suffix strip, newest first "
-            "(PEP 440). The set of values matches latest_releases[].version."
+            "Distinct logical version keys after rebuild-suffix strip, newest first (PEP 440)."
         ),
     )
     latest_releases = PythonPackageReleaseSerializer(
         many=True,
         help_text=_(
-            "Newest rebuild per logical version (latest pulp_created), newest version first. "
-            "set(versions) === set(latest_releases[].version)."
+            "Newest rebuild per logical version (latest pulp_created), newest version first."
         ),
     )
 

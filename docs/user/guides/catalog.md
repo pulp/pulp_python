@@ -1,10 +1,12 @@
 # Browse the package catalog
 
-Pulp CLI commands for these endpoints are generated from the OpenAPI spec in a separate package; until that is updated, use HTTP.
+The content API lists **one row per file** (wheel, sdist, and so on). Use the repository
+package catalog when you want **one row per package name**, for example in a UI that
+shows Django once with its versions underneath.
 
-The content list (`/pulp/api/v3/content/python/packages/`) returns **one row per distribution file** (wheel, sdist, …). For catalog UIs and automation that need **one row per package name**, plus repository metrics, use the repository package index.
-
-These endpoints default to the **latest complete repository version**. `{pulp_id}` is the repository UUID. Pass `repository_version` (HREF or PRN) to read a specific version of that repository.
+Both catalog endpoints default to the repository's latest complete version. Pass
+`repository_version` (HREF or PRN) to read an older snapshot. `{pulp_id}` is the
+repository UUID.
 
 ## List packages
 
@@ -12,9 +14,7 @@ These endpoints default to the **latest complete repository version**. `{pulp_id
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/?limit=10"
 ```
 
-Pagination `count` is the number of **distinct packages** (`name_normalized`), not files.
-
-Each row includes both a simple version list and per-version metadata:
+`count` is the number of distinct packages, not files. Each row looks like:
 
 ```json
 {
@@ -32,26 +32,23 @@ Each row includes both a simple version list and per-version metadata:
 }
 ```
 
-`set(versions)` is always the same as `set(latest_releases[].version)`. Both lists are newest-first using PEP 440 version order (`1.10` before `1.9` before `1.2`). There is one `latest_releases` entry per **logical version** (after stripping a trailing rebuild suffix `\.[a-zA-Z]+-[^.]+$`), not per wheel or sdist. A rebuild is the last dot-segment that is letters, a dash, then the rest of that segment (for example `5.3.17.rhlw-00001-n0001` → `5.3.17`). Public and predisclosure files of the same `name_normalized` and logical version collapse to that one row.
-
-`version` is that base. `release` is the stripped suffix without the leading dot (`rhlw-00001` or `rhlw-00001-n0001`) of the newest unit (`pulp_created`) in that group, otherwise empty.
-
-`created_at` is when that logical version entered the repository: `RepositoryContent.pulp_created` of the selected newest rebuild, falling back to the content unit's `pulp_created`.
-
-`last_updated` is when the **package** was last updated in this repository version: the latest `RepositoryContent.pulp_created` among **all** Python package units for that `name_normalized` (any rebuild), falling back to the content unit's `pulp_created`. A rebuild of an older version uploaded yesterday updates `last_updated` even if a newer version number already exists.
+- `versions` is the list of version numbers, newest first (PEP 440, so `1.10` before `1.9`).
+- `latest_releases` is the same versions with extra metadata. `release` is filled when
+  that version has a rebuild (for example `5.3.17.rhlw-00001` is shown as version
+  `5.3.17` with `release` `rhlw-00001`); otherwise it is empty.
+- `created_at` is when that version was added to the repository.
+- `last_updated` is when **any** file for the package last changed in this repository
+  version, including a rebuild of an older version.
 
 ### Ordering
 
-Default order is `name`. Pass `ordering` to change it:
+Default order is `name`. Allowed fields: `name`, `name_normalized`, `last_updated`.
+Prefix with `-` for descending.
 
 ```bash
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/" \
-  ordering==name
-http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/" \
   ordering==-last_updated
 ```
-
-Allowed fields: `name`, `name_normalized`, `last_updated`. Prefix with `-` for descending. `last_updated` uses `name` then `name_normalized` as a stable pagination tiebreaker. Unknown fields return 400.
 
 ### Name search
 
@@ -62,7 +59,9 @@ http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/package
   name_normalized__icontains==http
 ```
 
-`name_normalized__istartswith` and `name_normalized__icontains` are case-insensitive: the value is lowercased and matched with `LIKE` against already-canonical `name_normalized`. Each requires **at least 3 characters** (shorter values return 400). `name__istartswith` is still `ILIKE` on the original package name and has no minimum length. Name search belongs on this index, not on the flat content list.
+`name_normalized__istartswith` and `name_normalized__icontains` match the PEP 503
+normalized name and require at least 3 characters. `name__istartswith` matches the
+original project name and has no minimum length.
 
 ## Repository metrics
 
@@ -78,21 +77,19 @@ http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/metrics
 }
 ```
 
-Counts use Python package content units in that repository version (not filtered by `packagetype`):
+| Field | Meaning |
+|-------|---------|
+| `package_count` | Distinct packages |
+| `version_count` | Distinct packages × versions (rebuilds of the same version count as one) |
+| `build_count` | Distinct packages × stored version strings (each rebuild counted) |
 
-| Field | Identity |
-|-------|----------|
-| `package_count` | distinct `name_normalized` |
-| `version_count` | distinct `(name_normalized, base_version)` after rebuild-suffix strip |
-| `build_count` | distinct `(name_normalized, full version)` |
+Until a repository contains rebuilds, `version_count` equals `build_count`.
 
-Until rebuild suffixes exist, `version_count` equals `build_count`.
+## List files for a package
 
-## List versions of a package
-
-Use the existing content API. Pass `packagetype=sdist` for one representative file per PEP version (retry with `packagetype=bdist_wheel` if a release is wheel-only).
-
-`collapse_builds=true` keeps one unit per logical version (`name_normalized` + `base_version`), the one with the latest `pulp_created`. Do not nest rebuilds on this list. Clients can drain Pulp `next` if the page is full.
+Use the content API. `packagetype=sdist` returns one sdist per version (retry with
+`packagetype=bdist_wheel` if a release is wheel-only). `collapse_builds=true` keeps
+the newest rebuild per version so you do not have to page through every rebuild.
 
 ```bash
 http GET "${BASE_ADDR}/pulp/api/v3/content/python/packages/" \
@@ -102,11 +99,11 @@ http GET "${BASE_ADDR}/pulp/api/v3/content/python/packages/" \
   repository_version=="${LATEST_VERSION_HREF}"
 ```
 
-Every content row includes `base_version` (stripped version; equal to `version` when there is no suffix).
+Each content row includes `base_version`: the version without a rebuild suffix
+(equal to `version` when there is none).
 
-## Get one version
-
-Omit `collapse_builds`. Filter with `name`, `version`, and `packagetype=sdist`:
+To fetch a single version, omit `collapse_builds` and filter by `name`, `version`,
+and `packagetype`:
 
 ```bash
 http GET "${BASE_ADDR}/pulp/api/v3/content/python/packages/" \
