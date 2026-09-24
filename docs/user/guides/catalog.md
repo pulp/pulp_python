@@ -34,8 +34,8 @@ http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/package
 
 - `versions` is the list of version numbers, newest first (PEP 440, so `1.10` before `1.9`).
 - `latest_releases` is the same versions with extra metadata. `release` is filled when
-  that version has a rebuild (for example `5.3.17.rhlw-00001` is shown as version
-  `5.3.17` with `release` `rhlw-00001`); otherwise it is empty.
+  that version has a rebuild (for example `5.3.17+test.1` is shown as version
+  `5.3.17` with `release` `test.1`); otherwise it is empty.
 - `created_at` is when that version was added to the repository.
 - `last_updated` is when **any** file for the package last changed in this repository
   version, including a rebuild of an older version.
@@ -99,8 +99,8 @@ http GET "${BASE_ADDR}/pulp/api/v3/content/python/packages/" \
   repository_version=="${LATEST_VERSION_HREF}"
 ```
 
-Each content row includes `base_version`: the version without a rebuild suffix
-(equal to `version` when there is none).
+Each content row includes `base_version`: the version without a PEP 440 local
+version (equal to `version` when there is none).
 
 To fetch a single version, omit `collapse_builds` and filter by `name`, `version`,
 and `packagetype`:

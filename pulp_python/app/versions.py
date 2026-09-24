@@ -8,8 +8,8 @@ import re
 
 from packaging.version import InvalidVersion, Version
 
-# Last dot-segment is a rebuild if it is letters, dash, rest of that segment.
-BUILD_SUFFIX_PATTERN = r"\.[a-zA-Z]+-[^.]+$"
+# PEP 440 local version: ``+`` through the end of the string (POSIX, shared with SQL).
+BUILD_SUFFIX_PATTERN = r"\+.*$"
 BUILD_SUFFIX_RE = re.compile(BUILD_SUFFIX_PATTERN)
 
 PACKAGE_INDEX_ORDERING_FIELDS = frozenset({"name", "name_normalized", "last_updated"})
@@ -18,9 +18,9 @@ NAME_NORMALIZED_SEARCH_MIN_LENGTH = 3
 
 
 def strip_build_suffix(version):
-    """Return ``version`` with a trailing rebuild suffix removed, else unchanged.
+    """Return ``version`` with a PEP 440 local version removed, else unchanged.
 
-    A rebuild is the last dot-segment matching ``BUILD_SUFFIX_PATTERN``.
+    A rebuild is the local version (``+`` through the end of the string).
     """
     if not version:
         return version
@@ -28,15 +28,14 @@ def strip_build_suffix(version):
 
 
 def rebuild_release(version):
-    """Return the rebuild qualifier without the leading dot, or an empty string."""
+    """Return the PEP 440 local identifier without the leading ``+``, or empty."""
     if not version:
         return ""
     base = strip_build_suffix(version)
     if version == base:
         return ""
-    if version.startswith(base + "."):
-        return version[len(base) + 1 :]
-    return ""
+    # strip_build_suffix removes ``+local``; skip the ``+``.
+    return version[len(base) + 1 :]
 
 
 def version_sort_key(version):

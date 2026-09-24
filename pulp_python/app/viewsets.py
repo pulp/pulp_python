@@ -720,9 +720,9 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
     collapse_builds = drf_filters.BooleanFilter(
         method="filter_collapse_builds",
         help_text=(
-            "When true, collapse rebuilds of the same logical version: strip a trailing "
-            f"suffix matching {BUILD_SUFFIX_PATTERN} from version, then keep one content unit "
-            "per (name_normalized, base_version) with the latest pulp_created. "
+            "When true, collapse rebuilds of the same logical version: strip a PEP 440 "
+            f"local version matching {BUILD_SUFFIX_PATTERN} from version, then keep one "
+            "content unit per (name_normalized, base_version) with the latest pulp_created. "
             "Pass packagetype=sdist so wheel and sdist files are not collapsed together. "
             "Default false."
         ),

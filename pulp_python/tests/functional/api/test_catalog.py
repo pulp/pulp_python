@@ -361,7 +361,7 @@ def test_package_list_ordering_last_updated(
         tmp_path,
         repo,
         later_name,
-        "1.0.0.rhlw-00003",
+        "1.0.0+test.3",
     )
     after_rebuild = _api_get(
         bindings_cfg, f"{repo.pulp_href}packages/", ordering="-last_updated", limit=100
@@ -372,7 +372,7 @@ def test_package_list_ordering_last_updated(
     assert set(zzz["versions"]) == {"2.0.0", "1.0.0"}
     assert zzz["versions"][0] == "2.0.0"
     rebuild_rel = next(rel for rel in zzz["latest_releases"] if rel["version"] == "1.0.0")
-    assert rebuild_rel["release"] == "rhlw-00003"
+    assert rebuild_rel["release"] == "test.3"
     assert zzz["last_updated"] == rebuild_rel["created_at"]
     public_rel = next(rel for rel in zzz["latest_releases"] if rel["version"] == "2.0.0")
     assert public_rel["release"] == ""
@@ -392,7 +392,7 @@ def test_public_and_predisclosure_collapse_to_logical_version(
         tmp_path,
         repo,
         name,
-        "5.3.17.rhlw-00001-n0001",
+        "5.3.17+test.1.n1",
     )
 
     pkgs = _api_get(bindings_cfg, f"{repo.pulp_href}packages/")
@@ -402,7 +402,7 @@ def test_public_and_predisclosure_collapse_to_logical_version(
     assert pkg["versions"] == ["5.3.17"]
     assert len(pkg["latest_releases"]) == 1
     assert pkg["latest_releases"][0]["version"] == "5.3.17"
-    assert pkg["latest_releases"][0]["release"] == "rhlw-00001-n0001"
+    assert pkg["latest_releases"][0]["release"] == "test.1.n1"
 
     metrics = _api_get(bindings_cfg, f"{repo.pulp_href}metrics/")
     assert metrics == {"package_count": 1, "version_count": 1, "build_count": 2}
@@ -432,7 +432,7 @@ def test_public_and_predisclosure_collapse_to_logical_version(
     assert collapsed["count"] == 1
     kept = collapsed["results"][0]
     assert kept["base_version"] == "5.3.17"
-    assert kept["version"] == "5.3.17.rhlw-00001-n0001"
+    assert kept["version"] == "5.3.17+test.1.n1"
 
 
 @pytest.mark.parallel

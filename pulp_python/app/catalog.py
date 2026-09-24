@@ -15,7 +15,7 @@ from pulp_python.app.versions import (
 
 
 def base_version_annotation(field_name="version"):
-    """SQL expression that strips a trailing rebuild suffix from ``version``.
+    """SQL expression that strips a PEP 440 local version from ``version``.
 
     Uses ``versions.BUILD_SUFFIX_PATTERN`` (POSIX) so Python ``strip_build_suffix``
     and this ``REGEXP_REPLACE`` stay aligned. Implemented with ``REGEXP_REPLACE``
@@ -34,7 +34,7 @@ def base_version_annotation(field_name="version"):
 def collapse_python_builds(queryset):
     """Keep one content unit per ``(name_normalized, base_version)``.
 
-    ``base_version`` is ``version`` with a trailing rebuild suffix stripped.
+    ``base_version`` is ``version`` with a PEP 440 local version stripped.
     The unit with the latest ``pulp_created`` is kept. Callers that want one
     row per logical version (not per wheel/sdist) should also filter
     ``packagetype``.

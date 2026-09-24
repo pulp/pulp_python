@@ -234,8 +234,8 @@ class PythonPackageContentSerializer(core_serializers.SingleArtifactContentUploa
     )
     base_version = serializers.SerializerMethodField(
         help_text=_(
-            "The package version with a trailing rebuild suffix stripped "
-            "(matching %s). Equal to version when no suffix is present."
+            "The package version with a PEP 440 local version stripped "
+            "(matching %s). Equal to version when no local version is present."
         )
         % BUILD_SUFFIX_PATTERN,
     )
@@ -659,13 +659,13 @@ class PythonPackageReleaseSerializer(serializers.Serializer):
     """One logical version on the repository package index."""
 
     version = serializers.CharField(
-        help_text=_("Logical version key (rebuild suffix stripped)."),
+        help_text=_("Logical version key (PEP 440 local version stripped)."),
     )
     release = serializers.CharField(
         help_text=_(
-            "Rebuild/release qualifier within the version line "
-            "(e.g. rhlw-00001 or rhlw-00001-n0001). "
-            "Empty when the selected unit has no rebuild suffix."
+            "PEP 440 local identifier within the version line "
+            "(e.g. test.1 or test.1.n1). "
+            "Empty when the selected unit has no local version."
         ),
         allow_blank=True,
     )
