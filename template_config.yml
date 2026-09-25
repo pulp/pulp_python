@@ -92,6 +92,7 @@ supported_release_branches:
   - "3.13"
   - "3.19"
   - "3.27"
+  - "3.36"
 sync_ci: true
 test_azure: true
 test_cli: true
