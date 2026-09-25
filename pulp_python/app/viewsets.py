@@ -3,8 +3,15 @@ from pathlib import Path
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
 from django_filters import CharFilter
+from django_filters.rest_framework import FilterSet
 from django_filters.rest_framework import filters as drf_filters
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from rest_framework import status
@@ -16,7 +23,7 @@ from rest_framework.mixins import (
     RetrieveModelMixin,
 )
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
+from rest_framework.serializers import IntegerField, URLField, ValidationError
 
 from pulpcore.plugin import viewsets as core_viewsets
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
@@ -32,6 +39,87 @@ from pulpcore.plugin.util import extract_pk
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
+from pulp_python.app.catalog import (
+    assemble_package_index,
+    collapse_python_builds,
+    distinct_package_names_qs,
+    python_packages_in_version,
+    repository_metrics,
+)
+from pulp_python.app.versions import (
+    BUILD_SUFFIX_PATTERN,
+    normalize_name_normalized_search,
+    normalize_package_index_ordering,
+)
+
+
+class CatalogOrderingFilter(drf_filters.OrderingFilter):
+    """Validate catalog ``ordering`` without applying it to the content queryset."""
+
+    def filter(self, qs, value):
+        return qs
+
+
+class PythonRepositoryPackageFilter(FilterSet):
+    """Query parameters for ``GET .../repositories/python/python/{pk}/packages/``."""
+
+    repository_version = CharFilter(
+        method="filter_noop",
+        help_text=(
+            "HREF or PRN of a version of this repository. Defaults to the latest complete version."
+        ),
+    )
+    name_normalized__istartswith = CharFilter(
+        method="filter_name_normalized_prefix",
+        help_text=(
+            "Case-insensitive prefix on the PEP 503 normalized package name. "
+            "At least 3 characters required."
+        ),
+    )
+    name_normalized__icontains = CharFilter(
+        method="filter_name_normalized_contains",
+        help_text=(
+            "Case-insensitive substring on the PEP 503 normalized package name. "
+            "At least 3 characters required."
+        ),
+    )
+    name__istartswith = CharFilter(
+        field_name="name",
+        lookup_expr="istartswith",
+        help_text="Case-insensitive prefix on the original package name.",
+    )
+    ordering = CatalogOrderingFilter(
+        fields=("name", "name_normalized", "last_updated"),
+        help_text=(
+            "Order catalog rows. Allowed: name, name_normalized, last_updated. "
+            "Prefix with '-' for descending. Default is name."
+        ),
+    )
+
+    def filter_noop(self, qs, name, value):
+        return qs
+
+    def filter_name_normalized_prefix(self, qs, name, value):
+        try:
+            value = normalize_name_normalized_search(value)
+        except ValueError as exc:
+            raise ValidationError({"name_normalized__istartswith": str(exc)}) from exc
+        if not value:
+            return qs
+        return qs.filter(name_normalized__startswith=value)
+
+    def filter_name_normalized_contains(self, qs, name, value):
+        try:
+            value = normalize_name_normalized_search(value)
+        except ValueError as exc:
+            raise ValidationError({"name_normalized__icontains": str(exc)}) from exc
+        if not value:
+            return qs
+        return qs.filter(name_normalized__contains=value)
+
+    class Meta:
+        model = python_models.PythonPackageContent
+        fields = []
 
 
 class PythonRepositoryViewSet(
@@ -64,7 +152,7 @@ class PythonRepositoryViewSet(
                 ],
             },
             {
-                "action": ["retrieve"],
+                "action": ["retrieve", "packages", "metrics"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
@@ -137,6 +225,22 @@ class PythonRepositoryViewSet(
         ],
         "python.pythonrepository_viewer": ["python.view_pythonrepository"],
     }
+
+    def filter_queryset(self, queryset):
+        """Do not apply the repository FilterSet to package-index query params."""
+        if getattr(self, "action", None) in ("packages", "metrics"):
+            return queryset
+        return super().filter_queryset(queryset)
+
+    def _requested_repository_version(self, repository):
+        """Resolve optional ``repository_version`` href/PRN, else latest complete version."""
+        href = self.request.query_params.get("repository_version")
+        if not href:
+            return repository.latest_version()
+        repo_version = self.get_resource(href, RepositoryVersion)
+        if repo_version.repository_id != repository.pk:
+            raise ValidationError({"repository_version": "Must be a version of this repository."})
+        return repo_version
 
     @extend_schema(
         description="Trigger an asynchronous task to create a new repository version.",
@@ -246,6 +350,113 @@ class PythonRepositoryViewSet(
             },
         )
         return core_viewsets.OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        summary="List packages",
+        description=(
+            "Return one row per distinct package name in a repository version "
+            "(latest complete version if repository_version is omitted). "
+            "Pagination count is the number of distinct packages, not files."
+        ),
+        parameters=[
+            PythonRepositoryPackageFilter,
+            OpenApiParameter(
+                name="limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Number of results to return per page.",
+            ),
+            OpenApiParameter(
+                name="offset",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="The initial index from which to return the results.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="PaginatedPythonRepositoryPackageList",
+                fields={
+                    "count": IntegerField(),
+                    "next": URLField(allow_null=True),
+                    "previous": URLField(allow_null=True),
+                    "results": python_serializers.PythonRepositoryPackageSerializer(many=True),
+                },
+            )
+        },
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=python_serializers.PythonRepositoryPackageSerializer,
+    )
+    def packages(self, request, pk):
+        """List distinct packages in a repository version."""
+        repository = self.get_object()
+        repo_version = self._requested_repository_version(repository)
+        content_qs = python_packages_in_version(repo_version)
+        filterset = PythonRepositoryPackageFilter(data=request.query_params, queryset=content_qs)
+        if not filterset.is_valid():
+            raise ValidationError(filterset.errors)
+        content_qs = filterset.qs
+        try:
+            ordering = normalize_package_index_ordering(request.query_params.getlist("ordering"))
+        except ValueError as exc:
+            raise ValidationError({"ordering": str(exc)}) from exc
+        names_qs = distinct_package_names_qs(
+            content_qs, repository, repo_version, ordering=ordering
+        )
+        page = self.paginate_queryset(names_qs)
+        rows = assemble_package_index(
+            content_qs,
+            page if page is not None else list(names_qs),
+            repository,
+            repo_version,
+        )
+        serializer = self.get_serializer(rows, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary="Repository metrics",
+        description=(
+            "Distinct counts for Python package content in a repository version "
+            "(latest complete version if repository_version is omitted). "
+            "package_count is distinct name_normalized. version_count is distinct "
+            "(name_normalized, base_version) after rebuild-suffix strip. build_count is "
+            "distinct (name_normalized, full version). Counts are not filtered by "
+            "packagetype. Until rebuild suffixes exist, version_count equals build_count."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="repository_version",
+                type=OpenApiTypes.URI,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "HREF or PRN of a version of this repository. "
+                    "Defaults to the latest complete version."
+                ),
+            ),
+        ],
+        responses={200: python_serializers.PythonRepositoryMetricsSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=python_serializers.PythonRepositoryMetricsSerializer,
+    )
+    def metrics(self, request, pk):
+        """Return package / version / build counts for a repository version."""
+        repository = self.get_object()
+        repo_version = self._requested_repository_version(repository)
+        serializer = self.get_serializer(
+            repository_metrics(python_packages_in_version(repo_version))
+        )
+        return Response(serializer.data)
 
 
 class PythonBlocklistEntryViewSet(
@@ -506,6 +717,31 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
         field_name="version",
         help_text="Filter by PEP 440 version specifier (e.g., >=2.4,<3.0 or ~=1.26)",
     )
+    collapse_builds = drf_filters.BooleanFilter(
+        method="filter_collapse_builds",
+        help_text=(
+            "When true, collapse rebuilds of the same logical version: strip a PEP 440 "
+            f"local version matching {BUILD_SUFFIX_PATTERN} from version, then keep one "
+            "content unit per (name_normalized, base_version) with the latest pulp_created. "
+            "Pass packagetype=sdist so wheel and sdist files are not collapsed together. "
+            "Default false."
+        ),
+    )
+
+    def filter_collapse_builds(self, qs, name, value):
+        """No-op during the per-filter loop; applied in ``filter_queryset``."""
+        return qs
+
+    def filter_queryset(self, queryset):
+        """Apply ``collapse_builds`` after other filters, including ordering.
+
+        DISTINCT ON requires ORDER BY to start with the distinct columns, so
+        collapse must run after ``StableOrderingFilter``.
+        """
+        queryset = super().filter_queryset(queryset)
+        if self.form.cleaned_data.get("collapse_builds"):
+            return collapse_python_builds(queryset)
+        return queryset
 
     class Meta:
         model = python_models.PythonPackageContent
