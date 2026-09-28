@@ -1,0 +1,2 @@
+Fixed CLI commands in the vulnerability report documentation to use `pulp repository version scan`.
+The command previously shown there (`pulp vulnerability-report create`) doesn't exit.
