@@ -42,8 +42,8 @@ http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/package
 
 ### Ordering
 
-Default order is `name`. Allowed fields: `name`, `name_normalized`, `last_updated`.
-Prefix with `-` for descending.
+Default order is `name_normalized`. Allowed fields: `name`, `name_normalized`,
+`last_updated`. Prefix with `-` for descending.
 
 ```bash
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/" \

@@ -45,6 +45,7 @@ from pulp_python.app.catalog import (
     distinct_package_names_qs,
     python_packages_in_version,
     repository_metrics,
+    resolve_repository_version,
 )
 from pulp_python.app.versions import (
     BUILD_SUFFIX_PATTERN,
@@ -92,7 +93,7 @@ class PythonRepositoryPackageFilter(FilterSet):
         fields=("name", "name_normalized", "last_updated"),
         help_text=(
             "Order catalog rows. Allowed: name, name_normalized, last_updated. "
-            "Prefix with '-' for descending. Default is name."
+            "Prefix with '-' for descending. Default is name_normalized."
         ),
     )
 
@@ -232,15 +233,50 @@ class PythonRepositoryViewSet(
             return queryset
         return super().filter_queryset(queryset)
 
+    def _repository_version_from_href(self, href):
+        """Load a repository version without selecting ``content_ids``."""
+        try:
+            return resolve_repository_version(href)
+        except ValueError as exc:
+            raise ValidationError({"repository_version": str(exc)}) from exc
+
     def _requested_repository_version(self, repository):
         """Resolve optional ``repository_version`` href/PRN, else latest complete version."""
         href = self.request.query_params.get("repository_version")
         if not href:
-            return repository.latest_version()
-        repo_version = self.get_resource(href, RepositoryVersion)
+            try:
+                # content_ids is a UUID per content unit. The catalog never reads it.
+                return repository.versions.complete().defer("content_ids").latest()
+            except RepositoryVersion.DoesNotExist:
+                return None
+        repo_version = self._repository_version_from_href(href)
+        if repo_version is None:
+            return None
         if repo_version.repository_id != repository.pk:
             raise ValidationError({"repository_version": "Must be a version of this repository."})
         return repo_version
+
+    def _paginate_package_index(self, names_qs, content_qs):
+        """Paginate distinct packages.
+
+        The count is ``COUNT(DISTINCT name_normalized)`` on the filtered
+        packages. Counting the page queryset would rerun a ``last_updated``
+        aggregate when that field is the sort key.
+        """
+        paginator = self.paginator
+        if paginator is None:
+            return None
+        count_qs = content_qs.order_by().values("name_normalized").distinct()
+        original_get_count = paginator.get_count
+
+        def get_count(_queryset):
+            return count_qs.count()
+
+        paginator.get_count = get_count
+        try:
+            return paginator.paginate_queryset(names_qs, self.request, view=self)
+        finally:
+            paginator.get_count = original_get_count
 
     @extend_schema(
         description="Trigger an asynchronous task to create a new repository version.",
@@ -392,7 +428,7 @@ class PythonRepositoryViewSet(
         methods=["get"],
         serializer_class=python_serializers.PythonRepositoryPackageSerializer,
     )
-    def packages(self, request, pk):
+    def packages(self, request, pk, **kwargs):
         """List distinct packages in a repository version."""
         repository = self.get_object()
         repo_version = self._requested_repository_version(repository)
@@ -405,14 +441,11 @@ class PythonRepositoryViewSet(
             ordering = normalize_package_index_ordering(request.query_params.getlist("ordering"))
         except ValueError as exc:
             raise ValidationError({"ordering": str(exc)}) from exc
-        names_qs = distinct_package_names_qs(
-            content_qs, repository, repo_version, ordering=ordering
-        )
-        page = self.paginate_queryset(names_qs)
+        names_qs = distinct_package_names_qs(content_qs, repo_version, ordering=ordering)
+        page = self._paginate_package_index(names_qs, content_qs)
         rows = assemble_package_index(
             content_qs,
             page if page is not None else list(names_qs),
-            repository,
             repo_version,
         )
         serializer = self.get_serializer(rows, many=True)
@@ -449,7 +482,7 @@ class PythonRepositoryViewSet(
         methods=["get"],
         serializer_class=python_serializers.PythonRepositoryMetricsSerializer,
     )
-    def metrics(self, request, pk):
+    def metrics(self, request, pk, **kwargs):
         """Return package / version / build counts for a repository version."""
         repository = self.get_object()
         repo_version = self._requested_repository_version(repository)
@@ -717,6 +750,13 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
         field_name="version",
         help_text="Filter by PEP 440 version specifier (e.g., >=2.4,<3.0 or ~=1.26)",
     )
+    repository_version = CharFilter(
+        method="filter_repository_version",
+        help_text=(
+            "Repository Version referenced by HREF/PRN or Repository HREF/PRN "
+            "(choose latest version)"
+        ),
+    )
     collapse_builds = drf_filters.BooleanFilter(
         method="filter_collapse_builds",
         help_text=(
@@ -727,6 +767,18 @@ class PythonPackageContentFilter(core_viewsets.ContentFilter):
             "Default false."
         ),
     )
+
+    def filter_repository_version(self, qs, name, value):
+        """Keep membership in the database; do not inline ``content_ids``."""
+        if not value:
+            return qs
+        try:
+            repo_version = resolve_repository_version(value)
+        except ValueError as exc:
+            raise ValidationError({"repository_version": str(exc)}) from exc
+        if repo_version is None:
+            return qs.none()
+        return qs.filter(pk__in=python_packages_in_version(repo_version).values("pk"))
 
     def filter_collapse_builds(self, qs, name, value):
         """No-op during the per-filter loop; applied in ``filter_queryset``."""

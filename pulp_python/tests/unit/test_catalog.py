@@ -96,14 +96,14 @@ def test_version_sort_key_empty_and_invalid():
 @pytest.mark.parametrize(
     "raw,expected",
     [
-        ([], ["name", "name_normalized"]),
-        ([""], ["name", "name_normalized"]),
+        ([], ["name_normalized"]),
+        ([""], ["name_normalized"]),
         (["name"], ["name", "name_normalized"]),
         (["name,name_normalized"], ["name", "name_normalized"]),
         (["-name"], ["-name", "name_normalized"]),
         (["name_normalized"], ["name_normalized"]),
-        (["last_updated"], ["last_updated", "name", "name_normalized"]),
-        (["-last_updated"], ["-last_updated", "name", "name_normalized"]),
+        (["last_updated"], ["last_updated", "name_normalized"]),
+        (["-last_updated"], ["-last_updated", "name_normalized"]),
         (["-last_updated", "name_normalized"], ["-last_updated", "name_normalized"]),
     ],
 )

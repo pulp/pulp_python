@@ -4,6 +4,7 @@ Generated client methods are unavailable until `oci-env generate-client` is reru
 """
 
 import io
+import re
 import tarfile
 import uuid
 from datetime import datetime
@@ -178,6 +179,13 @@ def test_packages_and_metrics_repository_version(bindings_cfg, sm_repo, python_r
     )
     assert default_pkgs["count"] == explicit_pkgs["count"] == 3
 
+    version = _api_get(bindings_cfg, latest_href)
+    prn_pkgs = _api_get(
+        bindings_cfg, f"{sm_repo.pulp_href}packages/", repository_version=version["prn"]
+    )
+    assert prn_pkgs["count"] == 3
+    assert version["prn"].startswith("prn:core.repositoryversion:")
+
     v0_pkgs = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/", repository_version=v0_href)
     assert v0_pkgs["count"] == 0
     assert v0_pkgs["results"] == []
@@ -186,7 +194,10 @@ def test_packages_and_metrics_repository_version(bindings_cfg, sm_repo, python_r
     explicit_metrics = _api_get(
         bindings_cfg, f"{sm_repo.pulp_href}metrics/", repository_version=latest_href
     )
-    assert default_metrics == explicit_metrics
+    prn_metrics = _api_get(
+        bindings_cfg, f"{sm_repo.pulp_href}metrics/", repository_version=version["prn"]
+    )
+    assert default_metrics == explicit_metrics == prn_metrics
     v0_metrics = _api_get(bindings_cfg, f"{sm_repo.pulp_href}metrics/", repository_version=v0_href)
     assert v0_metrics == {"package_count": 0, "version_count": 0, "build_count": 0}
 
@@ -233,6 +244,17 @@ def test_collapse_builds_and_base_version(bindings_cfg, sm_repo):
     }
     for item in expanded["results"] + collapsed["results"]:
         assert item["base_version"] == item["version"]
+
+    version = _api_get(bindings_cfg, repo_version)
+    collapsed_prn = _api_get(
+        bindings_cfg,
+        path,
+        name="Django",
+        repository_version=version["prn"],
+        collapse_builds="true",
+        limit=100,
+    )
+    assert collapsed_prn["count"] == collapsed["count"]
 
     sdist_false = _api_get(
         bindings_cfg,
@@ -292,13 +314,19 @@ def test_package_get_base_version_without_collapse(bindings_cfg, python_repo_wit
 
 @pytest.mark.parallel
 def test_package_list_ordering_name(bindings_cfg, sm_repo):
-    """Default order is name; -name reverses it."""
+    """Default order is name_normalized; name and -name remain available."""
     default = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/")["results"]
-    names = [pkg["name"] for pkg in default]
-    assert len(names) == 3
-    explicit = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/", ordering="name")["results"]
-    assert [pkg["name"] for pkg in explicit] == names
+    normalized = [pkg["name_normalized"] for pkg in default]
+    assert len(normalized) == 3
+    assert normalized == sorted(normalized)
+    explicit = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/", ordering="name_normalized")[
+        "results"
+    ]
+    assert [pkg["name_normalized"] for pkg in explicit] == normalized
 
+    by_name = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/", ordering="name")["results"]
+    names = [pkg["name"] for pkg in by_name]
+    assert set(names) == {"aiohttp", "celery", "Django"}
     reversed_rows = _api_get(bindings_cfg, f"{sm_repo.pulp_href}packages/", ordering="-name")[
         "results"
     ]
@@ -444,3 +472,110 @@ def test_package_list_ordering_invalid(bindings_cfg, sm_repo):
         auth=(bindings_cfg.username, bindings_cfg.password),
     )
     assert response.status_code == 400, response.text
+
+
+_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def _bound_id_count(sql):
+    """How many ids the statement binds, whether mogrified or left as ``%s``."""
+    lowered = sql.lower()
+    return max(len(_UUID_RE.findall(lowered)), lowered.count("%s"))
+
+
+@pytest.mark.parallel
+def test_package_list_sql_does_not_expand_content_ids(sm_repo, django_db_blocker):
+    """The package index must filter through RepositoryContent, not content_ids.
+
+    A paged list used to inline every content UUID in the version. Default
+    ordering must also skip the last_updated aggregate. Sorting by last_updated
+    still computes that aggregate, and still must not inline the UUID list.
+    """
+    from django.db import connection
+
+    from pulpcore.plugin.models import RepositoryContent
+    from pulpcore.plugin.util import extract_pk
+
+    from pulp_python.app.catalog import (
+        assemble_package_index,
+        collapse_python_builds,
+        distinct_package_names_qs,
+        python_packages_in_version,
+    )
+    from pulp_python.app.models import PythonRepository
+
+    repo_pk = extract_pk(sm_repo.pulp_href)
+    with django_db_blocker.unblock():
+        repository = PythonRepository.objects.get(pk=repo_pk)
+        repo_version = repository.versions.complete().defer("content_ids").latest()
+        content_count = RepositoryContent.objects.filter(
+            repository_id=repository.pk, version_removed__isnull=True
+        ).count()
+        content_qs = python_packages_in_version(repo_version)
+        default_qs = distinct_package_names_qs(
+            content_qs, repo_version, ordering=("name_normalized",)
+        )
+        updated_qs = distinct_package_names_qs(
+            content_qs,
+            repo_version,
+            ordering=("-last_updated", "name_normalized"),
+        )
+        name_qs = distinct_package_names_qs(
+            content_qs, repo_version, ordering=("name", "name_normalized")
+        )
+        count_qs = content_qs.order_by().values("name_normalized").distinct()
+
+        connection.force_debug_cursor = True
+        start = len(connection.queries)
+
+        def _since():
+            nonlocal start
+            sqls = [query["sql"] for query in connection.queries[start:]]
+            start = len(connection.queries)
+            return sqls
+
+        try:
+            count_qs.count()
+            count_sqls = _since()
+            page = list(default_qs[:20])
+            default_sqls = _since()
+            list(updated_qs[:20])
+            updated_sqls = _since()
+            list(name_qs[:20])
+            name_sqls = _since()
+            rows = assemble_package_index(content_qs, page, repo_version)
+            assembled = _since()
+            list(collapse_python_builds(content_qs).prefetch_related(None)[:20])
+            collapsed = _since()
+        finally:
+            connection.force_debug_cursor = False
+
+    assert rows
+    assert content_count >= 6
+    all_sql = count_sqls + default_sqls + updated_sqls + name_sqls + assembled + collapsed
+    for sql in all_sql:
+        lowered = sql.lower()
+        assert "core_repositorycontent" in lowered, sql
+        assert "content_id" in lowered, sql
+        assert _bound_id_count(sql) < content_count, sql
+    assert len(count_sqls) == 1, count_sqls
+    assert len(default_sqls) == 1, default_sqls
+    assert len(updated_sqls) == 1, updated_sqls
+    assert name_sqls
+    count_sql, default_sql, updated_sql = count_sqls[0], default_sqls[0], updated_sqls[0]
+    assert "max(" not in count_sql.lower()
+    assert "max(" not in default_sql.lower()
+    assert all("max(" not in sql.lower() for sql in name_sqls)
+    assert "distinct" in default_sql.lower()
+    assert "max(" in updated_sql.lower()
+    # MAX((SELECT ... content_ptr_id)) is rejected by Postgres: the correlated
+    # column is not in GROUP BY. repository_id must be on the membership join.
+    lowered_updated = updated_sql.lower()
+    assert "max((select" not in lowered_updated
+    assert 'in_repo."repository_id"' in lowered_updated
+    assert "limit" in default_sql.lower()
+    assert "limit" in updated_sql.lower()
+    assert any("limit" in sql.lower() for sql in name_sqls)
+    assert any("distinct on" in sql.lower() for sql in name_sqls)
+    assert any("distinct" in sql.lower() for sql in assembled)
+    assert collapsed

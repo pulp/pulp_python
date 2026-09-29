@@ -13,7 +13,7 @@ BUILD_SUFFIX_PATTERN = r"\+.*$"
 BUILD_SUFFIX_RE = re.compile(BUILD_SUFFIX_PATTERN)
 
 PACKAGE_INDEX_ORDERING_FIELDS = frozenset({"name", "name_normalized", "last_updated"})
-DEFAULT_PACKAGE_INDEX_ORDERING = ("name",)
+DEFAULT_PACKAGE_INDEX_ORDERING = ("name_normalized",)
 NAME_NORMALIZED_SEARCH_MIN_LENGTH = 3
 
 
@@ -54,10 +54,9 @@ def version_sort_key(version):
 def normalize_package_index_ordering(raw_values):
     """Turn ``ordering`` query values into ``order_by`` arguments.
 
-    Default is ``name``. Unknown fields raise ``ValueError``. ``last_updated``
-    keeps ``name`` then ``name_normalized`` as a stable pagination tiebreaker.
-    ``name_normalized`` is always appended when omitted so equal names paginate
-    stably (rows are unique on that column).
+    Default is ``name_normalized``. Unknown fields raise ``ValueError``.
+    ``name_normalized`` is always appended when omitted so rows paginate
+    stably (they are unique on that column).
     """
     fields = []
     for item in raw_values:
@@ -84,8 +83,6 @@ def normalize_package_index_ordering(raw_values):
         normalized.append(f"-{name}" if descending else name)
 
     have = {term.lstrip("-") for term in normalized}
-    if "name" not in have and "name_normalized" not in have:
-        normalized.append("name")
     if "name_normalized" not in have:
         normalized.append("name_normalized")
     return normalized
