@@ -1,15 +1,14 @@
 import asyncio
+import json
 import logging
 from functools import partial
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
-from aiohttp import ClientError, ClientResponseError
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
-from lxml.etree import LxmlError
 from packaging.requirements import Requirement
-from pypi_simple import IndexPage
+from pypi_simple import ACCEPT_ANY, IndexPage, UnsupportedContentTypeError
 
 from pulpcore.plugin.download import HttpDownloader
 from pulpcore.plugin.exceptions import SyncError
@@ -169,41 +168,34 @@ class PulpMirror(Mirror):
 
     async def determine_packages_to_sync(self):
         """
-        Calling this means that includes wasn't specified,
-        so try to get all of the packages from Mirror (hopefully PyPi)
+        Called when includes wasn't specified. List all projects from the remote's simple index.
         """
-        number_xmlrpc_attempts = 3
-        for attempt in range(number_xmlrpc_attempts):
-            logger.info("Attempt {} to get package list from {}".format(attempt, self.master.url))
-            try:
-                if not self.synced_serial:
-                    logger.info("Syncing all packages.")
-                    # First get the current serial, then start to sync.
-                    all_packages = await self.master.all_packages()
-                    self.packages_to_sync.update(all_packages)
-                    self.target_serial = max(
-                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-                    )
-                else:
-                    logger.info("Syncing based on changelog.")
-                    changed_packages = await self.master.changed_packages(self.synced_serial)
-                    self.packages_to_sync.update(changed_packages)
-                    self.target_serial = max(
-                        [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-                    )
-                break
-            except (ClientError, ClientResponseError, LxmlError):
-                # Retry if XMLRPC endpoint failed, server might not support it.
-                continue
+        logger.info("Syncing all packages from %s", self.master.url)
+        url = f"{self.remote.url.rstrip('/')}/simple/"
+        downloader = self.remote.get_downloader(url=url)
+        result = await downloader.run(
+            extra_data={"request_kwargs": {"headers": {"Accept": ACCEPT_ANY}}}
+        )
+
+        content_type = result.headers.get("Content-Type", "text/html").partition(";")[0].lower()
+        with open(result.path, "rb") as f:
+            content = f.read()
+
+        if content_type == "application/vnd.pypi.simple.v1+json":
+            index = IndexPage.from_json_data(json.loads(content))
+        elif content_type in {"application/vnd.pypi.simple.v1+html", "text/html"}:
+            index = IndexPage.from_html(content)
         else:
-            logger.info("Failed to get package list using XMLRPC, trying parse simple page.")
-            url = urljoin(self.remote.url, "simple/")
-            downloader = self.remote.get_downloader(url=url)
-            result = await downloader.run()
-            with open(result.path) as f:
-                index = IndexPage.from_html(f.read())
-                self.packages_to_sync.update({p: 0 for p in index.projects})
-                self.target_serial = result.headers.get(PYPI_LAST_SERIAL, 0)
+            raise UnsupportedContentTypeError(url, content_type)
+
+        self.packages_to_sync = {project: 0 for project in index.projects}
+        last_serial = index.last_serial
+        if last_serial is None:
+            last_serial = result.headers.get(PYPI_LAST_SERIAL)
+        if last_serial is None:
+            self.target_serial = self.synced_serial
+        else:
+            self.target_serial = max(self.synced_serial, int(last_serial))
 
         self._filter_packages()
         if self.target_serial:
