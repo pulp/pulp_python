@@ -130,6 +130,7 @@ class PythonBanderStage(Stage):
                 auth=downloader.auth,
                 proxy=downloader.proxy,
                 proxy_auth=downloader.proxy_auth,
+                raise_for_status=True,
             )
 
             deferred_download = self.remote.policy != Remote.IMMEDIATE
