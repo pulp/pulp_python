@@ -621,7 +621,7 @@ class ProvenanceView(PyPIMixin, ViewSet):
     def retrieve(self, request, path, package, version, filename):
         """Gets the provenance for a package."""
         repo_ver, content = self.get_rvc()
-        if content:
+        if content is not None:
             package_content = content.filter(
                 name_normalized=package, version=version, filename=filename
             ).first()
