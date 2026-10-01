@@ -6,6 +6,7 @@ from pathlib import PurePath
 from aiohttp.web import json_response
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django_lifecycle import (
@@ -246,6 +247,13 @@ class PythonPackageContent(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("sha256", "_pulp_domain")
+        indexes = [
+            GinIndex(
+                fields=["name_normalized"],
+                name="python_name_normalized_trgm",
+                opclasses=["gin_trgm_ops"],
+            ),
+        ]
         permissions = [
             ("upload_python_packages", "Can upload Python packages using synchronous API."),
         ]

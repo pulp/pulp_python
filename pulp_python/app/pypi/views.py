@@ -349,7 +349,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
         if self.should_redirect(repo_version=repo_version):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/"))
         names = (
-            content.order_by("name_normalized")
+            content.order_by("name_normalized", "name")
             .values_list("name", flat=True)
             .distinct("name_normalized")
             .iterator()
