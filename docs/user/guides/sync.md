@@ -154,6 +154,16 @@ pulp python remote create \
     --keep-latest-packages 5 
 ```
 
+Set `vulnerabilities` on the remote to scan the new repository version after each successful sync. The scan runs as a follow-up task and does not fail the sync if OSV is unreachable. Results are stored as vulnerability reports and exposed on the JSON API.
+
+```bash
+pulp python remote create \
+    --name 'scanned-remote' \
+    --url 'https://pypi.org/' \
+    --includes '["django==5.2.1"]' \
+    --vulnerabilities
+```
+
 Reference: [Python Remote Usage](site:pulp_python/restapi/#tag/Remotes:-Python)
 
 ### Creating a remote to sync all of PyPI

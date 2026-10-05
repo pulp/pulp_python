@@ -26,7 +26,7 @@ from pulpcore.plugin.serializers import (
     RepositoryAddRemoveContentSerializer,
     RepositorySyncURLSerializer,
 )
-from pulpcore.plugin.tasking import check_content, dispatch
+from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import extract_pk
 
 from pulp_python.app import models as python_models
@@ -356,14 +356,7 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
         Scan a repository version for vulnerabilities.
         """
         repository_version = self.get_object()
-        func = (
-            f"{tasks.get_repo_version_content.__module__}.{tasks.get_repo_version_content.__name__}"
-        )
-        task = dispatch(
-            check_content,
-            shared_resources=[repository_version.repository],
-            args=[func, [repository_version.pk]],
-        )
+        task = tasks.dispatch_scan(repository_version.repository, repository_version)
         return core_viewsets.OperationPostponedResponse(task, request)
 
 
