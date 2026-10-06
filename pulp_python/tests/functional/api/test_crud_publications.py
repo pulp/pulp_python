@@ -1,8 +1,10 @@
+import io
 import random
+import tarfile
+import zipfile
 from urllib.parse import urljoin
 
 import pytest
-from pypi_simple import PyPISimple
 
 from pulp_python.tests.functional.constants import (
     PYTHON_EGG_FILENAME,
@@ -113,27 +115,57 @@ def test_new_content_is_published(python_publication_workflow, python_distributi
     assert proper is True, msgs
 
 
+def _write_sdist_with_name(directory, name, version):
+    """Write a minimal sdist whose PKG-INFO Name differs from PEP 503 canonical form."""
+    pkg_dir = f"{name}-{version}"
+    filename = f"{pkg_dir}.tar.gz"
+    path = directory / filename
+    pkg_info = f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n".encode()
+    with tarfile.open(path, "w:gz") as tar:
+        info = tarfile.TarInfo(name=f"{pkg_dir}/PKG-INFO")
+        info.size = len(pkg_info)
+        tar.addfile(info, io.BytesIO(pkg_info))
+    return filename, str(path)
+
+
+def _write_wheel_with_name(directory, metadata_name, version, filename):
+    """Write a minimal wheel whose METADATA Name can differ from the sdist Name."""
+    dist_info = f"{filename.split('-')[0]}-{version}.dist-info"
+    metadata = f"Metadata-Version: 2.1\nName: {metadata_name}\nVersion: {version}\n"
+    wheel = (
+        "Wheel-Version: 1.0\nGenerator: pulp-python-test\nRoot-Is-Purelib: true\n"
+        "Tag: py2.py3-none-any\n"
+    )
+    path = directory / filename
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr(f"{dist_info}/METADATA", metadata)
+        zf.writestr(f"{dist_info}/WHEEL", wheel)
+    return filename, str(path)
+
+
 @pytest.mark.parallel
 def test_non_matching_canonicalized_name(
-    python_repo, python_content_factory, python_publication_factory, python_distribution_factory
+    python_repo,
+    python_content_factory,
+    python_publication_factory,
+    python_distribution_factory,
+    tmp_path,
 ):
     """Ensures a package with dists that have non-matching canonicalized names is published."""
-    packages = []
-    filenames = ["msg_parser-1.0.0-py2.py3-none-any.whl", "msg_parser-1.0.0.tar.gz"]
-    with PyPISimple() as client:
-        page = client.get_project_page("msg-parser")
-        for pkg in page.packages:
-            if pkg.filename in filenames:
-                c = python_content_factory(pkg.filename, url=pkg.url, repository=python_repo)
-                if c.filename.endswith(".tar.gz"):
-                    # The metadata name in the SDist is not the same as the Wheel's name
-                    assert c.name == "msg_parser"
-                else:
-                    assert c.name == "msg-parser"
-                packages.append(c)
+    version = "1.0.0"
+    wheel_filename = "msg_parser-1.0.0-py2.py3-none-any.whl"
+    sdist_filename, sdist_path = _write_sdist_with_name(tmp_path, "msg_parser", version)
+    _, wheel_path = _write_wheel_with_name(tmp_path, "msg-parser", version, wheel_filename)
+
+    wheel = python_content_factory(wheel_filename, file=wheel_path, repository=python_repo)
+    sdist = python_content_factory(sdist_filename, file=sdist_path, repository=python_repo)
+    # The metadata name in the SDist is not the same as the Wheel's name
+    assert wheel.name == "msg-parser"
+    assert sdist.name == "msg_parser"
+
     pub = python_publication_factory(repository=python_repo)
     distro = python_distribution_factory(publication=pub)
 
     url = urljoin(distro.base_url, "simple/")
-    proper, msgs = ensure_simple(url, {"msg-parser": filenames})
+    proper, msgs = ensure_simple(url, {"msg-parser": [wheel_filename, sdist_filename]})
     assert proper is True, msgs

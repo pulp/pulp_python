@@ -12,6 +12,7 @@ The REST API documentation for `pulp_python` is available [here](site:pulp_pytho
 
 - [Create local mirrors of PyPI](site:pulp_python/docs/user/guides/sync/) that you have full control over
 - [Upload your own Python packages](site:pulp_python/docs/user/guides/upload/)
+- [Browse the package catalog](site:pulp_python/docs/user/guides/catalog/) over the REST API
 - [Perform pip install](site:pulp_python/docs/user/guides/host/) from your Pulp Python repositories
 - Download packages on-demand to reduce disk usage
 - Every operation creates a restorable snapshot with Versioned Repositories
@@ -34,5 +35,4 @@ Users may also find pulpcore’s conceptual docs useful.
 This documentation falls into two main categories:
 
 1. `How-to Guides` shows the **major features** of the Python plugin, with links to reference docs.
-2. The [REST API Docs](site:pulp_python/restapi/) are automatically generated and provide more detailed information for each 
-minor feature, including all fields and options.
+2. The [REST API Docs](site:pulp_python/restapi/) are automatically generated and provide more detailed information for each minor feature, including all fields and options.
