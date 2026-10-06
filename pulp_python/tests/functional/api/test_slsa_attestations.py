@@ -67,15 +67,30 @@ def _b64(data: bytes) -> str:
     return base64.b64encode(data).decode()
 
 
-def _make_attestation(statement_bytes, signature_bytes):
+def _make_attestation(statement_bytes, signature_bytes, verification_material=None):
     """Return a single PEP-740 Attestation dict (SLSA flavour)."""
     return {
         "version": 1,
-        "verification_material": None,
+        "verification_material": verification_material,
         "envelope": {
             "statement": _b64(statement_bytes),
             "signature": _b64(signature_bytes),
         },
+    }
+
+
+def _read_public_key_pem():
+    """Read the test public key as a PEM string."""
+    with open(TEST_PUBLIC_KEY_PATH) as f:
+        return f.read()
+
+
+def _make_embedded_key_material(public_key_pem):
+    """Build a verification_material dict with an embedded public key."""
+    return {
+        "certificate": None,
+        "public_key": public_key_pem,
+        "transparency_entries": [{"log_index": 0}],
     }
 
 
@@ -245,3 +260,63 @@ def test_slsa_attestation_via_content_upload(
     assert publisher["builder_id"] == "https://konflux-ci.dev/calunga"
     assert publisher["build_type"] == "https://konflux-ci.dev/PythonWheelBuild@v1"
     assert publisher["kind"] == "konflux-ci.dev"
+
+
+def test_slsa_embedded_key_accepted(
+    python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
+):
+    """An attestation with an embedded public key matching the server key is accepted."""
+    content = python_content_factory()
+
+    stmt = _build_statement(content.filename, content.sha256)
+    sig = _sign(stmt, test_private_key)
+    vm = _make_embedded_key_material(_read_public_key_pem())
+    att = _make_attestation(stmt, sig, verification_material=vm)
+    prov = _make_provenance(att)
+
+    task = python_bindings.ContentProvenanceApi.create(
+        package=content.pulp_href,
+        file=_provenance_file(prov),
+        verify=True,
+    ).task
+    result = monitor_task(task)
+
+    prov_obj = python_bindings.ContentProvenanceApi.read(result.created_resources[-1])
+    assert prov_obj.package == content.pulp_href
+    stored_vm = prov_obj.provenance["attestation_bundles"][0]["attestations"][0][
+        "verification_material"
+    ]
+    assert stored_vm["public_key"] == _read_public_key_pem()
+
+
+def test_slsa_embedded_key_mismatch_rejected(
+    python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
+):
+    """An attestation with an embedded key that does not match the server key is rejected."""
+    content = python_content_factory()
+
+    stmt = _build_statement(content.filename, content.sha256)
+    sig = _sign(stmt, test_private_key)
+    wrong_key = (
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArvxtuKOCCHGNd6agbC4b\n"
+        "zX9S7qMnMRdz9bxxzkPf9a4T75St3EcrNQYxLqzcDBfeiiLa1wXQoraqFSGkvqX+\n"
+        "YDFmtYRgnXEujUwYqHQBYrKtrQHxrQ2J3V1e+PqhJ4HCQq/uRZdx6KJ5DOlpYuJM\n"
+        "aL2m7IozNJJkgjQH1frmDfM5/GuPVbgwN0QDnC0oSzNJFKtdVMD3SPnQGMPQ9qxf\n"
+        "DiTZOk1tO3VD/xXoNJ6Zgf0D5RvGyLAfLflgojKImHezgpdE6iQyZAVU2ShKMq3M\n"
+        "K+XtX39/ajXHJ1FCLXlRFoNoHltWioyvkmXHbhb9OxGncB+x6idSjgp7AR5y15HN\n"
+        "DwIDAQAB\n"
+        "-----END PUBLIC KEY-----\n"
+    )
+    vm = _make_embedded_key_material(wrong_key)
+    att = _make_attestation(stmt, sig, verification_material=vm)
+    prov = _make_provenance(att)
+
+    task = python_bindings.ContentProvenanceApi.create(
+        package=content.pulp_href,
+        file=_provenance_file(prov),
+        verify=True,
+    ).task
+    with pytest.raises(PulpTaskError) as exc_info:
+        monitor_task(task)
+    assert "embedded public key does not match" in exc_info.value.task.error["description"]

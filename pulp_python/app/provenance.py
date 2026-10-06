@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding as crypto_padding
 from cryptography.x509 import load_der_x509_certificate
 from django.conf import settings
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Base64Bytes, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_snake
 from pypi_attestations import Attestation as _UpstreamAttestation
 from pypi_attestations import (
@@ -16,8 +16,8 @@ from pypi_attestations import (
     Envelope,  # noqa - needed in module namespace for Pydantic model rebuild
     Publisher,
     VerificationError,
-    VerificationMaterial,
 )
+from pypi_attestations import VerificationMaterial as _UpstreamVerificationMaterial
 from sigstore.dsse import Envelope as DSSEEnvelope
 from sigstore.dsse import _pae
 
@@ -26,6 +26,30 @@ log = logging.getLogger(__name__)
 _verification_key_cache = {}
 
 SLSA_PROVENANCE_V02 = "https://slsa.dev/provenance/v0.2"
+
+
+class VerificationMaterial(_UpstreamVerificationMaterial):
+    """Extended verification material that supports optional certificate and public key.
+
+    PEP 740 requires a certificate, but this extension allows attestations signed
+    with a custom key where the certificate is absent. The public_key field is
+    accepted as an extra field and only present in the output when provided.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    certificate: Base64Bytes | None = None
+
+    @model_validator(mode="after")
+    def _validate_fields(self):
+        # public_key cannot be present when certificate is present
+        unexpected = set(self.model_extra or {}) - {"public_key"}
+        if unexpected:
+            raise ValueError(f"unexpected fields in verification_material: {unexpected}")
+        public_key = getattr(self, "public_key", None)
+        if self.certificate is not None and public_key is not None:
+            raise ValueError("verification_material cannot contain both certificate and public_key")
+        return self
 
 
 class _PermissivePolicy:
@@ -110,6 +134,8 @@ def _has_valid_certificate(attestation):
         if vm is None:
             return False
         cert_bytes = vm.certificate
+        if cert_bytes is None:
+            return False
         load_der_x509_certificate(cert_bytes)
         return True
     except (ValueError, Exception):
@@ -180,6 +206,30 @@ def _verify_signature(attestation, public_key):
         raise VerificationError(f"signature verification failed: {e}")
 
 
+def _verify_embedded_key(attestation, server_key):
+    """Verify that the embedded public key matches the server-configured key."""
+    vm = attestation.verification_material
+    public_key = getattr(vm, "public_key", None) if vm else None
+    if public_key is None:
+        return
+    try:
+        embedded_key = serialization.load_pem_public_key(public_key.encode())
+    except (ValueError, Exception) as e:
+        raise VerificationError(f"invalid embedded public key: {e}")
+    server_key_bytes = server_key.public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    embedded_key_bytes = embedded_key.public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    if server_key_bytes != embedded_key_bytes:
+        raise VerificationError(
+            "embedded public key does not match server-configured ATTESTATION_VERIFICATION_KEY"
+        )
+
+
 def verify_provenance(filename, sha256, provenance, offline=True):
     """Verify the provenance object is valid for the package.
 
@@ -205,8 +255,10 @@ def verify_provenance(filename, sha256, provenance, offline=True):
                 _enrich_publisher_from_statement(stmt, publisher)
                 if verification_key:
                     _verify_signature(attestation, verification_key)
+                    _verify_embedded_key(attestation, verification_key)
                 else:
                     raise VerificationError(
-                        "Attestation has no Sigstore certificate and no custom "
-                        "verification key is configured (ATTESTATION_VERIFICATION_KEY)"
+                        "Attestation has no Sigstore certificate or no custom "
+                        "verification key configured via ATTESTATION_VERIFICATION_KEY "
+                        "(embedded key in verification_material is optional)"
                     )
