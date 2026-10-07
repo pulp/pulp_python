@@ -1,1 +1,0 @@
-Fixed the Integrity API evaluating the entire repository's content query before filtering.
