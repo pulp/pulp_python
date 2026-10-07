@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.36.3 (2026-10-07) {: #3.36.3 }
+
+#### Bugfixes {: #3.36.3-bugfix }
+
+- RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
+  [#1381](https://github.com/pulp/pulp_python/issues/1381)
+- Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
 ## 3.36.2 (2026-09-10) {: #3.36.2 }
 
 #### Bugfixes {: #3.36.2-bugfix }
