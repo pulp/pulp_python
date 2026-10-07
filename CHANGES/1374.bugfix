@@ -1,1 +1,0 @@
-RSS feeds now reflect the most recently added file for each release, produce unique guids when content is updated, and support up to 500 entries in `updates.xml`.
