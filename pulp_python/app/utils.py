@@ -303,7 +303,7 @@ def python_content_to_download_info(content, base_path):
 
 def write_simple_index(project_names, streamed=False):
     """Writes the simple index."""
-    simple = Template(simple_index_template)
+    simple = Template(simple_index_template, autoescape=True)
     context = {"projects": ((x, canonicalize_name(x)) for x in project_names)}
     return simple.stream(**context) if streamed else simple.render(**context)
 
