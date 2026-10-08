@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.19.5 (2026-10-08) {: #3.19.5 }
+
+#### Bugfixes {: #3.19.5-bugfix }
+
+- Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+
+---
+
 ## 3.19.4 (2026-06-30) {: #3.19.4 }
 
 #### Bugfixes {: #3.19.4-bugfix }
