@@ -556,7 +556,7 @@ def python_content_to_download_info(content, base_path, domain=None):
 
 def write_simple_index(project_names):
     """Writes the simple index."""
-    simple = Template(simple_index_template)
+    simple = Template(simple_index_template, autoescape=True)
     context = {
         "SIMPLE_API_VERSION": SIMPLE_API_VERSION,
         "projects": ((x, canonicalize_name(x)) for x in project_names),
