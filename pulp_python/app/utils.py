@@ -360,6 +360,6 @@ def write_simple_index(project_names, streamed=False):
 
 def write_simple_detail(project_name, project_packages, streamed=False):
     """Writes the simple detail page of a package."""
-    detail = Template(simple_detail_template)
+    detail = Template(simple_detail_template, autoescape=True)
     context = {"project_name": project_name, "project_packages": project_packages}
     return detail.stream(**context) if streamed else detail.render(**context)
