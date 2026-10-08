@@ -1,1 +1,0 @@
-Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
