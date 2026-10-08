@@ -1,0 +1,1 @@
+Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
