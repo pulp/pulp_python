@@ -8,6 +8,37 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.37.0 (2026-10-07) {: #3.37.0 }
+
+#### Features {: #3.37.0-feature }
+
+- Added a `vulnerabilities` field to the PyPI JSON API, populated from OSV scan reports. Remotes can opt in to scan the new repository version after sync.
+  [#1360](https://github.com/pulp/pulp_python/issues/1360)
+- Updated minimum required python version to >=3.12.
+- Upgraded Bandersnatch to 8.0. Full-index syncs now list packages from either the JSON or HTML representation of the Simple API.
+
+#### Bugfixes {: #3.37.0-bugfix }
+
+- Prefer the PyPI Simple API JSON response when clients such as pip and uv advertise JSON alongside HTML.
+  [#1370](https://github.com/pulp/pulp_python/issues/1370)
+- RSS feeds now reflect the most recently added file for each release, produce unique guids when content is updated, and support up to 500 entries in `updates.xml`.
+  [#1374](https://github.com/pulp/pulp_python/issues/1374)
+- RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
+  [#1381](https://github.com/pulp/pulp_python/issues/1381)
+- Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
+## 3.36.3 (2026-10-07) {: #3.36.3 }
+
+#### Bugfixes {: #3.36.3-bugfix }
+
+- RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
+  [#1381](https://github.com/pulp/pulp_python/issues/1381)
+- Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
 ## 3.36.2 (2026-09-10) {: #3.36.2 }
 
 #### Bugfixes {: #3.36.2-bugfix }
