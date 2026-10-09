@@ -30,6 +30,7 @@ dependencies = [
   "bandersnatch>=8.0.0,<8.1",
   "pypi-simple>=1.8.0,<2.0",
   "pypi-attestations==0.0.28",  # API is not stable
+  "packaging-legacy>=23.0,<24",
 ]
 
 [project.urls]
