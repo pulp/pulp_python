@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.37.1 (2026-10-08) {: #3.37.1 }
+
+#### Bugfixes {: #3.37.1-bugfix }
+
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+
+---
+
 ## 3.37.0 (2026-10-07) {: #3.37.0 }
 
 #### Features {: #3.37.0-feature }
@@ -26,6 +34,14 @@
 - RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
   [#1381](https://github.com/pulp/pulp_python/issues/1381)
 - Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
+## 3.36.4 (2026-10-08) {: #3.36.4 }
+
+#### Bugfixes {: #3.36.4-bugfix }
+
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
 
 ---
 
@@ -253,6 +269,14 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.7 (2026-10-08) {: #3.27.7 }
+
+#### Bugfixes {: #3.27.7-bugfix }
+
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
 
 ---
 
@@ -510,6 +534,15 @@
 
 ---
 
+## 3.19.5 (2026-10-08) {: #3.19.5 }
+
+#### Bugfixes {: #3.19.5-bugfix }
+
+- Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+
+---
+
 ## 3.19.4 (2026-06-30) {: #3.19.4 }
 
 #### Bugfixes {: #3.19.4-bugfix }
@@ -641,6 +674,15 @@ No significant changes.
 
 ---
 
+## 3.13.8 (2026-10-08) {: #3.13.8 }
+
+#### Bugfixes {: #3.13.8-bugfix }
+
+- Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+
+---
+
 ## 3.13.7 (2026-06-30) {: #3.13.7 }
 
 #### Bugfixes {: #3.13.7-bugfix }
@@ -720,6 +762,15 @@ No significant changes.
 #### Misc {: #3.13.0-misc }
 
 - [#774](https://github.com/pulp/pulp_python/issues/774)
+
+---
+
+## 3.12.10 (2026-10-08) {: #3.12.10 }
+
+#### Bugfixes {: #3.12.10-bugfix }
+
+- Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
 
 ---
 
@@ -820,6 +871,15 @@ No significant changes.
 #### Misc {: #3.12.0-misc }
 
 - 
+
+---
+
+## 3.11.9 (2026-10-08) {: #3.11.9 }
+
+#### Bugfixes {: #3.11.9-bugfix }
+
+- Fixed quoting mistake in simple html detail pages that can lead to a possible XSS attack.
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
 
 ---
 
