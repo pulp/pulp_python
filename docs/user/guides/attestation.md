@@ -89,3 +89,44 @@ http $PULP_API/pypi/foo/simple/twine/ "Accept:application/vnd.pypi.simple.v1+jso
 
 http $PULP_API/pypi/foo/integrity/twine/6.2.0/twine-6.2.0.tar.gz/provenance/
 ```
+
+## Custom Key Verification (non-PEP 740)
+
+!!! note
+    This is a custom extension outside the PEP 740 spec. Standard PEP 740 users using Sigstore
+    keyless signing do not need this feature.
+
+Pulp Python supports verifying attestations signed with a custom public key instead of a Sigstore
+certificate. This is useful for environments that sign packages with their own key (e.g. internal
+build systems) rather than using Sigstore's keyless signing.
+
+To enable this, configure the `ATTESTATION_VERIFICATION_KEY` setting with the path to a PEM public
+key file:
+
+```
+PULP_ATTESTATION_VERIFICATION_KEY=/path/to/public-key.pem
+```
+
+When this setting is configured, Pulp uses two verification paths that coexist on the same server:
+
+- **Attestations with a Sigstore certificate** are verified through the standard PEP 740 path,
+  regardless of whether `ATTESTATION_VERIFICATION_KEY` is set.
+- **Attestations without a Sigstore certificate** are verified against the server-configured key using RSA
+  PKCS1v15 signatures.
+
+This means a single Pulp instance can host packages with Sigstore certificates and
+internally-signed packages with key-based attestations. Each attestation is independently
+routed to the appropriate verification path based on whether it contains a certificate.
+
+### Embedded public key
+
+Uploaders may optionally include the public key in the attestation's `verification_material` field.
+This makes the attestation self-contained for consumers who want to verify offline without fetching
+the key separately. The embedded key must match the server-configured key.  Also, the `certificate`
+and `public_key` fields are mutually exclusive — an attestation's `verification_material` cannot contain both.
+
+### Limitations
+
+- A single key is used across all repositories and domains.
+- The key-based path only supports RSA PKCS1v15 with SHA-256 signatures.
+- Publisher enrichment is supported for SLSA v0.2 provenance statements only.
