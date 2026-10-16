@@ -16,6 +16,12 @@ from pulp_python.tests.functional.constants import (
 )
 
 
+@pytest.fixture
+def signed_links(pulp_settings):
+    """Pull-through links carry a signed token only when Redis is not available."""
+    return not pulp_settings.CACHE_ENABLED
+
+
 def test_pull_through_install(
     python_bindings, python_remote_factory, python_distribution_factory, delete_orphans_pre
 ):
@@ -43,7 +49,9 @@ def test_pull_through_install(
 
 
 @pytest.mark.parallel
-def test_pull_through_simple(python_remote_factory, python_distribution_factory, pulp_content_url):
+def test_pull_through_simple(
+    python_remote_factory, python_distribution_factory, pulp_content_url, signed_links
+):
     """Tests that the simple page is properly modified when requesting a pull-through."""
     remote = python_remote_factory(url=PYPI_URL, includes=["shelf-reader"])
     distro = python_distribution_factory(remote=remote.pulp_href)
@@ -54,8 +62,11 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
     assert len(project_page.packages) == 2
     for package in project_page.packages:
         assert package.filename in PYTHON_XS_FIXTURE_CHECKSUMS
-        relative_path = f"{distro.base_path}/{package.filename}?pt="
-        assert urljoin(pulp_content_url, relative_path) in package.url
+        expected = urljoin(pulp_content_url, f"{distro.base_path}/{package.filename}")
+        if signed_links:
+            assert package.url.startswith(f"{expected}?pt=")
+        else:
+            assert package.url == expected
         assert PYTHON_XS_FIXTURE_CHECKSUMS[package.filename] == package.digests["sha256"]
 
 
@@ -124,6 +135,7 @@ def test_pull_through_with_repo(
     pulpcore_bindings,
     monitor_task,
     has_pulp_plugin,
+    signed_links,
 ):
     """Tests that content is saved to repository."""
     remote = python_remote_factory(includes=[])
@@ -134,7 +146,7 @@ def test_pull_through_with_repo(
     url = urljoin(distro.base_url, "simple/aiohttp/")
     project_page = ProjectPage.from_response(requests.get(url), "aiohttp")
     for package in sample(project_page.packages, 3):
-        assert "?pt=" in package.url
+        assert ("?pt=" in package.url) == signed_links
         r = requests.get(package.url)
         assert r.status_code == 200
 
@@ -161,7 +173,7 @@ def test_pull_through_with_repo(
 
 @pytest.mark.parallel
 def test_pull_through_local_only(
-    python_remote_factory, python_distribution_factory, python_repo_with_sync
+    python_remote_factory, python_distribution_factory, python_repo_with_sync, signed_links
 ):
     """Tests that pull-through checks the repository if the package is not present on the remote."""
     remote = python_remote_factory(url=PYPI_URL, includes=["pulpcore"])
@@ -177,7 +189,8 @@ def test_pull_through_local_only(
     url = f"{distro.base_url}simple/shelf-reader/"
     r = requests.get(url)
     assert r.status_code == 200
-    assert "?pt=" in r.text
+    assert "shelf-reader-0.1.tar.gz" in r.text
+    assert ("?pt=" in r.text) == signed_links
 
     url = f"{distro.base_url}simple/pulp_python/"
     r = requests.get(url)
@@ -240,8 +253,46 @@ def test_pull_through_metadata(python_remote_factory, python_distribution_factor
 
 
 @pytest.mark.parallel
-def test_pull_through_rejects_bad_links(python_remote_factory, python_distribution_factory):
+def test_pull_through_rejects_unknown_files(
+    python_remote_factory, python_distribution_factory, signed_links
+):
+    """Tests that pull-through only downloads files listed on a simple page of the distro's remote."""
+    if signed_links:
+        pytest.skip("Pull-through links are signed when Redis is not available")
+    remote = python_remote_factory(includes=["shelf-reader"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+    remote2 = python_remote_factory(includes=["shelf-reader"])
+    distro2 = python_distribution_factory(remote=remote2.pulp_href)
+
+    # Not listed on any simple page yet
+    r = requests.get(f"{distro.base_url}shelf-reader-0.1.tar.gz")
+    assert r.status_code == 404
+
+    url = f"{distro.base_url}simple/shelf-reader/"
+    package = ProjectPage.from_response(requests.get(url), "shelf-reader").packages[0]
+
+    # Listed on a simple page of another remote
+    r = requests.get(package.url.replace(f"/{distro.base_path}/", f"/{distro2.base_path}/"))
+    assert r.status_code == 404
+
+    # Old unsigned redirect links
+    upstream_url = urljoin(remote.url, "simple/shelf-reader/")
+    upstream = ProjectPage.from_response(requests.get(upstream_url), "shelf-reader").packages[0]
+    r = requests.get(f"{distro.base_url}shelf_reader-9.9.tar.gz?redirect={upstream.url}")
+    assert r.status_code == 404
+
+    r = requests.get(package.url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package.digests["sha256"]
+
+
+@pytest.mark.parallel
+def test_pull_through_rejects_bad_links(
+    python_remote_factory, python_distribution_factory, signed_links
+):
     """Tests that pull-through only downloads files from links signed for the distro's remote."""
+    if not signed_links:
+        pytest.skip("Pull-through links are only signed when Redis is not available")
     remote = python_remote_factory(includes=["shelf-reader"])
     distro = python_distribution_factory(remote=remote.pulp_href)
     remote2 = python_remote_factory(includes=["shelf-reader"])
@@ -281,6 +332,7 @@ def test_pull_through_metadata_with_repo(
     python_remote_factory,
     python_distribution_factory,
     pulpcore_bindings,
+    signed_links,
 ):
     """Tests that metadata is correctly saved when using pull-through with a repository."""
     remote = python_remote_factory(url=PYPI_URL, includes=["pip"])
@@ -292,7 +344,7 @@ def test_pull_through_metadata_with_repo(
     filename = "pip-26.0.1-py3-none-any.whl"
     package = next(p for p in project_page.packages if p.filename == filename)
     assert package.has_metadata
-    assert "?pt=" in package.url
+    assert ("?pt=" in package.url) == signed_links
 
     # Retrieve the metadata and assert the content was not saved to the repository
     parts = urlsplit(package.url)
@@ -303,11 +355,12 @@ def test_pull_through_metadata_with_repo(
     project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
     package = next(p for p in project_page.packages if p.filename == filename)
     assert package.has_metadata
-    assert "?pt=" in package.url
+    assert ("?pt=" in package.url) == signed_links
 
     # Now retrieve the package and assert the content was saved with metadata
     r = requests.get(package.url)
     assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package.digests["sha256"]
     pa = pulpcore_bindings.ArtifactsApi.list(sha256=package.digests["sha256"])
     assert pa.count == 1
     ma = pulpcore_bindings.ArtifactsApi.list(sha256=package.metadata_digests["sha256"])

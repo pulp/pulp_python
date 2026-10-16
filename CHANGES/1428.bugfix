@@ -1,0 +1,1 @@
+Fixed pip intermittently receiving a pull-through wheel instead of its metadata, or the reverse, when Redis caching is enabled.
