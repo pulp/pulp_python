@@ -56,6 +56,7 @@ from pulp_python.app.utils import (
     get_remote_package_filter,
     get_remote_simple_page,
     python_content_to_json,
+    sign_pull_through_path,
     write_simple_detail,
     write_simple_detail_json,
     write_simple_index,
@@ -371,8 +372,14 @@ class SimpleView(PackageUploadMixin, ViewSet):
         def parse_package(release_package):
             parsed = urlparse(release_package.url)
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
-            redirect_path = f"{path}/{release_package.filename}?redirect={stripped_url}"
-            d_url = urljoin(self.base_content_url, redirect_path)
+            pt_path = sign_pull_through_path(
+                remote,
+                release_package.filename,
+                stripped_url,
+                sha256=release_package.digests.get("sha256"),
+                metadata_sha256=(release_package.metadata_digests or {}).get("sha256"),
+            )
+            d_url = urljoin(self.base_content_url, f"{path}/{pt_path}")
             return {
                 "filename": release_package.filename,
                 "url": d_url,
