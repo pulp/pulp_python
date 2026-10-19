@@ -666,12 +666,12 @@ class PackageIncludeFilter:
         self._filter_excludes = self._parse_packages(self.remote.excludes)
 
     def _parse_packages(self, packages):
+        """Group requirements by project and whether they specify a version range."""
         config = defaultdict(lambda: defaultdict(list))
         for value in packages:
             requirement = Requirement(value)
             requirement.name = canonicalize_name(requirement.name)
             if requirement.specifier:
-                requirement.specifier.prereleases = True
                 config["range"][requirement.name].append(requirement)
             else:
                 config["full"][requirement.name].append(requirement)
@@ -706,7 +706,7 @@ class PackageIncludeFilter:
         include_range = self._filter_includes.get("range", {})
         if project_name in include_range:
             for req in include_range[project_name]:
-                if version in req.specifier:
+                if req.specifier.contains(version, prereleases=True):
                     break
             else:
                 return False
@@ -714,7 +714,7 @@ class PackageIncludeFilter:
         exclude_range = self._filter_excludes.get("range", {})
         if project_name in exclude_range:
             for req in exclude_range[project_name]:
-                if version in req.specifier:
+                if req.specifier.contains(version, prereleases=True):
                     return False
 
         return True
