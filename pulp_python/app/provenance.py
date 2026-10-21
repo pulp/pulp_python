@@ -1,18 +1,18 @@
 import json
-import logging
 from typing import Annotated, Literal, Union, get_args
-from urllib.parse import urlparse
 
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding as crypto_padding
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509 import load_der_x509_certificate
 from django.conf import settings
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_snake
+from pypi_attestations import Attestation as _UpstreamAttestation
 from pypi_attestations import (
     Distribution,
-    Envelope,
+    Envelope,  # noqa - needed in module namespace for Pydantic model rebuild
     Publisher,
     VerificationError,
     VerificationMaterial,
@@ -20,11 +20,9 @@ from pypi_attestations import (
 from sigstore.dsse import Envelope as DSSEEnvelope
 from sigstore.dsse import _pae
 
-log = logging.getLogger(__name__)
+from pulpcore.plugin.util import get_domain
 
 _verification_key_cache = {}
-
-SLSA_PROVENANCE_V02 = "https://slsa.dev/provenance/v0.2"
 
 
 class _PermissivePolicy:
@@ -57,22 +55,18 @@ _ExtendedPublisherUnion = Union[_ExtendedPublisherTypes]
 ExtendedPublisher = Annotated[_ExtendedPublisherUnion, Field(union_mode="left_to_right")]
 
 
-class Attestation(BaseModel):
-    """Attestation object as defined in PEP 740."""
-
-    version: Literal[1]
+class Attestation(_UpstreamAttestation):
     """
-    The attestation format's version, which is always 1.
+    Attestation object as defined in PEP 740.
+
+    Inherits from the upstream pypi_attestations.Attestation to keep Sigstore
+    verification methods (to_bundle, verify), but makes verification_material
+    optional to support attestations signed with a custom key instead of Sigstore.
     """
 
     verification_material: VerificationMaterial | None = None
     """
     Cryptographic materials used to verify `message_signature`.
-    """
-
-    envelope: Envelope
-    """
-    The enveloped attestation statement and signature.
     """
 
 
@@ -95,35 +89,48 @@ class Provenance(BaseModel):
     attestation_bundles: list[AttestationBundle]
 
 
-def _load_verification_key():
-    """Load the configured attestation verification public key, with caching."""
-    key_path = getattr(settings, "ATTESTATION_VERIFICATION_KEY", None)
+def _load_verification_key(domain_name):
+    """Load the attestation verification public key configured for the domain, with caching."""
+    keys = settings.ATTESTATION_VERIFICATION_KEYS
+    if not isinstance(keys, dict):
+        raise VerificationError(
+            "ATTESTATION_VERIFICATION_KEYS must map domain names to public key paths"
+        )
+    key_path = keys.get(domain_name)
     if not key_path:
         return None
     if key_path not in _verification_key_cache:
-        with open(key_path, "rb") as f:
-            _verification_key_cache[key_path] = serialization.load_pem_public_key(f.read())
+        try:
+            with open(key_path, "rb") as f:
+                key = serialization.load_pem_public_key(f.read())
+        except (OSError, ValueError, UnsupportedAlgorithm) as e:
+            raise VerificationError(
+                f"could not load the verification key for domain '{domain_name}' "
+                f"from {key_path}: {e}"
+            )
+        if not isinstance(key, rsa.RSAPublicKey):
+            raise VerificationError(
+                f"the verification key for domain '{domain_name}' in {key_path} "
+                "must be an RSA public key"
+            )
+        _verification_key_cache[key_path] = key
     return _verification_key_cache[key_path]
 
 
-def _has_valid_certificate(attestation):
-    """Check whether the attestation contains a valid X.509 certificate."""
-    try:
-        vm = attestation.verification_material
-        if vm is None:
-            return False
-        cert_bytes = vm.certificate
-        load_der_x509_certificate(cert_bytes)
-        return True
-    except (ValueError, Exception):
+def _has_certificate(attestation):
+    """Check whether the attestation carries a certificate, rejecting unparseable ones."""
+    vm = attestation.verification_material
+    if vm is None:
         return False
+    try:
+        load_der_x509_certificate(vm.certificate)
+    except ValueError as e:
+        raise VerificationError(f"invalid X.509 certificate in verification_material: {e}")
+    return True
 
 
 def _verify_statement_subject(attestation, dist):
-    """Validate that the in-toto statement subject matches the distribution.
-
-    Returns the parsed statement dict for downstream use.
-    """
+    """Validate that the in-toto statement subject matches the distribution."""
     try:
         stmt = json.loads(attestation.envelope.statement)
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
@@ -142,30 +149,6 @@ def _verify_statement_subject(attestation, dist):
     if digest != dist.digest:
         raise VerificationError("subject does not match distribution digest")
 
-    return stmt
-
-
-def _enrich_publisher_from_statement(stmt, publisher):
-    """Populate publisher fields from an SLSA v0.2 provenance statement."""
-    if stmt.get("predicateType") != SLSA_PROVENANCE_V02:
-        return
-
-    predicate = stmt.get("predicate", {})
-    builder_id = predicate.get("builder", {}).get("id")
-    build_type = predicate.get("buildType")
-
-    if builder_id:
-        publisher.builder_id = builder_id
-        try:
-            hostname = urlparse(builder_id).hostname
-            if hostname:
-                publisher.kind = hostname
-        except Exception:
-            pass
-
-    if build_type:
-        publisher.build_type = build_type
-
 
 def _verify_signature(attestation, public_key):
     """Verify the attestation's RSA signature over the DSSE PAE bytes."""
@@ -179,30 +162,37 @@ def _verify_signature(attestation, public_key):
             crypto_padding.PKCS1v15(),
             hashes.SHA256(),
         )
-    except InvalidSignature as e:
-        raise VerificationError(f"signature verification failed: {e}")
+    except InvalidSignature:
+        raise VerificationError("signature verification failed")
 
 
 def verify_provenance(filename, sha256, provenance, offline=True):
-    """Verify the provenance object is valid for the package."""
+    """Verify the provenance object is valid for the package.
+
+    Each attestation is routed to one of two coexisting verification paths:
+    1. Attestations with a valid Sigstore certificate follow the standard PEP 740 path.
+    2. Attestations without a certificate are verified against the key configured for the
+    current domain in ATTESTATION_VERIFICATION_KEYS using RSA PKCS1v15 signatures.
+    Attestations with a certificate that can't be parsed are rejected.
+    """
     dist = Distribution(name=filename, digest=sha256)
-    verification_key = _load_verification_key()
     for bundle in provenance.attestation_bundles:
         publisher = bundle.publisher
+        policy = publisher._as_policy()
         for attestation in bundle.attestations:
-            if _has_valid_certificate(attestation):
-                policy = publisher._as_policy()
+            if _has_certificate(attestation):
                 sig_bundle = attestation.to_bundle()
                 checkpoint = sig_bundle.log_entry._inner.inclusion_proof.checkpoint
                 staging = "sigstage.dev" in checkpoint.envelope
                 attestation.verify(policy, dist, staging=staging, offline=offline)
             else:
-                stmt = _verify_statement_subject(attestation, dist)
-                _enrich_publisher_from_statement(stmt, publisher)
+                domain_name = get_domain().name
+                verification_key = _load_verification_key(domain_name)
                 if verification_key:
+                    _verify_statement_subject(attestation, dist)
                     _verify_signature(attestation, verification_key)
                 else:
-                    log.warning(
-                        "Attestation without valid certificate accepted without "
-                        "signature verification (ATTESTATION_VERIFICATION_KEY not set)"
+                    raise VerificationError(
+                        "attestation has no Sigstore certificate, and "
+                        f"ATTESTATION_VERIFICATION_KEYS has no key for domain '{domain_name}'"
                     )

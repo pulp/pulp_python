@@ -89,3 +89,40 @@ http $PULP_API/pypi/foo/simple/twine/ "Accept:application/vnd.pypi.simple.v1+jso
 
 http $PULP_API/pypi/foo/integrity/twine/6.2.0/twine-6.2.0.tar.gz/provenance/
 ```
+
+## Custom Key Verification (non-PEP 740)
+
+!!! note
+    This is a custom extension outside the PEP 740 spec. Standard PEP 740 users using Sigstore
+    keyless signing do not need this feature.
+
+Pulp Python supports verifying attestations signed with a custom public key instead of a Sigstore
+certificate. This is useful for environments that sign packages with their own key (e.g. internal
+build systems) rather than using Sigstore's keyless signing.
+
+To enable this, configure the `ATTESTATION_VERIFICATION_KEYS` setting, which maps a domain name to
+the path of a PEM public key file. Each domain trusts only its own key. Without domains enabled, all
+content belongs to the `default` domain.
+
+```
+PULP_ATTESTATION_VERIFICATION_KEYS=@json {"default": "/path/to/public-key.pem"}
+```
+
+Pulp uses two verification paths that coexist on the same server:
+
+- **Attestations with a Sigstore certificate** are verified through the standard PEP 740 path,
+  regardless of `ATTESTATION_VERIFICATION_KEYS`.
+- **Attestations without a Sigstore certificate** are verified against the key configured for the
+  current domain using RSA PKCS1v15 signatures. In a domain without a configured key, they are
+  rejected.
+
+This means a single Pulp instance can host packages with Sigstore certificates and
+internally-signed packages with key-based attestations. Each attestation is independently
+routed to the appropriate verification path based on whether it contains a certificate.
+Key-signed attestations must omit `verification_material` or set it to `null`.
+Attestations with a certificate that can't be parsed are rejected.
+
+### Limitations
+
+- Each domain can have only one key.
+- The key-based path only supports RSA PKCS1v15 with SHA-256 signatures.
