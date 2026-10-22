@@ -1,6 +1,7 @@
 [allowlist]
   description = "Allow specific test-keys."
   paths = [
+    '''.ci/assets/keys/test-key-private.pem''',
   ]
   regexes = [
     '''AKIAIT2Z5TDYPX3ARJBA''',
