@@ -48,6 +48,8 @@ class AnyPublisher(BaseModel):
 # Get the underlying Union type of the original Publisher
 # Publisher is Annotated[Union[...], Field(discriminator="kind")]
 _OriginalPublisherTypes = get_args(Publisher.__origin__)
+# Get the kinds of the original publisher types, they can only be proven by a Sigstore certificate
+_TrustedPublisherKinds = {t.model_fields["kind"].default for t in _OriginalPublisherTypes}
 # Add AnyPublisher to the list of original publisher types
 _ExtendedPublisherTypes = (*_OriginalPublisherTypes, AnyPublisher)
 _ExtendedPublisherUnion = Union[_ExtendedPublisherTypes]
@@ -136,18 +138,23 @@ def _verify_statement_subject(attestation, dist):
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
         raise VerificationError(f"invalid statement: {e}")
 
-    subjects = stmt.get("subject", [])
-    if len(subjects) != 1:
-        raise VerificationError("expected exactly one subject in statement")
+    try:
+        subjects = stmt.get("subject", [])
+        if len(subjects) != 1:
+            raise VerificationError("expected exactly one subject in statement")
 
-    subject = subjects[0]
-    name = subject.get("name", "")
-    if name != dist.name:
-        raise VerificationError(f"subject does not match distribution name: {name} != {dist.name}")
+        subject = subjects[0]
+        name = subject.get("name", "")
+        if name != dist.name:
+            raise VerificationError(
+                f"subject does not match distribution name: {name} != {dist.name}"
+            )
 
-    digest = subject.get("digest", {}).get("sha256")
-    if digest != dist.digest:
-        raise VerificationError("subject does not match distribution digest")
+        digest = subject.get("digest", {}).get("sha256")
+        if digest != dist.digest:
+            raise VerificationError("subject does not match distribution digest")
+    except (AttributeError, TypeError) as e:
+        raise VerificationError(f"malformed statement: {e}")
 
 
 def _verify_signature(attestation, public_key):
@@ -186,6 +193,10 @@ def verify_provenance(filename, sha256, provenance, offline=True):
                 staging = "sigstage.dev" in checkpoint.envelope
                 attestation.verify(policy, dist, staging=staging, offline=offline)
             else:
+                if publisher.kind in _TrustedPublisherKinds:
+                    raise VerificationError(
+                        f"publisher kind '{publisher.kind}' requires a Sigstore certificate"
+                    )
                 domain_name = get_domain().name
                 verification_key = _load_verification_key(domain_name)
                 if verification_key:

@@ -104,8 +104,14 @@ To enable this, configure the `ATTESTATION_VERIFICATION_KEYS` setting, which map
 the path of a PEM public key file. Each domain trusts only its own key. Without domains enabled, all
 content belongs to the `default` domain.
 
+```python
+# settings.py
+ATTESTATION_VERIFICATION_KEYS = {"default": "/path/to/public-key.pem"}
 ```
-PULP_ATTESTATION_VERIFICATION_KEYS=@json {"default": "/path/to/public-key.pem"}
+
+```bash
+# or as an environment variable
+export PULP_ATTESTATION_VERIFICATION_KEYS='@json {"default": "/path/to/public-key.pem"}'
 ```
 
 Pulp uses two verification paths that coexist on the same server:
@@ -120,6 +126,9 @@ This means a single Pulp instance can host packages with Sigstore certificates a
 internally-signed packages with key-based attestations. Each attestation is independently
 routed to the appropriate verification path based on whether it contains a certificate.
 Key-signed attestations must omit `verification_material` or set it to `null`.
+After downloading, key-signed attestations cannot be verified with `sigstore` or
+`pypi-attestations`, since both require a certificate. Consumers must verify them against the same
+public key, with a tool that supports DSSE signatures, such as `cosign`.
 Attestations with a certificate that can't be parsed are rejected.
 
 ### Limitations

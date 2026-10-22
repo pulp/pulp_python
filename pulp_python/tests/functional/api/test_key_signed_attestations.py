@@ -317,3 +317,49 @@ def test_key_signed_attestation_rejected_in_domain_without_key(
         monitor_task(task)
     err_msg = f"ATTESTATION_VERIFICATION_KEYS has no key for domain '{domain.name}'"
     assert err_msg in exc_info.value.task.error["description"]
+
+
+def test_key_signed_attestation_with_trusted_publisher_rejected(
+    python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
+):
+    """A key-signed attestation cannot claim a Trusted Publisher, which needs a certificate."""
+    content = python_content_factory()
+
+    stmt = _build_statement(content.filename, content.sha256)
+    att = _make_attestation(stmt, _sign(stmt, test_private_key))
+    prov = _make_provenance(att)
+    prov["attestation_bundles"][0]["publisher"] = {
+        "kind": "GitHub",
+        "repository": "pypa/sampleproject",
+        "workflow": "release.yml",
+    }
+
+    task = python_bindings.ContentProvenanceApi.create(
+        package=content.pulp_href,
+        file=_provenance_file(prov),
+        verify=True,
+    ).task
+    with pytest.raises(PulpTaskError) as exc_info:
+        monitor_task(task)
+    err_msg = "publisher kind 'GitHub' requires a Sigstore certificate"
+    assert err_msg in exc_info.value.task.error["description"]
+
+
+def test_key_signed_malformed_subject_rejected(
+    python_bindings, python_content_factory, monitor_task, test_private_key, _provenance_file
+):
+    """A key-signed attestation with a malformed subject is rejected, not crashed on."""
+    content = python_content_factory()
+
+    stmt = json.dumps({"_type": "https://in-toto.io/Statement/v1", "subject": None}).encode()
+    att = _make_attestation(stmt, _sign(stmt, test_private_key))
+    prov = _make_provenance(att)
+
+    task = python_bindings.ContentProvenanceApi.create(
+        package=content.pulp_href,
+        file=_provenance_file(prov),
+        verify=True,
+    ).task
+    with pytest.raises(PulpTaskError) as exc_info:
+        monitor_task(task)
+    assert "malformed statement" in exc_info.value.task.error["description"]
