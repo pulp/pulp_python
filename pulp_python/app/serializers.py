@@ -19,6 +19,7 @@ from pulpcore.plugin import serializers as core_serializers
 from pulpcore.plugin.util import get_current_authenticated_user, get_domain, get_prn, reverse
 
 from pulp_python.app import models as python_models
+from pulp_python.app.catalog import assemble_package_index
 from pulp_python.app.provenance import (
     AnyPublisher,
     Attestation,
@@ -651,6 +652,14 @@ class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
     )
 
 
+class PythonRepositoryPackageListSerializer(serializers.ListSerializer):
+    """Assemble metadata only for the names selected by pagination."""
+
+    def to_representation(self, data):
+        rows = assemble_package_index(list(data))
+        return super().to_representation(rows)
+
+
 class PythonRepositoryPackageSerializer(serializers.Serializer):
     """One distinct package name and its stored versions."""
 
@@ -690,6 +699,9 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
             "same version are one entry. Version strings are unchanged."
         ),
     )
+
+    class Meta:
+        list_serializer_class = PythonRepositoryPackageListSerializer
 
 
 class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerializer):

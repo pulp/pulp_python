@@ -1,23 +1,21 @@
 """Unit tests for the repository package index helpers."""
 
-import re
 import uuid
 
 import pytest
+from django.apps import apps
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from pulpcore.plugin.models import RepositoryContent, RepositoryVersion
+from pulpcore.plugin.models import RepositoryVersion
 
-from pulp_python.app.catalog import (
-    assemble_package_index,
-    distinct_package_names_qs,
-    python_packages_in_version,
-)
+from pulp_python.app.catalog import assemble_package_index, package_catalog_queryset
 from pulp_python.app.models import PythonPackageContent, PythonRepository
-from pulp_python.app.viewsets import PythonRepositoryPackageViewSet
-
-_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+from pulp_python.app.viewsets import (
+    PythonPackageSingleArtifactContentUploadViewSet,
+    PythonRepositoryPackageViewSet,
+)
 
 _EMPTY_TEXT = (
     "author",
@@ -41,13 +39,7 @@ _EMPTY_TEXT = (
 )
 
 
-def _bound_id_count(sql):
-    """How many ids the statement binds, whether mogrified or left as `%s`."""
-    lowered = sql.lower()
-    return max(len(_UUID_RE.findall(lowered)), lowered.count("%s"))
-
-
-def _create_package(name, version):
+def _create_package(name, version, **overrides):
     fields = {field: "" for field in _EMPTY_TEXT}
     fields.update(
         name=name,
@@ -55,13 +47,16 @@ def _create_package(name, version):
         filename=f"{name}-{version}.tar.gz",
         packagetype="sdist",
         sha256=uuid.uuid4().hex + uuid.uuid4().hex,
+        description=f"{name} {version} description",
     )
+    fields.update(overrides)
     return PythonPackageContent.objects.create(**fields)
 
 
 @pytest.mark.django_db
-def test_package_list_sql_does_not_expand_content_ids():
-    """Keep snapshot content IDs in the database while paginating package names."""
+@pytest.mark.parametrize("page_size", [1, 2, 4])
+def test_package_list_pagination_and_bulk_metadata(django_assert_num_queries, page_size):
+    """Page distinct names and load large metadata only for the newest version."""
     repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
     created = [
         _create_package(name, f"1.0.{number}")
@@ -74,52 +69,64 @@ def test_package_list_sql_does_not_expand_content_ids():
         )
 
     repo_version = repository.latest_version()
-    content_count = RepositoryContent.objects.filter(
-        repository_id=repository.pk, version_removed__isnull=True
-    ).count()
-    content_qs = python_packages_in_version(repo_version)
-    default_qs = distinct_package_names_qs(content_qs)
-    count_qs = content_qs.order_by().values("name_normalized").distinct()
+    content_qs = repo_version.get_content(PythonPackageContent.objects.all())
+    packages = package_catalog_queryset(content_qs)
 
-    connection.force_debug_cursor = True
-    start = len(connection.queries)
+    with django_assert_num_queries(1):
+        assert packages.count() == 4
+    with django_assert_num_queries(1), CaptureQueriesContext(connection) as page_queries:
+        page = list(packages[:page_size])
+    with django_assert_num_queries(1), CaptureQueriesContext(connection) as queries:
+        rows = assemble_package_index(page)
 
-    def _since():
-        nonlocal start
-        sqls = [query["sql"] for query in connection.queries[start:]]
-        start = len(connection.queries)
-        return sqls
-
-    try:
-        count_qs.count()
-        count_sqls = _since()
-        page = list(default_qs[:20])
-        default_sqls = _since()
-        rows = assemble_package_index(content_qs, page, repo_version)
-        assembled = _since()
-    finally:
-        connection.force_debug_cursor = False
-
-    assert rows
-    assert rows[0]["versions"]
-    assert content_count == len(created)
-    membership_sql = [
-        sql
-        for sql in count_sqls + default_sqls + assembled
-        if "core_repositoryversion" in sql.lower()
+    assert [row["name_normalized"] for row in rows] == ["alpha", "beta", "delta", "gamma"][
+        :page_size
     ]
-    assert membership_sql
-    for sql in membership_sql:
-        lowered = sql.lower()
-        assert "content_id" in lowered, sql
-        assert _bound_id_count(sql) < content_count, sql
-    assert len(count_sqls) == 1, count_sqls
-    assert len(default_sqls) == 1, default_sqls
-    count_sql, default_sql = count_sqls[0], default_sqls[0]
-    assert "max(" not in count_sql.lower()
-    assert "max(" not in default_sql.lower()
-    assert "distinct" in default_sql.lower()
-    assert "limit" in default_sql.lower()
+    for row in rows:
+        assert [item["version"] for item in row["versions"]] == [
+            f"1.0.{number}" for number in reversed(range(5))
+        ]
+        assert row["description"] == f"{row['name_normalized']} 1.0.4 description"
+
+    for field in ("description", "classifiers", "requires_dist", "project_urls", "license_file"):
+        assert f'"{field}"' not in page_queries[0]["sql"]
+    description_queries = [
+        query for query in queries if '"description"' in query["sql"].split(" FROM ", 1)[0]
+    ]
+    assert len(description_queries) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_sdist", [True, False])
+def test_package_list_representative_file(has_sdist, django_assert_num_queries):
+    """Each version uses an sdist if available, otherwise its newest wheel."""
+    repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
+    units = []
+    if has_sdist:
+        units.append(_create_package("alpha", "1.0", license_expression="MIT"))
+    for platform in ("linux", "macos"):
+        units.append(
+            _create_package(
+                "alpha",
+                "1.0",
+                filename=f"alpha-1.0-{platform}.whl",
+                packagetype="bdist_wheel",
+                license_expression="Apache-2.0",
+                description=f"{platform} wheel description",
+            )
+        )
+    with repository.new_version() as version:
+        version.add_content(PythonPackageContent.objects.filter(pk__in=[unit.pk for unit in units]))
+    content = repository.latest_version().get_content(PythonPackageContent.objects.all())
+
+    with django_assert_num_queries(2):
+        rows = assemble_package_index(list(package_catalog_queryset(content)))
+    assert rows[0]["versions"] == [
+        {"version": "1.0", "license_expression": "MIT" if has_sdist else "Apache-2.0"}
+    ]
+    assert rows[0]["description"] == (
+        "alpha 1.0 description" if has_sdist else "macos wheel description"
+    )
 
 
 @pytest.mark.django_db
@@ -143,3 +150,29 @@ def test_package_list_incomplete_version(django_user_model, explicit):
     else:
         assert response.data["count"] == 0
         assert response.data["results"] == []
+
+
+def test_package_content_viewset_registration():
+    """The catalog must not compete with the package content resource's viewset."""
+    assert apps.get_app_config("python").named_viewsets[PythonPackageContent] == [
+        PythonPackageSingleArtifactContentUploadViewSet
+    ]
+
+
+@pytest.mark.django_db
+def test_package_list_without_pagination(django_user_model):
+    """The standard list action also assembles rows when pagination is disabled."""
+    repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
+    package = _create_package("alpha", "1.0")
+    with repository.new_version() as version:
+        version.add_content(PythonPackageContent.objects.filter(pk=package.pk))
+    user = django_user_model.objects.create(username=str(uuid.uuid4()), is_superuser=True)
+    request = APIRequestFactory().get("/")
+    force_authenticate(request, user=user)
+    response = PythonRepositoryPackageViewSet.as_view({"get": "list"}, pagination_class=None)(
+        request, repository_pk=str(repository.pk)
+    )
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["description"] == "alpha 1.0 description"
+    assert response.data[0]["versions"] == [{"version": "1.0", "license_expression": ""}]

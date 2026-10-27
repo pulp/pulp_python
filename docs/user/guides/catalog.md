@@ -12,8 +12,9 @@ http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/package
 
 `count` is the number of distinct packages, not files. Each row is one package
 name. `summary`, `description`, `author`, `author_email`, and `license` come
-from the newest version. `versions` has one entry per stored version string,
-newest first, with that version's `license_expression`. A wheel and an sdist
+from the highest version in PEP 440 order. For each version, an sdist supplies
+the metadata when available; otherwise the most recently created content unit
+is used. `versions` has one entry per stored version string, newest first, with that version's `license_expression`. A wheel and an sdist
 of the same version are one entry. A rebuild such as `1.0.0+test.1` stays its
 own entry because the stored version differs.
 
