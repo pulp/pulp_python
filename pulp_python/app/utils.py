@@ -12,6 +12,7 @@ from datetime import timezone
 import pkginfo
 from aiohttp.client_exceptions import ClientError
 from django.conf import settings
+from django.core import signing
 from django.db.models import F, FilteredRelation, Q
 from django.db.utils import IntegrityError
 from jinja2 import Template
@@ -20,6 +21,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
+from pulpcore.plugin.cache import SyncContentCache
 from pulpcore.plugin.exceptions import TimeoutException
 from pulpcore.plugin.models import Artifact, Remote, VulnerabilityReport
 from pulpcore.plugin.util import get_domain
@@ -35,6 +37,12 @@ PYPI_SERIAL_CONSTANT = 1000000000
 SUPPORTED_METADATA_VERSIONS = ("1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3", "2.4", "2.5")
 
 SIMPLE_API_VERSION = "1.1"
+
+PULL_THROUGH_PARAM = "pt"
+PULL_THROUGH_SALT = "pulp_python.pull_through"
+# Outlive both the cached simple pages and their max-age in client caches
+PULL_THROUGH_TTL = settings.CACHE_SETTINGS["EXPIRES_TTL"] + 600
+
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
 
@@ -768,3 +776,86 @@ async def aget_remote_simple_page(package, remote, max_retries=1):
     else:
         page = ProjectPage.from_html(package, open(d.path, "rb").read(), base_url=url)
     return page
+
+
+def sign_pull_through_path(remote, filename, url, sha256=None, metadata_sha256=None):
+    """Returns the content app path of a pull-through package, carrying its signed upstream url."""
+    data = {"r": str(remote.pk), "f": filename, "u": url}
+    if sha256:
+        data["s"] = sha256
+    if metadata_sha256:
+        data["m"] = metadata_sha256
+    token = signing.Signer(salt=PULL_THROUGH_SALT).sign_object(data, compress=True)
+    return f"{filename}?{PULL_THROUGH_PARAM}={token}"
+
+
+def unsign_pull_through_token(remote, token, filename):
+    """
+    Returns the upstream (url, sha256) for a file of a signed pull-through token.
+
+    filename can be the signed package's filename or its PEP 658 metadata file. Returns None if
+    the token is invalid, was signed for another remote or doesn't cover filename.
+    """
+    try:
+        data = signing.Signer(salt=PULL_THROUGH_SALT).unsign_object(token)
+    except signing.BadSignature:
+        return None
+    if data.get("r") != str(remote.pk):
+        return None
+    if filename == data["f"]:
+        return data["u"], data.get("s")
+    if filename == f"{data['f']}.metadata" and data.get("m"):
+        return f"{data['u']}.metadata", data["m"]
+    return None
+
+
+def _pull_through_key(remote):
+    # Editing the remote invalidates its entries
+    return f"pulp_python:pull_through:{remote.pk}:{remote.pulp_last_updated.timestamp()}"
+
+
+def store_pull_through_entries(remote, entries):
+    """
+    Stores filename -> {url, sha256, metadata_sha256} entries of a remote in Redis.
+
+    Returns True if the entries were stored, so plain filename links can be used for them.
+    """
+    if not settings.CACHE_ENABLED:
+        return False
+    if not entries:
+        return True
+    key = _pull_through_key(remote)
+    try:
+        redis = SyncContentCache().redis
+        redis.hset(key, mapping={f: json.dumps(e) for f, e in entries.items()})
+        redis.expire(key, PULL_THROUGH_TTL)
+    except Exception as e:
+        log.warning("Failed to store pull-through entries: %s", e)
+        return False
+    return True
+
+
+def lookup_pull_through_entry(remote, filename):
+    """
+    Returns the upstream (url, sha256) for a file stored by store_pull_through_entries.
+
+    filename can be a stored package's filename or its PEP 658 metadata file.
+    """
+    if not settings.CACHE_ENABLED:
+        return None
+    is_metadata = filename.endswith(".metadata")
+    try:
+        raw = SyncContentCache().redis.hget(
+            _pull_through_key(remote), filename.removesuffix(".metadata")
+        )
+    except Exception as e:
+        log.warning("Failed to look up pull-through entry: %s", e)
+        return None
+    if not raw:
+        return None
+    entry = json.loads(raw)
+    if not is_metadata:
+        return entry["url"], entry.get("sha256")
+    if entry.get("metadata_sha256"):
+        return f"{entry['url']}.metadata", entry["metadata_sha256"]
+    return None

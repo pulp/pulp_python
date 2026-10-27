@@ -1,0 +1,1 @@
+Fixed pull-through downloads trusting the upstream url given by the client; pull-through links are now signed and downloads are checked against the upstream sha256.
