@@ -17,19 +17,20 @@ class PulpPythonPluginAppConfig(PulpPluginAppConfig):
     domain_compatible = True
 
     def ready(self):
-        """Register PyPI access policy hook."""
+        """Register access policies for explicitly routed endpoints."""
         super().ready()
         post_migrate.connect(
-            _populate_pypi_access_policies,
+            _populate_extra_access_policies,
             sender=self,
             dispatch_uid="populate_pypi_access_policies_identifier",
         )
 
 
 # TODO: Remove this when https://github.com/pulp/pulpcore/issues/5500 is resolved
-def _populate_pypi_access_policies(sender, apps, verbosity, **kwargs):
+def _populate_extra_access_policies(sender, apps, verbosity, **kwargs):
     from pulp_python.app.pypi.feeds import FeedView
     from pulp_python.app.pypi.views import MetadataView, PyPIView, SimpleView, UploadView
+    from pulp_python.app.viewsets import PythonRepositoryPackageViewSet
 
     try:
         AccessPolicy = apps.get_model("core", "AccessPolicy")
@@ -38,10 +39,19 @@ def _populate_pypi_access_policies(sender, apps, verbosity, **kwargs):
             print(_("AccessPolicy model does not exist. Skipping initialization."))
         return
 
-    for viewset in (PyPIView, SimpleView, UploadView, MetadataView, FeedView):
+    for viewset in (
+        PyPIView,
+        SimpleView,
+        UploadView,
+        MetadataView,
+        FeedView,
+        PythonRepositoryPackageViewSet,
+    ):
         access_policy = getattr(viewset, "DEFAULT_ACCESS_POLICY", None)
         if access_policy is not None:
             viewset_name = viewset.urlpattern()
+            if parent := getattr(viewset, "parent_viewset", None):
+                viewset_name = f"{parent.urlpattern()}/{viewset_name}"
             db_access_policy, created = AccessPolicy.objects.get_or_create(
                 viewset_name=viewset_name, defaults=access_policy
             )

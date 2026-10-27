@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.urls import path
 
+from pulpcore.plugin.find_url import find_api_root
+
 from pulp_python.app.pypi.feeds import FeedView
 from pulp_python.app.pypi.views import (
     MetadataView,
@@ -10,6 +12,7 @@ from pulp_python.app.pypi.views import (
     UploadView,
     YankView,
 )
+from pulp_python.app.viewsets import PythonRepositoryPackageViewSet
 
 if settings.DOMAIN_ENABLED:
     PYPI_API_URL = "/<slug:pulp_domain>/<path:path>/"
@@ -61,3 +64,15 @@ urlpatterns = [
     ),
     path(PYPI_API_URL, PyPIView.as_view({"get": "retrieve"}), name="pypi-detail"),
 ]
+
+
+_, api_root = find_api_root(
+    lstrip=True, version="<str:version>" if getattr(settings, "ENABLE_V4_API", False) else "v3"
+)
+urlpatterns.append(
+    path(
+        f"{api_root}repositories/python/python/<uuid:repository_pk>/packages/",
+        PythonRepositoryPackageViewSet.as_view({"get": "list"}),
+        name="python-repository-packages-list",
+    )
+)

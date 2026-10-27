@@ -42,12 +42,15 @@ def _assert_package_row(pkg):
         assert item["version"]
 
 
-def _write_sdist(directory, name, version):
+def _write_sdist(directory, name, version, license_expression=""):
     """Write a minimal sdist whose PKG-INFO Name/Version pkginfo can read."""
     pkg_dir = f"{name}-{version}"
     filename = f"{pkg_dir}.tar.gz"
     path = directory / filename
-    pkg_info = f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n".encode()
+    pkg_info = (
+        f"Metadata-Version: 2.4\nName: {name}\nVersion: {version}\n"
+        f"License-Expression: {license_expression}\n\n{name} {version} description\n"
+    ).encode()
     with tarfile.open(path, "w:gz") as tar:
         info = tarfile.TarInfo(name=f"{pkg_dir}/PKG-INFO")
         info.size = len(pkg_info)
@@ -55,8 +58,10 @@ def _write_sdist(directory, name, version):
     return filename, str(path)
 
 
-def _add_sdist(python_content_factory, python_bindings, tmp_path, repo, name, version):
-    filename, path = _write_sdist(tmp_path, name, version)
+def _add_sdist(
+    python_content_factory, python_bindings, tmp_path, repo, name, version, license_expression=""
+):
+    filename, path = _write_sdist(tmp_path, name, version, license_expression)
     python_content_factory(relative_path=filename, file=path, repository=repo)
     return python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
 
@@ -166,6 +171,31 @@ def test_package_list_version_order(
     pkg = data["results"][0]
     _assert_package_row(pkg)
     assert [item["version"] for item in pkg["versions"]] == ["1.10", "1.9", "1.2"]
+
+
+@pytest.mark.parallel
+def test_package_list_version_metadata(
+    python_bindings, python_content_factory, python_repo_factory, tmp_path
+):
+    """Metadata follows version precedence and remains scoped to the selected snapshot."""
+    repo = python_repo_factory()
+    name = f"metadata-{uuid.uuid4().hex[:8]}"
+    repo = _add_sdist(
+        python_content_factory, python_bindings, tmp_path, repo, name, "2.0", "Apache-2.0"
+    )
+    historical_href = repo.latest_version_href
+    repo = _add_sdist(python_content_factory, python_bindings, tmp_path, repo, name, "1.0", "MIT")
+    packages = python_bindings.RepositoriesPythonPackagesApi
+    latest = packages.list(repo.pulp_href).results[0]
+    assert latest.description.strip() == f"{name} 2.0 description"
+    assert [(item.version, item.license_expression) for item in latest.versions] == [
+        ("2.0", "Apache-2.0"),
+        ("1.0", "MIT"),
+    ]
+    historical = packages.list(repo.pulp_href, repository_version=historical_href).results[0]
+    assert [(item.version, item.license_expression) for item in historical.versions] == [
+        ("2.0", "Apache-2.0"),
+    ]
 
 
 @pytest.mark.parallel

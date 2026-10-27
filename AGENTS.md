@@ -30,11 +30,6 @@ oci-env test --help # run the functional/unit tests
 oci-env pulpcore-manager  # run any pulpcore or Django commands
 ```
 
-The package catalog viewset uses repository membership as its registered model. Registering a
-second viewset for `PythonPackageContent` prevents pulpcore from resolving content URLs, because
-its model-to-viewset lookup requires a unique viewset per model. Nested parent lookups also
-need an explicit domain check when `get_queryset()` bypasses the default domain filtering.
-
 ## Running/Writing tests
 
 Prefer writing functional tests for new changes/bugfixes and only fallback on unit tests when the change is not easily testable through the API.
