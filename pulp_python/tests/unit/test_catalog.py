@@ -5,8 +5,9 @@ import uuid
 
 import pytest
 from django.db import connection
+from rest_framework.test import APIRequestFactory, force_authenticate
 
-from pulpcore.plugin.models import RepositoryContent
+from pulpcore.plugin.models import RepositoryContent, RepositoryVersion
 
 from pulp_python.app.catalog import (
     assemble_package_index,
@@ -14,6 +15,7 @@ from pulp_python.app.catalog import (
     python_packages_in_version,
 )
 from pulp_python.app.models import PythonPackageContent, PythonRepository
+from pulp_python.app.viewsets import PythonRepositoryPackageViewSet
 
 _UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
@@ -40,7 +42,7 @@ _EMPTY_TEXT = (
 
 
 def _bound_id_count(sql):
-    """How many ids the statement binds, whether mogrified or left as ``%s``."""
+    """How many ids the statement binds, whether mogrified or left as `%s`."""
     lowered = sql.lower()
     return max(len(_UUID_RE.findall(lowered)), lowered.count("%s"))
 
@@ -59,12 +61,7 @@ def _create_package(name, version):
 
 @pytest.mark.django_db
 def test_package_list_sql_does_not_expand_content_ids():
-    """The package index must filter through RepositoryContent, not content_ids.
-
-    A paged list used to inline every content UUID in the version. The name
-    page is a distinct name_normalized query. File rows for that page are
-    loaded through the membership subquery.
-    """
+    """Keep snapshot content IDs in the database while paginating package names."""
     repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
     created = [
         _create_package(name, f"1.0.{number}")
@@ -76,7 +73,7 @@ def test_package_list_sql_does_not_expand_content_ids():
             PythonPackageContent.objects.filter(pk__in=[item.pk for item in created])
         )
 
-    repo_version = repository.versions.complete().defer("content_ids").latest()
+    repo_version = repository.latest_version()
     content_count = RepositoryContent.objects.filter(
         repository_id=repository.pk, version_removed__isnull=True
     ).count()
@@ -109,7 +106,7 @@ def test_package_list_sql_does_not_expand_content_ids():
     membership_sql = [
         sql
         for sql in count_sqls + default_sqls + assembled
-        if "core_repositorycontent" in sql.lower()
+        if "core_repositoryversion" in sql.lower()
     ]
     assert membership_sql
     for sql in membership_sql:
@@ -123,3 +120,26 @@ def test_package_list_sql_does_not_expand_content_ids():
     assert "max(" not in default_sql.lower()
     assert "distinct" in default_sql.lower()
     assert "limit" in default_sql.lower()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("explicit", [True, False])
+def test_package_list_incomplete_version(django_user_model, explicit):
+    """Reject an explicit incomplete snapshot and ignore it when selecting the latest."""
+    repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
+    incomplete = RepositoryVersion.objects.create(repository=repository, number=1, complete=False)
+    user = django_user_model.objects.create(username=str(uuid.uuid4()), is_superuser=True)
+    params = (
+        {"repository_version": f"prn:core.repositoryversion:{incomplete.pk}"} if explicit else {}
+    )
+    request = APIRequestFactory().get("/", params)
+    force_authenticate(request, user=user)
+    response = PythonRepositoryPackageViewSet.as_view({"get": "list"})(
+        request, repository_pk=str(repository.pk)
+    )
+    assert response.status_code == (400 if explicit else 200)
+    if explicit:
+        assert "complete" in str(response.data["repository_version"])
+    else:
+        assert response.data["count"] == 0
+        assert response.data["results"] == []

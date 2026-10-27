@@ -2,7 +2,7 @@
 
 The package list returns **one row per package name**. It defaults to the
 repository's latest complete version. Pass `repository_version` (HREF or PRN)
-to read an older snapshot. `{pulp_id}` is the repository UUID.
+to read an older snapshot. `${REPO_PK}` is the repository UUID.
 
 ## List packages
 
@@ -41,4 +41,9 @@ own entry because the stored version differs.
 
 Results are ordered by `name_normalized`. Within a package, versions are newest
 first. Page with `limit` and `offset` to read the whole catalog. Pass
-`repository_version` when the export must stay on one snapshot.
+`repository_version` when the export must stay on one snapshot. The selected version
+must belong to this repository and be complete.
+
+Filter names with `name_normalized`, `name_normalized__icontains`, or
+`name_normalized__istartswith`. Use `ordering=-name_normalized` to list names
+in descending order.

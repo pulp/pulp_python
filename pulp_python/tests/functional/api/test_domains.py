@@ -92,7 +92,7 @@ def _catalog_api_get(bindings_cfg, path, **params):
 
 
 @pytest.mark.parallel
-def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_factory):
+def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_factory, gen_user):
     """Domain-prefixed repository and repository_version hrefs, including PRN."""
     domain = domain_factory()
     repo = python_repo_factory(pulp_domain=domain.name)
@@ -113,6 +113,20 @@ def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_facto
     )
     assert by_prn["count"] == 0
     assert version["prn"].startswith("prn:core.repositoryversion:")
+
+    default_path = f"{repo.pulp_href}packages/".replace(f"/{domain.name}/api/", "/default/api/")
+    response = requests.get(
+        urljoin(bindings_cfg.host, default_path),
+        auth=(bindings_cfg.username, bindings_cfg.password),
+    )
+    assert response.status_code == 404, response.text
+
+    viewer = gen_user(domain_roles=[("python.pythonrepository_viewer", domain.pulp_href)])
+    response = requests.get(
+        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
+        auth=(viewer.username, viewer.password),
+    )
+    assert response.status_code == 200, response.text
 
 
 @pytest.mark.parallel
