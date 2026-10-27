@@ -1,7 +1,4 @@
-"""Catalog API tests.
-
-Generated client methods are unavailable until `oci-env generate-client` is rerun.
-"""
+"""Catalog API tests."""
 
 import io
 import tarfile
@@ -97,11 +94,11 @@ def test_package_list_grouping_and_pagination(bindings_cfg, sm_repo):
 
 
 @pytest.mark.parallel
-def test_package_list_empty_repository(bindings_cfg, python_repo_factory):
+def test_package_list_empty_repository(python_bindings, python_repo_factory):
     repo = python_repo_factory()
-    data = _api_get(bindings_cfg, f"{repo.pulp_href}packages/")
-    assert data["count"] == 0
-    assert data["results"] == []
+    data = python_bindings.RepositoriesPythonPackagesApi.list(repo.pulp_href)
+    assert data.count == 0
+    assert data.results == []
 
 
 @pytest.mark.parallel
@@ -181,10 +178,15 @@ def test_package_list_keeps_stored_versions(
     name = f"pkg-{suffix}"
 
     repo = _add_sdist(python_content_factory, python_bindings, tmp_path, repo, name, "2.0.0")
+    original_version = repo.latest_version_href
     repo = _add_sdist(python_content_factory, python_bindings, tmp_path, repo, name, "1.0.0+test.3")
     row = _api_get(bindings_cfg, f"{repo.pulp_href}packages/")["results"][0]
     _assert_package_row(row)
     assert [item["version"] for item in row["versions"]] == ["2.0.0", "1.0.0+test.3"]
+    historical = _api_get(
+        bindings_cfg, f"{repo.pulp_href}packages/", repository_version=original_version
+    )["results"][0]
+    assert [item["version"] for item in historical["versions"]] == ["2.0.0"]
 
 
 @pytest.mark.parallel
@@ -209,3 +211,77 @@ def test_package_list_keeps_rebuild_version_string(
     pkg = pkgs["results"][0]
     _assert_package_row(pkg)
     assert {item["version"] for item in pkg["versions"]} == {"5.3.17", "5.3.17+test.1.n1"}
+
+
+@pytest.mark.parallel
+def test_package_list_filters_and_ordering(bindings_cfg, sm_repo):
+    """Name filters and ordering apply to packages within the selected snapshot."""
+    path = f"{sm_repo.pulp_href}packages/"
+    for params in (
+        {"name_normalized": "django"},
+        {"name_normalized__istartswith": "DJAN"},
+        {"name_normalized__icontains": "JANG"},
+        {"name_normalized__in": "django,absent"},
+    ):
+        data = _api_get(bindings_cfg, path, **params)
+        assert data["count"] == 1
+        assert [row["name_normalized"] for row in data["results"]] == ["django"]
+    data = _api_get(bindings_cfg, path, ordering="-name_normalized", limit=2)
+    assert data["count"] == 3
+    assert [row["name_normalized"] for row in data["results"]] == ["django", "celery"]
+    data = _api_get(bindings_cfg, path, ordering="-name_normalized", limit=2, offset=2)
+    assert [row["name_normalized"] for row in data["results"]] == ["aiohttp"]
+
+
+@pytest.mark.parallel
+@pytest.mark.parametrize("selector", ["invalid", "repository", "missing", "wrong_type_prn"])
+def test_package_list_invalid_version(bindings_cfg, python_repo_factory, selector):
+    """Malformed, missing, and non-version resources return a validation error."""
+    repo = python_repo_factory()
+    selectors = {
+        "invalid": "/not-a-pulp-resource/",
+        "repository": repo.pulp_href,
+        "missing": f"{repo.pulp_href}versions/999/",
+        "wrong_type_prn": repo.prn,
+    }
+    response = requests.get(
+        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
+        params={"repository_version": selectors[selector]},
+        auth=(bindings_cfg.username, bindings_cfg.password),
+    )
+    assert response.status_code == 400, response.text
+    assert "repository_version" in response.json()
+
+
+@pytest.mark.parallel
+def test_package_list_permissions(bindings_cfg, python_repo_factory, gen_user):
+    """Catalog access requires view permission on the parent repository."""
+    repo = python_repo_factory()
+    other = python_repo_factory()
+    user = gen_user()
+    viewer = gen_user(object_roles=[("python.pythonrepository_viewer", repo.pulp_href)])
+    model_viewer = gen_user(model_roles=["python.pythonrepository_viewer"])
+    for actor, repository, status in (
+        (user, repo, 403),
+        (viewer, repo, 200),
+        (viewer, other, 403),
+        (model_viewer, other, 200),
+    ):
+        response = requests.get(
+            urljoin(bindings_cfg.host, f"{repository.pulp_href}packages/"),
+            auth=(actor.username, actor.password),
+        )
+        assert response.status_code == status, response.text
+
+    response = requests.post(
+        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
+        json={},
+        auth=(bindings_cfg.username, bindings_cfg.password),
+    )
+    assert response.status_code == 405, response.text
+
+    response = requests.get(
+        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
+        auth=("", ""),
+    )
+    assert response.status_code == 401, response.text
