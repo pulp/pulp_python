@@ -1,13 +1,13 @@
 """Unit tests for the repository package index helpers."""
 
-import re
 import uuid
 
 import pytest
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from pulpcore.plugin.models import RepositoryContent, RepositoryVersion
+from pulpcore.plugin.models import RepositoryVersion
 
 from pulp_python.app.catalog import (
     assemble_package_index,
@@ -16,8 +16,6 @@ from pulp_python.app.catalog import (
 )
 from pulp_python.app.models import PythonPackageContent, PythonRepository
 from pulp_python.app.viewsets import PythonRepositoryPackageViewSet
-
-_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 _EMPTY_TEXT = (
     "author",
@@ -41,12 +39,6 @@ _EMPTY_TEXT = (
 )
 
 
-def _bound_id_count(sql):
-    """How many ids the statement binds, whether mogrified or left as `%s`."""
-    lowered = sql.lower()
-    return max(len(_UUID_RE.findall(lowered)), lowered.count("%s"))
-
-
 def _create_package(name, version):
     fields = {field: "" for field in _EMPTY_TEXT}
     fields.update(
@@ -55,13 +47,14 @@ def _create_package(name, version):
         filename=f"{name}-{version}.tar.gz",
         packagetype="sdist",
         sha256=uuid.uuid4().hex + uuid.uuid4().hex,
+        description=f"{name} {version} description",
     )
     return PythonPackageContent.objects.create(**fields)
 
 
 @pytest.mark.django_db
-def test_package_list_sql_does_not_expand_content_ids():
-    """Keep snapshot content IDs in the database while paginating package names."""
+def test_package_list_pagination_and_deferred_metadata(django_assert_num_queries):
+    """Page distinct names and load large metadata only for the newest version."""
     repository = PythonRepository.objects.create(name=str(uuid.uuid4()))
     created = [
         _create_package(name, f"1.0.{number}")
@@ -74,52 +67,30 @@ def test_package_list_sql_does_not_expand_content_ids():
         )
 
     repo_version = repository.latest_version()
-    content_count = RepositoryContent.objects.filter(
-        repository_id=repository.pk, version_removed__isnull=True
-    ).count()
     content_qs = python_packages_in_version(repo_version)
-    default_qs = distinct_package_names_qs(content_qs)
-    count_qs = content_qs.order_by().values("name_normalized").distinct()
+    names_qs = distinct_package_names_qs(content_qs)
 
-    connection.force_debug_cursor = True
-    start = len(connection.queries)
-
-    def _since():
-        nonlocal start
-        sqls = [query["sql"] for query in connection.queries[start:]]
-        start = len(connection.queries)
-        return sqls
-
-    try:
-        count_qs.count()
-        count_sqls = _since()
-        page = list(default_qs[:20])
-        default_sqls = _since()
+    with django_assert_num_queries(1):
+        assert names_qs.count() == 4
+    with django_assert_num_queries(1):
+        page = list(names_qs[:2])
+    with CaptureQueriesContext(connection) as queries:
         rows = assemble_package_index(content_qs, page, repo_version)
-        assembled = _since()
-    finally:
-        connection.force_debug_cursor = False
 
-    assert rows
-    assert rows[0]["versions"]
-    assert content_count == len(created)
-    membership_sql = [
-        sql
-        for sql in count_sqls + default_sqls + assembled
-        if "core_repositoryversion" in sql.lower()
+    assert [row["name_normalized"] for row in rows] == ["alpha", "beta"]
+    for row in rows:
+        assert [item["version"] for item in row["versions"]] == [
+            f"1.0.{number}" for number in reversed(range(5))
+        ]
+        assert row["description"] == f"{row['name_normalized']} 1.0.4 description"
+
+    bulk_select = queries[0]["sql"].split(" FROM ", 1)[0]
+    for field in ("description", "classifiers", "requires_dist", "project_urls", "license_file"):
+        assert f'"{field}"' not in bulk_select
+    description_queries = [
+        query for query in queries if '"description"' in query["sql"].split(" FROM ", 1)[0]
     ]
-    assert membership_sql
-    for sql in membership_sql:
-        lowered = sql.lower()
-        assert "content_id" in lowered, sql
-        assert _bound_id_count(sql) < content_count, sql
-    assert len(count_sqls) == 1, count_sqls
-    assert len(default_sqls) == 1, default_sqls
-    count_sql, default_sql = count_sqls[0], default_sqls[0]
-    assert "max(" not in count_sql.lower()
-    assert "max(" not in default_sql.lower()
-    assert "distinct" in default_sql.lower()
-    assert "limit" in default_sql.lower()
+    assert len(description_queries) == len(rows)
 
 
 @pytest.mark.django_db

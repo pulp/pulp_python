@@ -55,6 +55,7 @@ def assemble_package_index(content_qs, name_rows, repository_version):
     # DISTINCT ON keeps the first row for each name and stored version.
     units = (
         content_qs.filter(name_normalized__in=names)
+        .defer("description", "classifiers", "requires_dist", "project_urls", "license_file")
         .order_by(
             "name_normalized",
             "version",
