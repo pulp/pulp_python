@@ -208,36 +208,43 @@ def test_pull_through_filtering_bad_names(python_remote_factory, python_distribu
 @pytest.mark.parallel
 def test_pull_through_metadata(python_remote_factory, python_distribution_factory):
     """
-    Tests that metadata is correctly served when using pull-through.
+    Tests that a pull-through link announces no metadata, but the metadata is still served.
 
-    So when requesting the metadata url according to PEP 658 you should just need to add .metadata
-    to the end of the url path. Since pull-through includes a redirect query parameter we need to
-    test adding .metadata to the end of the url path vs adding it to the end of redirect query.
+    pip asks for PEP 658 metadata by appending ".metadata" to the end of the url, which puts it
+    into the redirect query parameter and leaves the path naming the package. Once the package
+    is in a repository, that request is answered with the package by its path, so the link must
+    not announce metadata. A client holding an older page still gets the metadata either way.
     """
     remote = python_remote_factory(includes=["pytz"])
     distro = python_distribution_factory(remote=remote.pulp_href)
 
     url = f"{distro.base_url}simple/pytz/"
     project_page = ProjectPage.from_response(requests.get(url), "pytz")
+    upstream_page = ProjectPage.from_response(
+        requests.get(urljoin(PYPI_URL, "simple/pytz/")), "pytz"
+    )
     filename1 = "pytz-2023.2-py2.py3-none-any.whl"
     filename2 = "pytz-2023.3-py2.py3-none-any.whl"
     package1 = next(p for p in project_page.packages if p.filename == filename1)
     package2 = next(p for p in project_page.packages if p.filename == filename2)
-    assert package1.has_metadata
-    assert package2.has_metadata
+    assert "?redirect=" in package1.url
+    assert not package1.has_metadata
+    assert not package2.has_metadata
+    upstream1 = next(p for p in upstream_page.packages if p.filename == filename1)
+    upstream2 = next(p for p in upstream_page.packages if p.filename == filename2)
 
-    # The correct way to get the metadata url: add to path (uv does this)
+    # Adding .metadata to the url path (uv does this)
     parts1 = urlsplit(package1.url)
     url1 = urlunsplit((parts1[0], parts1[1], parts1[2] + ".metadata", parts1[3], parts1[4]))
     r = requests.get(url1)
     assert r.status_code == 200
-    assert sha256(r.content).hexdigest() == package1.metadata_digests["sha256"]
+    assert sha256(r.content).hexdigest() == upstream1.metadata_digests["sha256"]
 
-    # The incorrect way to get the metadata url: add to end of string (pip does this)
+    # Adding .metadata to the end of the url (pip does this)
     url2 = package2.url + ".metadata"
     r = requests.get(url2)
     assert r.status_code == 200
-    assert sha256(r.content).hexdigest() == package2.metadata_digests["sha256"]
+    assert sha256(r.content).hexdigest() == upstream2.metadata_digests["sha256"]
 
 
 @pytest.mark.parallel
@@ -247,7 +254,7 @@ def test_pull_through_metadata_with_repo(
     python_distribution_factory,
     pulpcore_bindings,
 ):
-    """Tests that metadata is correctly saved when using pull-through with a repository."""
+    """Tests that metadata is correctly saved and announced when using pull-through with a repo."""
     remote = python_remote_factory(url=PYPI_URL, includes=["pip"])
     repo = python_repo_factory()
     distro = python_distribution_factory(repository=repo.pulp_href, remote=remote.pulp_href)
@@ -256,32 +263,36 @@ def test_pull_through_metadata_with_repo(
     project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
     filename = "pip-26.0.1-py3-none-any.whl"
     package = next(p for p in project_page.packages if p.filename == filename)
-    assert package.has_metadata
     assert "?redirect=" in package.url
+    assert not package.has_metadata
+    upstream_page = ProjectPage.from_response(requests.get(urljoin(PYPI_URL, "simple/pip/")), "pip")
+    upstream = next(p for p in upstream_page.packages if p.filename == filename)
+    metadata_sha256 = upstream.metadata_digests["sha256"]
 
     # Retrieve the metadata and assert the content was not saved to the repository
     parts = urlsplit(package.url)
     url = urlunsplit((parts[0], parts[1], parts[2] + ".metadata", parts[3], parts[4]))
     r = requests.get(url)
     assert r.status_code == 200
-    assert sha256(r.content).hexdigest() == package.metadata_digests["sha256"]
+    assert sha256(r.content).hexdigest() == metadata_sha256
     project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
     package = next(p for p in project_page.packages if p.filename == filename)
-    assert package.has_metadata
     assert "?redirect=" in package.url
+    assert not package.has_metadata
 
     # Now retrieve the package and assert the content was saved with metadata
     r = requests.get(package.url)
     assert r.status_code == 200
     pa = pulpcore_bindings.ArtifactsApi.list(sha256=package.digests["sha256"])
     assert pa.count == 1
-    ma = pulpcore_bindings.ArtifactsApi.list(sha256=package.metadata_digests["sha256"])
+    ma = pulpcore_bindings.ArtifactsApi.list(sha256=metadata_sha256)
     assert ma.count == 1
 
-    # Check the simple page is updated to point to the local repository
+    # Check the simple page is updated to point to the local repository, with the metadata
     project_page = ProjectPage.from_response(requests.get(pip_url), "pip")
     package = next(p for p in project_page.packages if p.filename == filename)
     assert "?redirect=" not in package.url
+    assert package.metadata_digests["sha256"] == metadata_sha256
     r = requests.get(package.metadata_url)
     assert r.status_code == 200
-    assert sha256(r.content).hexdigest() == package.metadata_digests["sha256"]
+    assert sha256(r.content).hexdigest() == metadata_sha256
