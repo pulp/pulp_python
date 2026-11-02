@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.38.0 (2026-11-02) {: #3.38.0 }
+
+#### Features {: #3.38.0-feature }
+
+- Added custom (non-PEP 740) support for verifying attestations signed with a per-domain public key configured via `ATTESTATION_VERIFICATION_KEYS`.
+  [#1340](https://github.com/pulp/pulp_python/issues/1340)
+
+#### Bugfixes {: #3.38.0-bugfix }
+
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
+
+---
+
 ## 3.37.1 (2026-10-08) {: #3.37.1 }
 
 #### Bugfixes {: #3.37.1-bugfix }
