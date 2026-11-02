@@ -21,12 +21,12 @@ deploy_to_pypi: true
 disabled_redis_runners: []
 docker_fixtures: false
 extra_files:
-  - origin: "pulp_python/.ci/assets/keys/test-key.pem"
-    destination: "/etc/pki/attestation/test-key.pem"
-  - origin: "pulp_python/.ci/assets/keys/test-key-private.pem"
-    destination: "/etc/pki/attestation/test-key-private.pem"
+  - destination: "/etc/pki/attestation/test-key.pem"
+    origin: "pulp_python/.ci/assets/keys/test-key.pem"
+  - destination: "/etc/pki/attestation/test-key-private.pem"
+    origin: "pulp_python/.ci/assets/keys/test-key-private.pem"
 github_org: "pulp"
-latest_release_branch: "3.37"
+latest_release_branch: "3.38"
 lint_ignore: []
 lint_requirements: true
 os_required_packages: []
@@ -46,9 +46,9 @@ pulp_settings:
   allowed_export_paths: "/tmp"
   allowed_import_paths: "/tmp"
   api_root: "/pulp/"
-  orphan_protection_time: 0
   attestation_verification_keys:
     default: "/etc/pki/attestation/test-key.pem"
+  orphan_protection_time: 0
   pypi_api_hostname: "https://pulp:443"
 pulp_settings_azure:
   MEDIA_ROOT: ""
