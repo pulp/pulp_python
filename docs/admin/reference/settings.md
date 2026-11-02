@@ -2,6 +2,12 @@
 
 `pulp_python` adds configuration options to those offered by `pulpcore`.
 
+## ATTESTATION_VERIFICATION_KEYS
+
+> A mapping of domain names to PEM public key files used to verify attestations signed with a
+> custom key. See [Custom Key Verification](site:pulp_python/docs/user/guides/attestation/) for
+> details. Defaults to `{}`.
+
 ## PYTHON_GROUP_UPLOADS
 
 > This setting controls whether the uploading of packages through the PyPI APIs can be grouped
