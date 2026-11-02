@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.36.5 (2026-11-02) {: #3.36.5 }
+
+#### Bugfixes {: #3.36.5-bugfix }
+
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
+
+---
+
 ## 3.36.4 (2026-10-08) {: #3.36.4 }
 
 #### Bugfixes {: #3.36.4-bugfix }
