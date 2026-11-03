@@ -641,6 +641,57 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
         model = python_models.PythonPackageContent
 
 
+class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
+    """One stored version of a package."""
+
+    version = serializers.CharField(help_text=_("The package's version number."))
+    license_expression = serializers.CharField(
+        allow_blank=True,
+        help_text=_("Text string that is a valid SPDX license expression."),
+    )
+
+
+class PythonRepositoryPackageSerializer(serializers.Serializer):
+    """One distinct package name and its stored versions."""
+
+    name = serializers.CharField(
+        help_text=_("A project name stored on one of this package's files."),
+    )
+    name_normalized = serializers.CharField(
+        help_text=_("PEP 503 normalized package name. Index rows are unique on this field."),
+    )
+    summary = serializers.CharField(
+        allow_blank=True,
+        help_text=_("A one-line summary of what the package does."),
+    )
+    description = serializers.CharField(
+        allow_blank=True,
+        help_text=_("A longer description of the package that can run to several paragraphs."),
+    )
+    author = serializers.CharField(
+        allow_blank=True,
+        help_text=_(
+            "Text containing the author's name. Contact information can also be added,"
+            " separated with newlines."
+        ),
+    )
+    author_email = serializers.CharField(
+        allow_blank=True,
+        help_text=_("The author's e-mail address."),
+    )
+    license = serializers.CharField(
+        allow_blank=True,
+        help_text=_("Text indicating the license covering the distribution."),
+    )
+    versions = PythonRepositoryPackageVersionSerializer(
+        many=True,
+        help_text=_(
+            "One entry per stored version, newest first. A wheel and an sdist of the "
+            "same version are one entry. Version strings are unchanged."
+        ),
+    )
+
+
 class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerializer):
     """
     A Serializer for PackageProvenance.

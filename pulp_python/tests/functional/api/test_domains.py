@@ -1,9 +1,10 @@
 import json
 import subprocess
 import uuid
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import pytest
+import requests
 
 from pulpcore.app import settings  # noqa: TID251
 
@@ -81,6 +82,37 @@ def test_domain_object_creation(
     assert json.loads(e.value.body) == {
         "non_field_errors": ["Objects must all be a part of the default domain."]
     }
+
+
+def _catalog_api_get(bindings_cfg, path, **params):
+    url = urljoin(bindings_cfg.host + "/", path.lstrip("/"))
+    response = requests.get(url, params=params, auth=(bindings_cfg.username, bindings_cfg.password))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.mark.parallel
+def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_factory):
+    """Domain-prefixed repository and repository_version hrefs, including PRN."""
+    domain = domain_factory()
+    repo = python_repo_factory(pulp_domain=domain.name)
+    assert f"{domain.name}/api/" in repo.pulp_href
+    assert f"{domain.name}/api/" in repo.latest_version_href
+
+    pkgs = _catalog_api_get(bindings_cfg, f"{repo.pulp_href}packages/")
+    assert pkgs["count"] == 0
+    assert pkgs["results"] == []
+
+    by_href = _catalog_api_get(
+        bindings_cfg, f"{repo.pulp_href}packages/", repository_version=repo.latest_version_href
+    )
+    assert by_href["count"] == 0
+    version = _catalog_api_get(bindings_cfg, repo.latest_version_href)
+    by_prn = _catalog_api_get(
+        bindings_cfg, f"{repo.pulp_href}packages/", repository_version=version["prn"]
+    )
+    assert by_prn["count"] == 0
+    assert version["prn"].startswith("prn:core.repositoryversion:")
 
 
 @pytest.mark.parallel
