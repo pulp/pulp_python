@@ -56,6 +56,8 @@ from pulp_python.app.utils import (
     get_remote_package_filter,
     get_remote_simple_page,
     python_content_to_json,
+    sign_pull_through_path,
+    store_pull_through_entries,
     write_simple_detail,
     write_simple_detail_json,
     write_simple_index,
@@ -368,11 +370,22 @@ class SimpleView(PackageUploadMixin, ViewSet):
     def pull_through_package_simple(self, package, path, remote):
         """Gets the package's simple page from remote."""
 
-        def parse_package(release_package):
+        def upstream_url(release_package):
             parsed = urlparse(release_package.url)
-            stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
-            redirect_path = f"{path}/{release_package.filename}?redirect={stripped_url}"
-            d_url = urljoin(self.base_content_url, redirect_path)
+            return urlunsplit(chain(parsed[:3], ("", "")))
+
+        def parse_package(release_package, stored):
+            if stored:
+                pt_path = release_package.filename
+            else:
+                pt_path = sign_pull_through_path(
+                    remote,
+                    release_package.filename,
+                    upstream_url(release_package),
+                    sha256=release_package.digests.get("sha256"),
+                    metadata_sha256=(release_package.metadata_digests or {}).get("sha256"),
+                )
+            d_url = urljoin(self.base_content_url, f"{path}/{pt_path}")
             return {
                 "filename": release_package.filename,
                 "url": d_url,
@@ -395,11 +408,19 @@ class SimpleView(PackageUploadMixin, ViewSet):
         if not page:
             log.info(f"Failed to fetch {package} simple page from {remote.url}")
             return {}
-        return {
-            p.filename: parse_package(p)
-            for p in page.packages
-            if rfilter.filter_release(package, p.version)
-        }
+        packages = [p for p in page.packages if rfilter.filter_release(package, p.version)]
+        stored = store_pull_through_entries(
+            remote,
+            {
+                p.filename: {
+                    "url": upstream_url(p),
+                    "sha256": p.digests.get("sha256"),
+                    "metadata_sha256": (p.metadata_digests or {}).get("sha256"),
+                }
+                for p in packages
+            },
+        )
+        return {p.filename: parse_package(p, stored) for p in packages}
 
     @extend_schema(operation_id="pypi_simple_package_read", summary="Get package simple page")
     @method_decorator(cache_control(max_age=600, public=True))
