@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.38.0 (2026-11-02) {: #3.38.0 }
+
+#### Features {: #3.38.0-feature }
+
+- Added custom (non-PEP 740) support for verifying attestations signed with a per-domain public key configured via `ATTESTATION_VERIFICATION_KEYS`.
+  [#1340](https://github.com/pulp/pulp_python/issues/1340)
+
+#### Bugfixes {: #3.38.0-bugfix }
+
+- Fixed quoting mistake in simple html index pages that can lead to a possible XSS attack given a carefully crafted package name. CVE-2026-103871
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
+
+---
+
 ## 3.37.1 (2026-10-08) {: #3.37.1 }
 
 #### Bugfixes {: #3.37.1-bugfix }
@@ -34,6 +48,14 @@
 - RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
   [#1381](https://github.com/pulp/pulp_python/issues/1381)
 - Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
+## 3.36.5 (2026-11-02) {: #3.36.5 }
+
+#### Bugfixes {: #3.36.5-bugfix }
+
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
 
 ---
 
@@ -269,6 +291,14 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.8 (2026-11-02) {: #3.27.8 }
+
+#### Bugfixes {: #3.27.8-bugfix }
+
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
 
 ---
 
@@ -531,6 +561,14 @@
 
 - Fixed publication error when package's dists contain differing versions of its name.
   [#907](https://github.com/pulp/pulp_python/issues/907)
+
+---
+
+## 3.19.6 (2026-11-02) {: #3.19.6 }
+
+#### Bugfixes {: #3.19.6-bugfix }
+
+- Remote include and exclude ranges accept matching prerelease versions without deprecation warnings.
 
 ---
 
