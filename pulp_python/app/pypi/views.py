@@ -56,6 +56,7 @@ from pulp_python.app.utils import (
     get_remote_package_filter,
     get_remote_simple_page,
     python_content_to_json,
+    repository_version_content,
     write_simple_detail,
     write_simple_detail_json,
     write_simple_index,
@@ -150,7 +151,7 @@ class PyPIMixin:
     @staticmethod
     def get_content(repository_version):
         """Returns queryset of the content in this repository version."""
-        return PythonPackageContent.objects.filter(pk__in=repository_version.content)
+        return repository_version_content(repository_version, PythonPackageContent.objects.all())
 
     @staticmethod
     def get_provenances(repository_version):
