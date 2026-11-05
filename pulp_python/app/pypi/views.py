@@ -150,7 +150,13 @@ class PyPIMixin:
     @staticmethod
     def get_content(repository_version):
         """Returns queryset of the content in this repository version."""
-        return PythonPackageContent.objects.filter(pk__in=repository_version.content)
+        return PythonPackageContent.objects.filter(
+            Exists(
+                repository_version._content_relationships().filter(
+                    content_id=OuterRef("pk")
+                )
+            )
+        )
 
     @staticmethod
     def get_provenances(repository_version):
