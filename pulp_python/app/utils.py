@@ -12,7 +12,7 @@ from datetime import timezone
 import pkginfo
 from aiohttp.client_exceptions import ClientError
 from django.conf import settings
-from django.db.models import F, FilteredRelation, Q
+from django.db.models import Exists, F, FilteredRelation, OuterRef, Q
 from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
@@ -35,6 +35,38 @@ PYPI_SERIAL_CONSTANT = 1000000000
 SUPPORTED_METADATA_VERSIONS = ("1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3", "2.4", "2.5")
 
 SIMPLE_API_VERSION = "1.1"
+
+PYPI_JSON_CONTENT_FIELDS = (
+    "author",
+    "author_email",
+    "classifiers",
+    "description",
+    "description_content_type",
+    "download_url",
+    "dynamic",
+    "filename",
+    "home_page",
+    "keywords",
+    "license",
+    "license_expression",
+    "license_file",
+    "maintainer",
+    "maintainer_email",
+    "name",
+    "packagetype",
+    "platform",
+    "project_url",
+    "project_urls",
+    "pulp_created",
+    "provides_extras",
+    "python_version",
+    "requires_dist",
+    "requires_python",
+    "sha256",
+    "size",
+    "summary",
+    "version",
+)
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
 
@@ -363,6 +395,17 @@ def fetch_json_release_metadata(name: str, version: str, remotes: set[Remote]) -
         raise Exception(f"Failed to fetch {url} from any remote.")
 
 
+def repository_version_content(repository_version, content_query):
+    """Restrict content query to content present in repository_version."""
+    return content_query.filter(
+        Exists(
+            repository_version._content_relationships().filter(
+                content_id=OuterRef("pk")
+            )
+        )
+    )
+
+
 def python_content_to_json(
     base_path,
     content_query,
@@ -385,6 +428,7 @@ def python_content_to_json(
     """
     if yank_markers is None:
         yank_markers = {}
+    content_query = content_query.only(*PYPI_JSON_CONTENT_FIELDS)
     if repository_version:
         content_query = content_query.annotate(
             active_membership=FilteredRelation(
