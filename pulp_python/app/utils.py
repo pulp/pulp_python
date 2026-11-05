@@ -12,7 +12,7 @@ from datetime import timezone
 import pkginfo
 from aiohttp.client_exceptions import ClientError
 from django.conf import settings
-from django.db.models import Exists, F, FilteredRelation, OuterRef, Q
+from django.db.models import F, FilteredRelation, Q
 from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
@@ -398,11 +398,13 @@ def fetch_json_release_metadata(name: str, version: str, remotes: set[Remote]) -
 def repository_version_content(repository_version, content_query):
     """Restrict content query to content present in repository_version."""
     return content_query.filter(
-        Exists(
-            repository_version._content_relationships().filter(
-                content_id=OuterRef("pk")
-            )
+        version_memberships__repository_id=repository_version.repository_id,
+        version_memberships__version_added__number__lte=repository_version.number,
+    ).filter(
+        Q(
+            version_memberships__version_removed__number__gt=repository_version.number
         )
+        | Q(version_memberships__version_removed__isnull=True)
     )
 
 
