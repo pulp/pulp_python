@@ -2,7 +2,7 @@
 
 from django import VERSION as DJANGO_VERSION
 from django.contrib.postgres.aggregates import JSONBAgg
-from django.db.models import Case, Func, IntegerField, JSONField, Value, When
+from django.db.models import Case, IntegerField, Value, When
 from packaging.version import InvalidVersion, Version
 
 from pulp_python.app.models import PythonPackageContent
@@ -17,7 +17,7 @@ def _version_sort_key(version):
 
 
 class PackageVersions(JSONBAgg):
-    """Map versions to [content ID, license expression], keeping the last file."""
+    """Map versions to values, keeping the last file."""
 
     function = "JSONB_OBJECT_AGG"
     arity = 2
@@ -27,11 +27,13 @@ def package_catalog_queryset(content, ordering=("name_normalized",)):
     """Group package names and load their representative versions in the same query.
 
     Wheel and sdist of the same `(name_normalized, version)` collapse to one
-    row. An sdist is preferred; otherwise the newest `pulp_created` is kept.
+    row. An sdist supplies metadata when available, while the newest file's
+    `pulp_created` supplies the update time.
     """
-    # The aggregate keeps the last file for each stored version.
+    # Each aggregate keeps the last file for each stored version.
+    ordering_argument = "order_by" if DJANGO_VERSION >= (5, 2) else "ordering"
     file_ordering = {
-        "order_by" if DJANGO_VERSION >= (5, 2) else "ordering": (
+        ordering_argument: (
             "version",
             Case(
                 When(packagetype="sdist", then=Value(1)),
@@ -48,14 +50,14 @@ def package_catalog_queryset(content, ordering=("name_normalized",)):
         .annotate(
             versions=PackageVersions(
                 "version",
-                Func(
-                    "pk",
-                    "license_expression",
-                    function="jsonb_build_array",
-                    output_field=JSONField(),
-                ),
+                "pulp_created",
+                **{ordering_argument: ("pulp_created",)},
+            ),
+            metadata_ids=PackageVersions(
+                "version",
+                "pk",
                 **file_ordering,
-            )
+            ),
         )
     )
 
@@ -68,8 +70,8 @@ def assemble_package_index(package_rows):
     for row in package_rows:
         row["versions"] = sorted(
             (
-                {"version": version, "pk": unit[0], "license_expression": unit[1]}
-                for version, unit in row["versions"].items()
+                {"version": version, "last_updated": updated}
+                for version, updated in row["versions"].items()
             ),
             key=lambda unit: (_version_sort_key(unit["version"]), unit["version"]),
             reverse=True,
@@ -87,18 +89,15 @@ def assemble_package_index(package_rows):
     metadata = {
         str(unit["pk"]): {field: unit[field] for field in fields}
         for unit in PythonPackageContent.objects.filter(
-            pk__in=[row["versions"][0]["pk"] for row in package_rows]
+            pk__in=[row["metadata_ids"][row["versions"][0]["version"]] for row in package_rows]
         )
         .order_by()
         .values("pk", *fields)
     }
     return [
         {
-            **metadata[row["versions"][0]["pk"]],
-            "versions": [
-                {"version": unit["version"], "license_expression": unit["license_expression"]}
-                for unit in row["versions"]
-            ],
+            **metadata[row["metadata_ids"][row["versions"][0]["version"]]],
+            "versions": row["versions"],
         }
         for row in package_rows
     ]

@@ -1,8 +1,8 @@
 # Browse the package catalog
 
-The package list returns **one row per package name**. It defaults to the
-repository's latest complete version. Pass `repository_version` (HREF or PRN)
-to read an older snapshot. `${REPO_PK}` is the repository UUID.
+The package list returns **one row per package name**. Use the repository URL
+to read its latest complete version, or a repository-version URL to read a
+specific complete snapshot. `${REPO_PK}` is the repository UUID.
 
 ## List packages
 
@@ -10,13 +10,21 @@ to read an older snapshot. `${REPO_PK}` is the repository UUID.
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/?limit=10"
 ```
 
+For a specific snapshot, `${VERSION_NUMBER}` is its repository version number:
+
+```bash
+http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/versions/${VERSION_NUMBER}/packages/?limit=10"
+```
+
 `count` is the number of distinct packages, not files. Each row is one package
 name. `summary`, `description`, `author`, `author_email`, and `license` come
-from the highest version in PEP 440 order. For each version, an sdist supplies
-the metadata when available; otherwise the most recently created content unit
-is used. `versions` has one entry per stored version string, newest first, with that version's `license_expression`. A wheel and an sdist
-of the same version are one entry. A rebuild such as `1.0.0+test.1` stays its
-own entry because the stored version differs.
+from the highest version in PEP 440 order. An sdist supplies the metadata when
+available; otherwise the most recently created content unit is used.
+`versions` has one entry per stored version string, newest first, with a
+`last_updated` timestamp for each version. This is the latest content creation
+time among that version's files in the selected snapshot, not the upstream
+release date. A wheel and an sdist of the same version are one entry. A rebuild
+such as `1.0.0+test.1` stays its own entry because the stored version differs.
 
 ```json
 {
@@ -33,7 +41,7 @@ own entry because the stored version differs.
       "author_email": "",
       "license": "",
       "versions": [
-        {"version": "0.1", "license_expression": ""}
+        {"version": "0.1", "last_updated": "2026-11-11T12:00:00Z"}
       ]
     }
   ]
@@ -41,9 +49,9 @@ own entry because the stored version differs.
 ```
 
 Results are ordered by `name_normalized`. Within a package, versions are newest
-first. Page with `limit` and `offset` to read the whole catalog. Pass
-`repository_version` when the export must stay on one snapshot. The selected version
-must belong to this repository and be complete.
+first. Page with `limit` and `offset` to read the whole catalog. Use the
+repository-version URL when the export must stay on one snapshot. Missing or
+incomplete snapshots return HTTP 404.
 
 Filter names with `name_normalized`, `name_normalized__icontains`, or
 `name_normalized__istartswith`. Use `ordering=-name_normalized` to list names

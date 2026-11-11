@@ -93,40 +93,30 @@ def _catalog_api_get(bindings_cfg, path, **params):
 
 @pytest.mark.parallel
 def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_factory, gen_user):
-    """Domain-prefixed repository and repository_version hrefs, including PRN."""
+    """Both catalog actions respect domain boundaries and repository permissions."""
     domain = domain_factory()
     repo = python_repo_factory(pulp_domain=domain.name)
     assert f"{domain.name}/api/" in repo.pulp_href
     assert f"{domain.name}/api/" in repo.latest_version_href
 
-    pkgs = _catalog_api_get(bindings_cfg, f"{repo.pulp_href}packages/")
-    assert pkgs["count"] == 0
-    assert pkgs["results"] == []
-
-    by_href = _catalog_api_get(
-        bindings_cfg, f"{repo.pulp_href}packages/", repository_version=repo.latest_version_href
-    )
-    assert by_href["count"] == 0
-    version = _catalog_api_get(bindings_cfg, repo.latest_version_href)
-    by_prn = _catalog_api_get(
-        bindings_cfg, f"{repo.pulp_href}packages/", repository_version=version["prn"]
-    )
-    assert by_prn["count"] == 0
-    assert version["prn"].startswith("prn:core.repositoryversion:")
-
-    default_path = f"{repo.pulp_href}packages/".replace(f"/{domain.name}/api/", "/default/api/")
-    response = requests.get(
-        urljoin(bindings_cfg.host, default_path),
-        auth=(bindings_cfg.username, bindings_cfg.password),
-    )
-    assert response.status_code == 404, response.text
-
     viewer = gen_user(domain_roles=[("python.pythonrepository_viewer", domain.pulp_href)])
-    response = requests.get(
-        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
-        auth=(viewer.username, viewer.password),
-    )
-    assert response.status_code == 200, response.text
+    for resource in (repo.pulp_href, repo.latest_version_href):
+        path = f"{resource}packages/"
+        pkgs = _catalog_api_get(bindings_cfg, path)
+        assert pkgs["count"] == 0
+        assert pkgs["results"] == []
+
+        default_path = path.replace(f"/{domain.name}/api/", "/default/api/")
+        response = requests.get(
+            urljoin(bindings_cfg.host, default_path),
+            auth=(bindings_cfg.username, bindings_cfg.password),
+        )
+        assert response.status_code == 404, response.text
+
+        response = requests.get(
+            urljoin(bindings_cfg.host, path), auth=(viewer.username, viewer.password)
+        )
+        assert response.status_code == 200, response.text
 
 
 @pytest.mark.parallel
