@@ -2,7 +2,9 @@ from pathlib import Path
 
 from bandersnatch.configuration import BandersnatchConfig
 from django.db import transaction
-from django_filters import CharFilter
+from django.http import Http404
+from django_filters import CharFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django_filters.rest_framework import filters as drf_filters
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
@@ -27,15 +29,87 @@ from pulpcore.plugin.serializers import (
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import dispatch
-from pulpcore.plugin.util import extract_pk
+from pulpcore.plugin.util import extract_pk, get_domain_pk
 
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
+from pulp_python.app.catalog import package_catalog_queryset
+
+
+class PythonRepositoryPackageFilter(FilterSet):
+    """Filter names and order packages in a repository version."""
+
+    ordering = OrderingFilter(fields=("name_normalized",))
+
+    class Meta:
+        model = python_models.PythonPackageContent
+        fields = {"name_normalized": core_viewsets.NAME_FILTER_OPTIONS}
+
+    def filter_queryset(self, queryset):
+        return package_catalog_queryset(
+            super().filter_queryset(queryset),
+            ordering=self.form.cleaned_data["ordering"] or ("name_normalized",),
+        )
+
+
+class PythonRepositoryPackageFilterBackend(DjangoFilterBackend):
+    """Apply content filters without filtering the parent resource lookup."""
+
+    def get_filterset_class(self, view, queryset=None):
+        return view.filterset_class
+
+    def filter_queryset(self, request, queryset, view):
+        # Package filters apply to content, not the parent resource lookup.
+        if queryset.model is not python_models.PythonPackageContent:
+            return queryset
+        return super().filter_queryset(request, queryset, view)
+
+
+class PythonRepositoryPackagesMixin:
+    """Browse packages on a repository or a complete repository version."""
+
+    @extend_schema(
+        summary="List packages",
+        description=(
+            "Return one row per distinct package name in this repository version, "
+            "or the latest complete version when called on a repository. "
+            "Pagination counts package names, not distribution files."
+        ),
+        responses={200: python_serializers.PythonRepositoryPackageSerializer(many=True)},
+        filters=True,
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=python_serializers.PythonRepositoryPackageSerializer,
+        filterset_class=PythonRepositoryPackageFilter,
+        filter_backends=(PythonRepositoryPackageFilterBackend,),
+    )
+    def packages(self, request, **kwargs):
+        """List packages from the repository version identified by the resource URL."""
+        resource = self.get_object()
+        if isinstance(resource, RepositoryVersion):
+            if resource.repository.pulp_domain_id != get_domain_pk():
+                raise Http404
+            version = resource
+        else:
+            version = resource.latest_version()
+        content = python_models.PythonPackageContent.objects.all()
+        content = version.get_content(content) if version is not None else content.none()
+        queryset = self.filter_queryset(content)
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page if page is not None else queryset, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
 
 
 class PythonRepositoryViewSet(
-    core_viewsets.RepositoryViewSet, ModifyRepositoryActionMixin, core_viewsets.RolesMixin
+    PythonRepositoryPackagesMixin,
+    core_viewsets.RepositoryViewSet,
+    ModifyRepositoryActionMixin,
+    core_viewsets.RolesMixin,
 ):
     """
     PythonRepository represents a single Python repository, to which content can be
@@ -64,7 +138,7 @@ class PythonRepositoryViewSet(
                 ],
             },
             {
-                "action": ["retrieve"],
+                "action": ["retrieve", "packages"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_domain_or_obj_perms:python.view_pythonrepository",
@@ -303,7 +377,9 @@ class PythonBlocklistEntryViewSet(
         return context
 
 
-class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
+class PythonRepositoryVersionViewSet(
+    PythonRepositoryPackagesMixin, core_viewsets.RepositoryVersionViewSet
+):
     """
     PythonRepositoryVersion represents a single Python repository version.
     """
@@ -313,7 +389,7 @@ class PythonRepositoryVersionViewSet(core_viewsets.RepositoryVersionViewSet):
     DEFAULT_ACCESS_POLICY = {
         "statements": [
             {
-                "action": ["list", "retrieve"],
+                "action": ["list", "retrieve", "packages"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_repository_model_or_domain_or_obj_perms:python.view_pythonrepository",  # noqa: E501

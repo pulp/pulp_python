@@ -19,6 +19,7 @@ from pulpcore.plugin import serializers as core_serializers
 from pulpcore.plugin.util import get_current_authenticated_user, get_domain, get_prn, reverse
 
 from pulp_python.app import models as python_models
+from pulp_python.app.catalog import assemble_package_index
 from pulp_python.app.provenance import (
     AnyPublisher,
     Attestation,
@@ -639,6 +640,66 @@ class MinimalPythonPackageContentSerializer(PythonPackageContentSerializer):
             "sha256",
         )
         model = python_models.PythonPackageContent
+
+
+class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
+    """One stored version of a package."""
+
+    version = serializers.CharField(help_text=_("The package's version number."))
+    last_updated = serializers.DateTimeField(
+        help_text=_(
+            "The latest `pulp_created` timestamp for this version's files "
+            "in the selected repository version."
+        ),
+    )
+
+
+class PythonRepositoryPackageListSerializer(serializers.ListSerializer):
+    """Load package metadata for the current page."""
+
+    def to_representation(self, data):
+        rows = assemble_package_index(list(data))
+        return super().to_representation(rows)
+
+
+class PythonRepositoryPackageSerializer(serializers.Serializer):
+    """One distinct package name and its stored versions."""
+
+    name = serializers.CharField(
+        help_text=_("The package name from its metadata."),
+    )
+    name_normalized = serializers.CharField(
+        help_text=_("The package name normalized according to PEP 503."),
+    )
+    summary = serializers.CharField(
+        allow_blank=True,
+        help_text=_("A one-line summary of what the package does."),
+    )
+    description = serializers.CharField(
+        allow_blank=True,
+        help_text=_("The package description."),
+    )
+    author = serializers.CharField(
+        allow_blank=True,
+        help_text=_("Author information from the package metadata."),
+    )
+    author_email = serializers.CharField(
+        allow_blank=True,
+        help_text=_("The author's e-mail address."),
+    )
+    license = serializers.CharField(
+        allow_blank=True,
+        help_text=_("The license declared by the package."),
+    )
+    versions = PythonRepositoryPackageVersionSerializer(
+        many=True,
+        help_text=_(
+            "Package versions in descending PEP 440 order, with an update time for each version."
+        ),
+    )
+
+    class Meta:
+        list_serializer_class = PythonRepositoryPackageListSerializer
 
 
 class PackageProvenanceSerializer(core_serializers.NoArtifactContentUploadSerializer):
