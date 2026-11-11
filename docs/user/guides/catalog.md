@@ -1,8 +1,8 @@
 # Browse the package catalog
 
-The package list returns **one row per package name**. Use the repository URL
-to read its latest complete version, or a repository-version URL to read a
-specific complete snapshot. `${REPO_PK}` is the repository UUID.
+The package catalog returns one row per normalized package name. Use the
+repository URL to read its latest complete repository version, or a repository
+version URL to read a specific complete version. `${REPO_PK}` is the repository UUID.
 
 ## List packages
 
@@ -10,21 +10,24 @@ specific complete snapshot. `${REPO_PK}` is the repository UUID.
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/packages/?limit=10"
 ```
 
-For a specific snapshot, `${VERSION_NUMBER}` is its repository version number:
+To read a specific repository version, set `${VERSION_NUMBER}` to its number:
 
 ```bash
 http GET "${BASE_ADDR}/pulp/api/v3/repositories/python/python/${REPO_PK}/versions/${VERSION_NUMBER}/packages/?limit=10"
 ```
 
-`count` is the number of distinct packages, not files. Each row is one package
-name. `summary`, `description`, `author`, `author_email`, and `license` come
-from the highest version in PEP 440 order. An sdist supplies the metadata when
-available; otherwise the most recently created content unit is used.
-`versions` has one entry per stored version string, newest first, with a
-`last_updated` timestamp for each version. This is the latest content creation
-time among that version's files in the selected snapshot, not the upstream
-release date. A wheel and an sdist of the same version are one entry. A rebuild
-such as `1.0.0+test.1` stays its own entry because the stored version differs.
+`count` is the number of distinct packages, not files. `summary`, `description`,
+`author`, `author_email`, and `license` come from the highest package version in
+PEP 440 order. Metadata comes from an sdist of that version when available.
+Otherwise, it comes from that version's newest file.
+
+`versions` has one entry per stored version string, in descending PEP 440 order.
+A wheel and an sdist of the same version share one entry. Different version
+strings, such as `1.0.0` and `1.0.0+test.1`, produce separate entries.
+
+Each version's `last_updated` is the latest `pulp_created` timestamp among its
+files in the selected repository version. This records when Pulp created the
+content, not the upstream release date.
 
 ```json
 {
@@ -48,10 +51,9 @@ such as `1.0.0+test.1` stays its own entry because the stored version differs.
 }
 ```
 
-Results are ordered by `name_normalized`. Within a package, versions are newest
-first. Page with `limit` and `offset` to read the whole catalog. Use the
-repository-version URL when the export must stay on one snapshot. Missing or
-incomplete snapshots return HTTP 404.
+Results are ordered by `name_normalized`. Use `limit` and `offset` to page
+through the catalog. Use a repository version URL to keep every page on the
+same repository version. Missing or incomplete repository versions return HTTP 404.
 
 Filter names with `name_normalized`, `name_normalized__icontains`, or
 `name_normalized__istartswith`. Use `ordering=-name_normalized` to list names

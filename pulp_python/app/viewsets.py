@@ -38,7 +38,7 @@ from pulp_python.app.catalog import package_catalog_queryset
 
 
 class PythonRepositoryPackageFilter(FilterSet):
-    """Filter names and order packages in a repository snapshot."""
+    """Filter names and order packages in a repository version."""
 
     ordering = OrderingFilter(fields=("name_normalized",))
 
@@ -87,7 +87,7 @@ class PythonRepositoryPackagesMixin:
         filter_backends=(PythonRepositoryPackageFilterBackend,),
     )
     def packages(self, request, **kwargs):
-        """List packages from the snapshot identified by the resource URL."""
+        """List packages from the repository version identified by the resource URL."""
         resource = self.get_object()
         if isinstance(resource, RepositoryVersion):
             if resource.repository.pulp_domain_id != get_domain_pk():

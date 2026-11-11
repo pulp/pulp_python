@@ -1,4 +1,4 @@
-"""Helpers for the repository package list."""
+"""Helpers for the repository package catalog."""
 
 from django import VERSION as DJANGO_VERSION
 from django.contrib.postgres.aggregates import JSONBAgg
@@ -9,7 +9,7 @@ from pulp_python.app.models import PythonPackageContent
 
 
 def _version_sort_key(version):
-    """Keep legacy invalid versions browsable, after valid PEP 440 versions."""
+    """Sort invalid version strings after valid PEP 440 versions."""
     try:
         return (True, Version(version))
     except InvalidVersion:
@@ -17,20 +17,19 @@ def _version_sort_key(version):
 
 
 class PackageVersions(JSONBAgg):
-    """Map versions to values, keeping the last file."""
+    """Aggregate values by version, keeping the last value for duplicate keys."""
 
     function = "JSONB_OBJECT_AGG"
     arity = 2
 
 
 def package_catalog_queryset(content, ordering=("name_normalized",)):
-    """Group package names and load their representative versions in the same query.
+    """Collect version timestamps and metadata IDs for each normalized package name.
 
-    Wheel and sdist of the same `(name_normalized, version)` collapse to one
-    row. An sdist supplies metadata when available, while the newest file's
-    `pulp_created` supplies the update time.
+    Wheels and sdists with the same version share an aggregate entry.
+    Each timestamp is the newest file's `pulp_created`. Use sdist metadata when available.
     """
-    # Each aggregate keeps the last file for each stored version.
+    # Aggregate ordering selects the newest timestamp and prefers sdist metadata.
     ordering_argument = "order_by" if DJANGO_VERSION >= (5, 2) else "ordering"
     file_ordering = {
         ordering_argument: (
@@ -63,7 +62,7 @@ def package_catalog_queryset(content, ordering=("name_normalized",)):
 
 
 def assemble_package_index(package_rows):
-    """Sort the page's versions and bulk-load metadata from their highest versions."""
+    """Sort each package's versions and fetch metadata for its highest version in one query."""
     if not package_rows:
         return []
 
