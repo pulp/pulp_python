@@ -647,12 +647,15 @@ class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
 
     version = serializers.CharField(help_text=_("The package's version number."))
     last_updated = serializers.DateTimeField(
-        help_text=_("The latest content creation time among this version's files in the snapshot."),
+        help_text=_(
+            "The latest `pulp_created` timestamp for this version's files "
+            "in the selected repository version."
+        ),
     )
 
 
 class PythonRepositoryPackageListSerializer(serializers.ListSerializer):
-    """Assemble metadata only for the names selected by pagination."""
+    """Load package metadata for the current page."""
 
     def to_representation(self, data):
         rows = assemble_package_index(list(data))
@@ -663,10 +666,10 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
     """One distinct package name and its stored versions."""
 
     name = serializers.CharField(
-        help_text=_("A project name stored on one of this package's files."),
+        help_text=_("The package name from its metadata."),
     )
     name_normalized = serializers.CharField(
-        help_text=_("PEP 503 normalized package name. Index rows are unique on this field."),
+        help_text=_("The package name normalized according to PEP 503."),
     )
     summary = serializers.CharField(
         allow_blank=True,
@@ -674,14 +677,11 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
     )
     description = serializers.CharField(
         allow_blank=True,
-        help_text=_("A longer description of the package that can run to several paragraphs."),
+        help_text=_("The package description."),
     )
     author = serializers.CharField(
         allow_blank=True,
-        help_text=_(
-            "Text containing the author's name. Contact information can also be added,"
-            " separated with newlines."
-        ),
+        help_text=_("Author information from the package metadata."),
     )
     author_email = serializers.CharField(
         allow_blank=True,
@@ -689,13 +689,12 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
     )
     license = serializers.CharField(
         allow_blank=True,
-        help_text=_("Text indicating the license covering the distribution."),
+        help_text=_("The license declared by the package."),
     )
     versions = PythonRepositoryPackageVersionSerializer(
         many=True,
         help_text=_(
-            "One entry per stored version with its update time, newest version first. "
-            "A wheel and an sdist of the same version are one entry. Version strings are unchanged."
+            "Package versions in descending PEP 440 order, with an update time for each version."
         ),
     )
 

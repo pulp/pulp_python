@@ -64,7 +64,7 @@ def test_package_list(python_repo_with_sync, python_remote_factory, catalog):
 
 @pytest.mark.parallel
 def test_package_list_snapshots(python_bindings, python_repo_with_sync, monitor_task):
-    """Metadata and update times use only files in the requested snapshot."""
+    """Metadata and update times use only files in the requested repository version."""
     repo = python_repo_with_sync()
     repositories = python_bindings.RepositoriesPythonApi
     versions = python_bindings.RepositoriesPythonVersionsApi
