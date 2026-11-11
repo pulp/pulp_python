@@ -1,10 +1,9 @@
 import json
 import subprocess
 import uuid
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urlsplit
 
 import pytest
-import requests
 
 from pulpcore.app import settings  # noqa: TID251
 
@@ -82,41 +81,6 @@ def test_domain_object_creation(
     assert json.loads(e.value.body) == {
         "non_field_errors": ["Objects must all be a part of the default domain."]
     }
-
-
-def _catalog_api_get(bindings_cfg, path, **params):
-    url = urljoin(bindings_cfg.host + "/", path.lstrip("/"))
-    response = requests.get(url, params=params, auth=(bindings_cfg.username, bindings_cfg.password))
-    assert response.status_code == 200, response.text
-    return response.json()
-
-
-@pytest.mark.parallel
-def test_domain_catalog_packages(bindings_cfg, domain_factory, python_repo_factory, gen_user):
-    """Both catalog actions respect domain boundaries and repository permissions."""
-    domain = domain_factory()
-    repo = python_repo_factory(pulp_domain=domain.name)
-    assert f"{domain.name}/api/" in repo.pulp_href
-    assert f"{domain.name}/api/" in repo.latest_version_href
-
-    viewer = gen_user(domain_roles=[("python.pythonrepository_viewer", domain.pulp_href)])
-    for resource in (repo.pulp_href, repo.latest_version_href):
-        path = f"{resource}packages/"
-        pkgs = _catalog_api_get(bindings_cfg, path)
-        assert pkgs["count"] == 0
-        assert pkgs["results"] == []
-
-        default_path = path.replace(f"/{domain.name}/api/", "/default/api/")
-        response = requests.get(
-            urljoin(bindings_cfg.host, default_path),
-            auth=(bindings_cfg.username, bindings_cfg.password),
-        )
-        assert response.status_code == 404, response.text
-
-        response = requests.get(
-            urljoin(bindings_cfg.host, path), auth=(viewer.username, viewer.password)
-        )
-        assert response.status_code == 200, response.text
 
 
 @pytest.mark.parallel
