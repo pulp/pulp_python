@@ -646,9 +646,8 @@ class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
     """One stored version of a package."""
 
     version = serializers.CharField(help_text=_("The package's version number."))
-    license_expression = serializers.CharField(
-        allow_blank=True,
-        help_text=_("Text string that is a valid SPDX license expression."),
+    last_updated = serializers.DateTimeField(
+        help_text=_("The latest content creation time among this version's files in the snapshot."),
     )
 
 
@@ -695,8 +694,8 @@ class PythonRepositoryPackageSerializer(serializers.Serializer):
     versions = PythonRepositoryPackageVersionSerializer(
         many=True,
         help_text=_(
-            "One entry per stored version, newest first. A wheel and an sdist of the "
-            "same version are one entry. Version strings are unchanged."
+            "One entry per stored version with its update time, newest version first. "
+            "A wheel and an sdist of the same version are one entry. Version strings are unchanged."
         ),
     )
 
