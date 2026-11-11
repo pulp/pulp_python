@@ -342,3 +342,35 @@ def test_package_list_permissions(bindings_cfg, python_repo_factory, gen_user, c
         auth=("", ""),
     )
     assert response.status_code == 401, response.text
+
+
+@pytest.mark.parallel
+def test_domain_catalog_packages(
+    bindings_cfg, domain_factory, python_repo_factory, gen_user, pulp_domain_enabled
+):
+    """Both catalog actions respect domain boundaries and repository permissions."""
+    if not pulp_domain_enabled:
+        pytest.skip("Domain not enabled")
+    domain = domain_factory()
+    repo = python_repo_factory(pulp_domain=domain.name)
+    assert f"{domain.name}/api/" in repo.pulp_href
+    assert f"{domain.name}/api/" in repo.latest_version_href
+
+    viewer = gen_user(domain_roles=[("python.pythonrepository_viewer", domain.pulp_href)])
+    for resource in (repo.pulp_href, repo.latest_version_href):
+        path = f"{resource}packages/"
+        pkgs = _api_get(bindings_cfg, path)
+        assert pkgs["count"] == 0
+        assert pkgs["results"] == []
+
+        default_path = path.replace(f"/{domain.name}/api/", "/default/api/")
+        response = requests.get(
+            urljoin(bindings_cfg.host, default_path),
+            auth=(bindings_cfg.username, bindings_cfg.password),
+        )
+        assert response.status_code == 404, response.text
+
+        response = requests.get(
+            urljoin(bindings_cfg.host, path), auth=(viewer.username, viewer.password)
+        )
+        assert response.status_code == 200, response.text
