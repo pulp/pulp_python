@@ -81,12 +81,18 @@ def _get_repo_version(path):
         return None
 
 
+# Part of the ETag of the simple pages. Change it whenever the pages render differently for
+# the same repository version, so a client revalidating a page cached before the change gets
+# the new page instead of a 304.
+SIMPLE_PAGE_REVISION = "pull-through-links-without-metadata"
+
+
 def _etag_func(request, path, **kwargs):
     """Compute unquoted ETag for the condition decorator. Returns None if no repo."""
     repo_ver = _get_repo_version(path)
     if repo_ver is None:
         return None
-    raw = f"{repo_ver.number}:{repo_ver.pulp_created.isoformat()}"
+    raw = f"{repo_ver.number}:{repo_ver.pulp_created.isoformat()}:{SIMPLE_PAGE_REVISION}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -378,7 +384,12 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 "url": d_url,
                 "sha256": release_package.digests.get("sha256", ""),
                 "requires_python": release_package.requires_python,
-                "metadata_sha256": (release_package.metadata_digests or {}).get("sha256"),
+                # No PEP 658 metadata for a file served through this redirect link: pip asks for
+                # it by appending ".metadata" to the whole URL, which leaves the path naming the
+                # file itself. Once the file is in the repository, a client holding this link is
+                # served the file by its path and gets it in place of the metadata. Installers
+                # fall back to the metadata inside the file they download anyway.
+                "metadata_sha256": None,
                 "size": release_package.size,
                 "upload_time": release_package.upload_time,
                 "version": release_package.version,
