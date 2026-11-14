@@ -1,0 +1,1 @@
+Pull-through simple pages now show the remote's upload time for files already cached in the repository, instead of the time they were cached, and mark them yanked when the remote has yanked them.
