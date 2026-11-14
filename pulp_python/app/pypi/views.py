@@ -98,6 +98,27 @@ def _last_modified_func(request, path, **kwargs):
     return repo_ver.pulp_created
 
 
+def merge_pull_through_releases(remote_releases, local_releases):
+    """
+    Merge the files a pull-through remote lists for a package with those in the repository.
+
+    A file served from the repository replaces the remote's entry, so the client downloads the
+    copy Pulp holds. When the remote lists the same file (same name and sha256), its upload time
+    is the file's real one, while the repository's is when the file was added to it, and a yank
+    on the remote still applies to the cached copy.
+    """
+    releases = dict(remote_releases)
+    for filename, local in local_releases.items():
+        remote = remote_releases.get(filename)
+        if remote is not None and remote.get("sha256") == local.get("sha256"):
+            local = {**local, "upload_time": remote.get("upload_time") or local["upload_time"]}
+            if remote.get("yanked") and not local.get("yanked"):
+                local["yanked"] = True
+                local["yanked_reason"] = remote.get("yanked_reason", "")
+        releases[filename] = local
+    return releases
+
+
 class PyPISimpleHTMLRenderer(TemplateHTMLRenderer):
     media_type = PYPI_SIMPLE_V1_HTML
 
@@ -457,7 +478,7 @@ class SimpleView(PackageUploadMixin, ViewSet):
                 }
                 for p in packages
             }
-            releases.update(local_releases)
+            releases = merge_pull_through_releases(releases, local_releases)
         if not releases:
             return HttpResponseNotFound(f"{normalized} does not exist.")
 
