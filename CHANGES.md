@@ -294,6 +294,12 @@
 
 ---
 
+## 3.27.9 (2026-11-16) {: #3.27.9 }
+
+No significant changes.
+
+---
+
 ## 3.27.8 (2026-11-02) {: #3.27.8 }
 
 #### Bugfixes {: #3.27.8-bugfix }
@@ -561,6 +567,12 @@
 
 - Fixed publication error when package's dists contain differing versions of its name.
   [#907](https://github.com/pulp/pulp_python/issues/907)
+
+---
+
+## 3.19.7 (2026-11-16) {: #3.19.7 }
+
+No significant changes.
 
 ---
 
