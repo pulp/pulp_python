@@ -26,8 +26,12 @@ A wheel and an sdist of the same version share one entry. Different version
 strings, such as `1.0.0` and `1.0.0+test.1`, produce separate entries.
 
 Each version's `last_updated` is the latest `pulp_created` timestamp among its
-files in the selected repository version. This records when Pulp created the
-content, not the upstream release date.
+repository membership records in the selected repository version. This records
+when a file was added to the repository. Removing and re-adding a file updates
+this time. Historical repository versions retain the earlier addition time.
+
+Package versions with a yank marker in the selected repository version are excluded.
+Packages with no remaining versions are excluded from both the results and `count`.
 
 ```json
 {

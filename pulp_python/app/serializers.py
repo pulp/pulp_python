@@ -648,8 +648,8 @@ class PythonRepositoryPackageVersionSerializer(serializers.Serializer):
     version = serializers.CharField(help_text=_("The package's version number."))
     last_updated = serializers.DateTimeField(
         help_text=_(
-            "The latest `pulp_created` timestamp for this version's files "
-            "in the selected repository version."
+            "The latest time a file of this package version was added to the repository, "
+            "as of the selected repository version."
         ),
     )
 

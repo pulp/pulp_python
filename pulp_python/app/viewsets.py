@@ -34,7 +34,7 @@ from pulpcore.plugin.util import extract_pk, get_domain_pk
 from pulp_python.app import models as python_models
 from pulp_python.app import serializers as python_serializers
 from pulp_python.app import tasks
-from pulp_python.app.catalog import package_catalog_queryset
+from pulp_python.app.catalog import package_catalog_content, package_catalog_queryset
 
 
 class PythonRepositoryPackageFilter(FilterSet):
@@ -90,13 +90,13 @@ class PythonRepositoryPackagesMixin:
         """List packages from the repository version identified by the resource URL."""
         resource = self.get_object()
         if isinstance(resource, RepositoryVersion):
+            # Core filters models with a pulp_domain field; versions inherit it via repository.
             if resource.repository.pulp_domain_id != get_domain_pk():
                 raise Http404
             version = resource
         else:
             version = resource.latest_version()
-        content = python_models.PythonPackageContent.objects.all()
-        content = version.get_content(content) if version is not None else content.none()
+        content = package_catalog_content(version)
         queryset = self.filter_queryset(content)
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page if page is not None else queryset, many=True)

@@ -2,8 +2,10 @@
 
 import io
 import tarfile
+from urllib.parse import urljoin
 
 import pytest
+import requests
 
 from pulp_python.tests.functional.constants import PYTHON_SM_PROJECT_SPECIFIER
 
@@ -63,7 +65,9 @@ def test_package_list(python_repo_with_sync, python_remote_factory, catalog):
 
 
 @pytest.mark.parallel
-def test_package_list_snapshots(python_bindings, python_repo_with_sync, monitor_task):
+def test_package_list_snapshots(
+    bindings_cfg, python_bindings, python_repo_with_sync, python_repo_factory, monitor_task
+):
     """Metadata and update times use only files in the requested repository version."""
     repo = python_repo_with_sync()
     repositories = python_bindings.RepositoriesPythonApi
@@ -81,17 +85,33 @@ def test_package_list_snapshots(python_bindings, python_repo_with_sync, monitor_
     original = repositories.packages(repo.pulp_href)
     assert original.count == 1
     row = original.results[0]
+    response = requests.get(
+        urljoin(bindings_cfg.host, f"{repo.pulp_href}packages/"),
+        auth=(bindings_cfg.username, bindings_cfg.password),
+    )
+    assert response.status_code == 200
+    assert response.json()["results"][0]["versions"][0]["last_updated"].endswith("Z")
     assert row.description == sdist.description
-    assert [(item.version, item.last_updated) for item in row.versions] == [
-        ("0.1", newest.pulp_created)
-    ]
+    assert [item.version for item in row.versions] == ["0.1"]
+    added = row.versions[0].last_updated
+    assert added >= versions.read(repo.latest_version_href).pulp_created
 
     monitor_task(
         repositories.modify(repo.pulp_href, {"remove_content_units": [newest.pulp_href]}).task
     )
     current = repositories.packages(repo.pulp_href).results[0]
-    assert current.versions[0].last_updated == remaining.pulp_created
+    assert remaining.pulp_created < current.versions[0].last_updated <= added
     assert current.description == remaining.description
+    monitor_task(
+        repositories.modify(repo.pulp_href, {"add_content_units": [newest.pulp_href]}).task
+    )
+    readded = repositories.packages(repo.pulp_href).results[0].versions[0].last_updated
+    assert readded > added
+    other = python_repo_factory()
+    monitor_task(
+        repositories.modify(other.pulp_href, {"add_content_units": [newest.pulp_href]}).task
+    )
+    assert repositories.packages(repo.pulp_href).results[0].versions[0].last_updated == readded
     assert versions.packages(repo.latest_version_href).to_dict() == original.to_dict()
     with pytest.raises(python_bindings.ApiException) as exc:
         versions.packages(f"{repo.pulp_href}versions/999/")
@@ -99,9 +119,17 @@ def test_package_list_snapshots(python_bindings, python_repo_with_sync, monitor_
 
 
 @pytest.mark.parallel
-def test_package_list_versions(python_content_factory, python_repo, python_bindings, tmp_path):
+def test_package_list_versions(
+    python_content_factory,
+    python_repo,
+    python_bindings,
+    python_distribution_factory,
+    monitor_task,
+    tmp_path,
+):
     """PEP 440 ordering selects metadata and preserves separate rebuild versions."""
     content = {}
+    added_after = {}
     for version in ("1.10", "1.9", "1.9+test.1"):
         filename = f"catalog-test-{version}.tar.gz"
         path = tmp_path / filename
@@ -113,19 +141,56 @@ def test_package_list_versions(python_content_factory, python_repo, python_bindi
             info.size = len(metadata)
             archive.addfile(info, io.BytesIO(metadata))
         content[version] = python_content_factory(filename, file=str(path), repository=python_repo)
+        repo = python_bindings.RepositoriesPythonApi.read(python_repo.pulp_href)
+        added_after[version] = python_bindings.RepositoriesPythonVersionsApi.read(
+            repo.latest_version_href
+        ).pulp_created
 
     data = python_bindings.RepositoriesPythonApi.packages(python_repo.pulp_href)
     assert data.count == 1
     row = data.results[0]
     assert row.description.strip() == "Version 1.10"
-    assert [(item.version, item.last_updated) for item in row.versions] == [
-        (version, content[version].pulp_created) for version in ("1.10", "1.9+test.1", "1.9")
-    ]
+    assert [item.version for item in row.versions] == ["1.10", "1.9+test.1", "1.9"]
+    for item in row.versions:
+        assert item.last_updated >= added_after[item.version]
+        assert item.last_updated > content[item.version].pulp_created
+    distro = python_distribution_factory(repository=python_repo)
+    monitor_task(
+        python_bindings.PypiYankApi.yank(
+            path=distro.base_path, yank={"name": "catalog-test", "version": "1.10"}
+        ).task
+    )
+    row = python_bindings.RepositoriesPythonApi.packages(python_repo.pulp_href).results[0]
+    assert [item.version for item in row.versions] == ["1.9+test.1", "1.9"]
+    assert row.description.strip() == "Version 1.9+test.1"
 
 
 @pytest.mark.parallel
+def test_package_list_yanked(
+    python_bindings, python_repo_with_sync, python_distribution_factory, monitor_task, catalog
+):
+    """Yank markers exclude versions only from repository versions containing them."""
+    repo = python_repo_with_sync()
+    distro = python_distribution_factory(repository=repo)
+    monitor_task(
+        python_bindings.PypiYankApi.yank(
+            path=distro.base_path, yank={"name": "shelf-reader", "version": "0.1"}
+        ).task
+    )
+    historical = python_bindings.RepositoriesPythonVersionsApi.packages(repo.latest_version_href)
+    assert historical.count == 1
+    latest = python_bindings.RepositoriesPythonApi.read(repo.pulp_href)
+    excluded = catalog(latest)
+    assert excluded.count == 0
+    assert excluded.results == []
+
+
+@pytest.mark.parallel
+@pytest.mark.parametrize(
+    "catalog, denied_status", [("repository", 404), ("version", 403)], indirect=["catalog"]
+)
 def test_package_list_permissions(
-    python_bindings, python_repo, python_repo_factory, gen_user, catalog
+    python_bindings, python_repo, python_repo_factory, gen_user, catalog, denied_status
 ):
     """Both actions require view permission on the parent repository."""
     other = python_repo_factory()
@@ -134,7 +199,7 @@ def test_package_list_permissions(
         assert catalog(python_repo).results == []
         with pytest.raises(python_bindings.ApiException) as exc:
             catalog(other)
-        assert exc.value.status in (403, 404)
+        assert exc.value.status == denied_status
     with gen_user(model_roles=["python.pythonrepository_viewer"]):
         assert catalog(other).results == []
 

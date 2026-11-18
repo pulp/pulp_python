@@ -2,18 +2,39 @@
 
 from django import VERSION as DJANGO_VERSION
 from django.contrib.postgres.aggregates import JSONBAgg
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, Exists, F, IntegerField, OuterRef, Q, Value, When
+from django.utils.dateparse import parse_datetime
 from packaging.version import InvalidVersion, Version
 
-from pulp_python.app.models import PythonPackageContent
+from pulp_python.app.models import PackageYank, PythonPackageContent
+
+
+def package_catalog_content(repository_version):
+    """Select unyanked files and their addition times in the repository version."""
+    content = PythonPackageContent.objects.all()
+    if repository_version is None:
+        return content.annotate(repository_added=F("pulp_created")).none()
+    yanks = repository_version.get_content(PackageYank.objects.all()).filter(
+        name_normalized=OuterRef("name_normalized"), version=OuterRef("version")
+    )
+    return (
+        content.filter(
+            Q(version_memberships__version_removed__isnull=True)
+            | Q(version_memberships__version_removed__number__gt=repository_version.number),
+            version_memberships__repository_id=repository_version.repository_id,
+            version_memberships__version_added__number__lte=repository_version.number,
+        )
+        .annotate(repository_added=F("version_memberships__pulp_created"))
+        .filter(~Exists(yanks))
+    )
 
 
 def _version_sort_key(version):
     """Sort invalid version strings after valid PEP 440 versions."""
     try:
-        return (True, Version(version))
+        return True, Version(version)
     except InvalidVersion:
-        return (False, version)
+        return False, version
 
 
 class PackageVersions(JSONBAgg):
@@ -27,9 +48,9 @@ def package_catalog_queryset(content, ordering=("name_normalized",)):
     """Collect version timestamps and metadata IDs for each normalized package name.
 
     Wheels and sdists with the same version share an aggregate entry.
-    Each timestamp is the newest file's `pulp_created`. Use sdist metadata when available.
+    Each timestamp is the latest file addition to the repository. Use sdist metadata when available.
     """
-    # Aggregate ordering selects the newest timestamp and prefers sdist metadata.
+    # Aggregate ordering selects the latest addition time and prefers sdist metadata.
     ordering_argument = "order_by" if DJANGO_VERSION >= (5, 2) else "ordering"
     file_ordering = {
         ordering_argument: (
@@ -49,8 +70,8 @@ def package_catalog_queryset(content, ordering=("name_normalized",)):
         .annotate(
             versions=PackageVersions(
                 "version",
-                "pulp_created",
-                **{ordering_argument: ("pulp_created",)},
+                "repository_added",
+                **{ordering_argument: ("repository_added",)},
             ),
             metadata_ids=PackageVersions(
                 "version",
@@ -69,7 +90,7 @@ def assemble_package_index(package_rows):
     for row in package_rows:
         row["versions"] = sorted(
             (
-                {"version": version, "last_updated": updated}
+                {"version": version, "last_updated": parse_datetime(updated)}
                 for version, updated in row["versions"].items()
             ),
             key=lambda unit: (_version_sort_key(unit["version"]), unit["version"]),
