@@ -7,8 +7,10 @@ from aiohttp.web import json_response
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
+from django.db import models, transaction
 from django_lifecycle import (
+    AFTER_UPDATE,
+    BEFORE_DELETE,
     BEFORE_SAVE,
     hook,
 )
@@ -40,6 +42,7 @@ from .utils import (
     artifact_to_metadata_artifact,
     artifact_to_python_content_data,
     canonicalize_name,
+    clear_pull_through_entries,
     lookup_pull_through_entry,
     python_content_to_json,
     unsign_pull_through_token,
@@ -397,6 +400,23 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
         return super().get_downloader(
             remote_artifact=remote_artifact, url=url, download_factory=download_factory, **kwargs
         )
+
+    @hook(AFTER_UPDATE, when_any=["url", "includes", "excludes"], has_changed=True)
+    def invalidate_pull_through_cache(self):
+        """Rebuild the pull-through simple pages and entries when the files they list change."""
+
+        def invalidate():
+            self.invalidate_cache()
+            clear_pull_through_entries(self.pk)
+
+        transaction.on_commit(invalidate)
+
+    @hook(BEFORE_DELETE)
+    def clear_pull_through_cache(self):
+        """Drop the pull-through entries of a deleted remote."""
+        # The pk is cleared on delete before the transaction commits
+        remote_pk = self.pk
+        transaction.on_commit(lambda: clear_pull_through_entries(remote_pk))
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

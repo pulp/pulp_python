@@ -17,7 +17,7 @@ from django.db.models import F, FilteredRelation, Q
 from django.db.utils import IntegrityError
 from jinja2 import Template
 from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
+from packaging.utils import canonicalize_name, parse_sdist_filename, parse_wheel_filename
 from packaging.version import InvalidVersion, parse
 from pypi_simple import ACCEPT_JSON_PREFERRED, ProjectPage
 
@@ -40,8 +40,9 @@ SIMPLE_API_VERSION = "1.1"
 
 PULL_THROUGH_PARAM = "pt"
 PULL_THROUGH_SALT = "pulp_python.pull_through"
-# Outlive both the cached simple pages and their max-age in client caches
-PULL_THROUGH_TTL = settings.CACHE_SETTINGS["EXPIRES_TTL"] + 600
+_CACHE_TTL = settings.CACHE_SETTINGS["EXPIRES_TTL"]
+# Outlive both the cached simple pages and their max-age in client caches, None never expires
+PULL_THROUGH_TTL = None if _CACHE_TTL is None else _CACHE_TTL + 600
 
 PYPI_SIMPLE_V1_HTML = "application/vnd.pypi.simple.v1+html"
 PYPI_SIMPLE_V1_JSON = "application/vnd.pypi.simple.v1+json"
@@ -809,9 +810,17 @@ def unsign_pull_through_token(remote, token, filename):
     return None
 
 
-def _pull_through_key(remote):
-    # Editing the remote invalidates its entries
-    return f"pulp_python:pull_through:{remote.pk}:{remote.pulp_last_updated.timestamp()}"
+def _pull_through_key(remote, filename):
+    # Group entries per project so each expires on its own, falling back to the filename for
+    # legacy names that can't be parsed
+    try:
+        if filename.endswith(".whl"):
+            bucket = parse_wheel_filename(filename)[0]
+        else:
+            bucket = parse_sdist_filename(filename)[0]
+    except ValueError:
+        bucket = filename
+    return f"pulp_python:pull_through:{remote.pk}:{bucket}"
 
 
 def store_pull_through_entries(remote, entries):
@@ -824,15 +833,33 @@ def store_pull_through_entries(remote, entries):
         return False
     if not entries:
         return True
-    key = _pull_through_key(remote)
+    buckets = defaultdict(dict)
+    for filename, entry in entries.items():
+        buckets[_pull_through_key(remote, filename)][filename] = json.dumps(entry)
     try:
-        redis = SyncContentCache().redis
-        redis.hset(key, mapping={f: json.dumps(e) for f, e in entries.items()})
-        redis.expire(key, PULL_THROUGH_TTL)
+        pipe = SyncContentCache().redis.pipeline(transaction=False)
+        for key, mapping in buckets.items():
+            pipe.hset(key, mapping=mapping)
+            if PULL_THROUGH_TTL is not None:
+                pipe.expire(key, PULL_THROUGH_TTL)
+        pipe.execute()
     except Exception as e:
         log.warning("Failed to store pull-through entries: %s", e)
         return False
     return True
+
+
+def clear_pull_through_entries(remote_pk):
+    """Deletes all the stored pull-through entries of a remote."""
+    if not settings.CACHE_ENABLED:
+        return
+    try:
+        redis = SyncContentCache().redis
+        keys = list(redis.scan_iter(match=f"pulp_python:pull_through:{remote_pk}:*", count=1000))
+        if keys:
+            redis.delete(*keys)
+    except Exception as e:
+        log.warning("Failed to clear pull-through entries: %s", e)
 
 
 def lookup_pull_through_entry(remote, filename):
@@ -844,10 +871,9 @@ def lookup_pull_through_entry(remote, filename):
     if not settings.CACHE_ENABLED:
         return None
     is_metadata = filename.endswith(".metadata")
+    filename = filename.removesuffix(".metadata")
     try:
-        raw = SyncContentCache().redis.hget(
-            _pull_through_key(remote), filename.removesuffix(".metadata")
-        )
+        raw = SyncContentCache().redis.hget(_pull_through_key(remote, filename), filename)
     except Exception as e:
         log.warning("Failed to look up pull-through entry: %s", e)
         return None

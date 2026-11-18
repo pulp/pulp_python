@@ -327,6 +327,43 @@ def test_pull_through_rejects_bad_links(
 
 
 @pytest.mark.parallel
+def test_pull_through_remote_update(
+    python_bindings, python_remote_factory, python_distribution_factory, monitor_task, signed_links
+):
+    """Tests that changing what the remote lists refreshes its pull-through pages and entries."""
+    if signed_links:
+        pytest.skip("Pull-through entries are only stored when Redis is available")
+    remote = python_remote_factory(includes=["shelf-reader"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/shelf-reader/"
+    assert requests.get(url).headers["X-PULP-CACHE"] == "MISS"
+    r = requests.get(url)
+    assert r.headers["X-PULP-CACHE"] == "HIT"
+    package1, package2 = ProjectPage.from_response(r, "shelf-reader").packages
+
+    # Other edits keep the cached page and its links
+    body = {"download_concurrency": 5}
+    monitor_task(python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body).task)
+    assert requests.get(url).headers["X-PULP-CACHE"] == "HIT"
+    r = requests.get(package1.url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package1.digests["sha256"]
+
+    # Files listed by the old url need the simple page to be fetched again
+    body = {"url": PYPI_URL}
+    monitor_task(python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body).task)
+    assert requests.get(package2.url).status_code == 404
+    r = requests.get(url)
+    assert r.headers["X-PULP-CACHE"] == "MISS"
+    packages = ProjectPage.from_response(r, "shelf-reader").packages
+    package2 = next(p for p in packages if p.filename == package2.filename)
+    r = requests.get(package2.url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package2.digests["sha256"]
+
+
+@pytest.mark.parallel
 def test_pull_through_metadata_with_repo(
     python_repo_factory,
     python_remote_factory,
