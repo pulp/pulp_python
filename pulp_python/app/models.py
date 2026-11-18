@@ -40,6 +40,7 @@ from .utils import (
     artifact_to_python_content_data,
     canonicalize_name,
     python_content_to_json,
+    repository_version_content,
 )
 
 log = getLogger(__name__)
@@ -122,8 +123,9 @@ class PythonDistribution(Distribution, AutoAddObjPermsMixin):
 
         if name:
             normalized = canonicalize_name(name)
-            package_content = PythonPackageContent.objects.filter(
-                pk__in=self.publication.repository_version.content, name_normalized=normalized
+            package_content = repository_version_content(
+                self.publication.repository_version,
+                PythonPackageContent.objects.filter(name_normalized=normalized),
             )
             # TODO Change this value to the Repo's serial value when implemented
             headers = {PYPI_LAST_SERIAL: str(PYPI_SERIAL_CONSTANT)}
