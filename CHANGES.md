@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.38.1 (2026-11-19) {: #3.38.1 }
+
+#### Bugfixes {: #3.38.1-bugfix }
+
+- Pull-through simple pages now show the remote's upload time for files already cached in the repository, instead of the time they were cached, and mark them yanked when the remote has yanked them.
+  [#1371](https://github.com/pulp/pulp_python/issues/1371)
+
+---
+
 ## 3.38.0 (2026-11-02) {: #3.38.0 }
 
 #### Features {: #3.38.0-feature }
