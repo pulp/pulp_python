@@ -18,7 +18,8 @@ core_import_allowed: []
 deploy_client_to_pypi: true
 deploy_client_to_rubygems: true
 deploy_to_pypi: true
-disabled_redis_runners: []
+disabled_redis_runners:
+  - "s3"
 docker_fixtures: false
 extra_files: []
 github_org: "pulp"

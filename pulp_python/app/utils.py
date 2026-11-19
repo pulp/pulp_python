@@ -779,14 +779,21 @@ async def aget_remote_simple_page(package, remote, max_retries=1):
     return page
 
 
+def _pull_through_signer(remote):
+    # Changing what the remote lists invalidates its tokens, like it clears its stored entries
+    listing = json.dumps([remote.url, remote.includes, remote.excludes])
+    salt = f"{PULL_THROUGH_SALT}:{remote.pk}:{hashlib.sha256(listing.encode()).hexdigest()}"
+    return signing.Signer(salt=salt)
+
+
 def sign_pull_through_path(remote, filename, url, sha256=None, metadata_sha256=None):
     """Returns the content app path of a pull-through package, carrying its signed upstream url."""
-    data = {"r": str(remote.pk), "f": filename, "u": url}
+    data = {"f": filename, "u": url}
     if sha256:
         data["s"] = sha256
     if metadata_sha256:
         data["m"] = metadata_sha256
-    token = signing.Signer(salt=PULL_THROUGH_SALT).sign_object(data, compress=True)
+    token = _pull_through_signer(remote).sign_object(data, compress=True)
     return f"{filename}?{PULL_THROUGH_PARAM}={token}"
 
 
@@ -795,13 +802,12 @@ def unsign_pull_through_token(remote, token, filename):
     Returns the upstream (url, sha256) for a file of a signed pull-through token.
 
     filename can be the signed package's filename or its PEP 658 metadata file. Returns None if
-    the token is invalid, was signed for another remote or doesn't cover filename.
+    the token is invalid, was signed for another remote or before its url, includes or excludes
+    changed, or doesn't cover filename.
     """
     try:
-        data = signing.Signer(salt=PULL_THROUGH_SALT).unsign_object(token)
+        data = _pull_through_signer(remote).unsign_object(token)
     except signing.BadSignature:
-        return None
-    if data.get("r") != str(remote.pk):
         return None
     if filename == data["f"]:
         return data["u"], data.get("s")

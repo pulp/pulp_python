@@ -433,7 +433,8 @@ class SimpleView(PackageUploadMixin, ViewSet):
         normalized = canonicalize_name(package)
         releases = {}
         if self.distribution.remote:
-            releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
+            remote = self.distribution.remote.cast()
+            releases = self.pull_through_package_simple(normalized, path, remote)
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content is not None:

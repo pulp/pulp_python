@@ -13,12 +13,12 @@ from pulp_python.tests.functional.constants import (
 
 
 @pytest.fixture
-def skip_without_cache(pulp_settings):
+def skip_without_cache(redis_status):
     """
-    Skip test if server-side caching is not enabled.
+    Skip test if server-side caching is not enabled or Redis is unreachable.
     """
-    if not pulp_settings.CACHE_ENABLED:
-        pytest.skip("CACHE_ENABLED is not set")
+    if not redis_status:
+        pytest.skip("Redis is not available")
 
 
 @pytest.fixture

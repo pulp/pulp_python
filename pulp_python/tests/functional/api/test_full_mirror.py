@@ -17,9 +17,9 @@ from pulp_python.tests.functional.constants import (
 
 
 @pytest.fixture
-def signed_links(pulp_settings):
+def signed_links(redis_status):
     """Pull-through links carry a signed token only when Redis is not available."""
-    return not pulp_settings.CACHE_ENABLED
+    return not redis_status
 
 
 def test_pull_through_install(
@@ -357,6 +357,36 @@ def test_pull_through_remote_update(
     r = requests.get(url)
     assert r.headers["X-PULP-CACHE"] == "MISS"
     packages = ProjectPage.from_response(r, "shelf-reader").packages
+    package2 = next(p for p in packages if p.filename == package2.filename)
+    r = requests.get(package2.url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package2.digests["sha256"]
+
+
+@pytest.mark.parallel
+def test_pull_through_signed_links_remote_update(
+    python_bindings, python_remote_factory, python_distribution_factory, monitor_task, signed_links
+):
+    """Tests that changing what the remote lists invalidates its signed pull-through links."""
+    if not signed_links:
+        pytest.skip("Pull-through links are only signed when Redis is not available")
+    remote = python_remote_factory(includes=["shelf-reader"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+
+    url = f"{distro.base_url}simple/shelf-reader/"
+    package1, package2 = ProjectPage.from_response(requests.get(url), "shelf-reader").packages
+
+    # Other edits keep the links working
+    body = {"download_concurrency": 5}
+    monitor_task(python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body).task)
+    r = requests.get(package1.url)
+    assert r.status_code == 200
+    assert sha256(r.content).hexdigest() == package1.digests["sha256"]
+
+    body = {"includes": ["shelf-reader", "aiohttp"]}
+    monitor_task(python_bindings.RemotesPythonApi.partial_update(remote.pulp_href, body).task)
+    assert requests.get(package2.url).status_code == 404
+    packages = ProjectPage.from_response(requests.get(url), "shelf-reader").packages
     package2 = next(p for p in packages if p.filename == package2.filename)
     r = requests.get(package2.url)
     assert r.status_code == 200
