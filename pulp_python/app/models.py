@@ -7,8 +7,10 @@ from aiohttp.web import json_response
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
+from django.db import models, transaction
 from django_lifecycle import (
+    AFTER_UPDATE,
+    BEFORE_DELETE,
     BEFORE_SAVE,
     hook,
 )
@@ -34,12 +36,16 @@ from pulpcore.plugin.util import get_domain, get_domain_pk
 
 from .provenance import Provenance
 from .utils import (
+    PULL_THROUGH_PARAM,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
     artifact_to_metadata_artifact,
     artifact_to_python_content_data,
     canonicalize_name,
+    clear_pull_through_entries,
+    lookup_pull_through_entry,
     python_content_to_json,
+    unsign_pull_through_token,
 )
 
 log = getLogger(__name__)
@@ -357,29 +363,60 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
     vulnerabilities = models.BooleanField(default=False)
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
-        """Get url for remote_artifact"""
-        if request and (url := request.query.get("redirect")):
-            # This is a special case for pull-through caching
-            # To handle PEP 658, it states that if the package has metadata available then it
-            # should be found at the download URL + ".metadata". Thus if the request url ends with
-            # ".metadata" then we need to add ".metadata" to the redirect url if not present.
-            if relative_path:
-                if relative_path.endswith(".metadata") and not url.endswith(".metadata"):
-                    url += ".metadata"
-                # Handle special case for bug in pip (TODO file issue in pip) where it appends
-                # ".metadata" to the redirect url instead of the request url
-                if url.endswith(".metadata") and not relative_path.endswith(".metadata"):
-                    setattr(self, "_real_relative_path", url.rsplit("/", 1)[1])
+        """Get url for remote_artifact, content app requests need a stored or signed entry."""
+        if request is None:
+            return super().get_remote_artifact_url(relative_path)
+        filename = PurePath(relative_path or "").name
+        if token := request.query.get(PULL_THROUGH_PARAM):
+            # pip adds ".metadata" to the end of the url (the token) instead of the url path
+            if token.endswith(".metadata"):
+                token = token.removesuffix(".metadata")
+                if not filename.endswith(".metadata"):
+                    filename = f"{filename}.metadata"
+                    setattr(self, "_real_relative_path", filename)
+            resolved = unsign_pull_through_token(self, token, filename)
+        else:
+            resolved = lookup_pull_through_entry(self, filename)
+        if resolved:
+            url, sha256 = resolved
+            if sha256:
+                self.__dict__.setdefault("_pull_through_digests", {})[url] = sha256
             return url
-        return super().get_remote_artifact_url(relative_path, request=request)
+        return None
 
     def get_remote_artifact_content_type(self, relative_path=None):
         """Return PythonPackageContent, except for metadata artifacts."""
         if hasattr(self, "_real_relative_path"):
             relative_path = getattr(self, "_real_relative_path")
-        if relative_path and relative_path.endswith(".whl.metadata"):
+        if relative_path and relative_path.endswith(".metadata"):
             return None
         return PythonPackageContent
+
+    def get_downloader(self, remote_artifact=None, url=None, download_factory=None, **kwargs):
+        """Validate pull-through downloads against the sha256 from their pull-through entry."""
+        digests = self.__dict__.get("_pull_through_digests", {})
+        if remote_artifact and not remote_artifact.sha256:
+            remote_artifact.sha256 = digests.get(remote_artifact.url)
+        return super().get_downloader(
+            remote_artifact=remote_artifact, url=url, download_factory=download_factory, **kwargs
+        )
+
+    @hook(AFTER_UPDATE, when_any=["url", "includes", "excludes"], has_changed=True)
+    def invalidate_pull_through_cache(self):
+        """Rebuild the pull-through simple pages and entries when the files they list change."""
+
+        def invalidate():
+            self.invalidate_cache()
+            clear_pull_through_entries(self.pk)
+
+        transaction.on_commit(invalidate)
+
+    @hook(BEFORE_DELETE)
+    def clear_pull_through_cache(self):
+        """Drop the pull-through entries of a deleted remote."""
+        # The pk is cleared on delete before the transaction commits
+        remote_pk = self.pk
+        transaction.on_commit(lambda: clear_pull_through_entries(remote_pk))
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
