@@ -1,0 +1,1 @@
+Stopped announcing PEP 658 metadata on pull-through links, whose ?redirect= query made pip ask for the metadata at the package's own path: once the package was cached, pip got the package in place of its metadata and failed its hash check.
