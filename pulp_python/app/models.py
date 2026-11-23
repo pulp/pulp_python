@@ -20,11 +20,13 @@ from pulpcore.plugin.responses import ArtifactResponse
 from pulpcore.plugin.util import get_domain, get_domain_pk
 
 from .utils import (
+    PULL_THROUGH_PARAM,
     PYPI_LAST_SERIAL,
     PYPI_SERIAL_CONSTANT,
     artifact_to_python_content_data,
     canonicalize_name,
     python_content_to_json,
+    unsign_pull_through_token,
 )
 
 log = getLogger(__name__)
@@ -270,15 +272,31 @@ class PythonRemote(Remote, AutoAddObjPermsMixin):
     )
 
     def get_remote_artifact_url(self, relative_path=None, request=None):
-        """Get url for remote_artifact"""
-        if request and (url := request.query.get("redirect")):
-            # This is a special case for pull-through caching
+        """Resolve content requests using the signed pull-through token."""
+        if request is None:
+            return super().get_remote_artifact_url(relative_path)
+        if not (token := request.query.get(PULL_THROUGH_PARAM)):
+            return None
+        filename = PurePath(relative_path or "").name
+        if resolved := unsign_pull_through_token(self, token, filename):
+            url, sha256 = resolved
+            if sha256:
+                self.__dict__.setdefault("_pull_through_digests", {})[url] = sha256
             return url
-        return super().get_remote_artifact_url(relative_path, request=request)
+        return None
 
     def get_remote_artifact_content_type(self, relative_path=None):
         """Return PythonPackageContent."""
         return PythonPackageContent
+
+    def get_downloader(self, remote_artifact=None, url=None, download_factory=None, **kwargs):
+        """Validate pull-through downloads against the sha256 from their signed path."""
+        digests = self.__dict__.get("_pull_through_digests", {})
+        if remote_artifact and not remote_artifact.sha256:
+            remote_artifact.sha256 = digests.get(remote_artifact.url)
+        return super().get_downloader(
+            remote_artifact=remote_artifact, url=url, download_factory=download_factory, **kwargs
+        )
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
