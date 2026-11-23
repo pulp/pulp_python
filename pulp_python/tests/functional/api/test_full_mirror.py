@@ -3,6 +3,7 @@
 
 import socket
 import unittest
+from hashlib import sha256
 from urllib.parse import urljoin, urlsplit
 
 import requests
@@ -139,7 +140,7 @@ class PullThroughMirror(TestCaseUsingBindings, TestHelpersMixin):
         self.assertEqual(len(project_page.packages), 2)
         for package in project_page.packages:
             self.assertIn(package.filename, PYTHON_XS_FIXTURE_CHECKSUMS)
-            relative_path = f"{distro.base_path}/{package.filename}?redirect="
+            relative_path = f"{distro.base_path}/{package.filename}?pt="
             self.assertIn(urljoin(PULP_CONTENT_BASE_URL, relative_path), package.url)
             digests = package.get_digests()
             self.assertEqual(PYTHON_XS_FIXTURE_CHECKSUMS[package.filename], digests["sha256"])
@@ -158,4 +159,31 @@ class PullThroughMirror(TestCaseUsingBindings, TestHelpersMixin):
         self.assertEqual(len(project_page.packages), 2)
         for package in project_page.packages:
             self.assertIn(package.filename, PYTHON_XS_FIXTURE_CHECKSUMS)
-            self.assertNotIn("?redirect=", package.url)
+            self.assertNotIn("?pt=", package.url)
+
+    def test_pull_through_rejects_bad_links(self):
+        """Test that pull-through only downloads from a valid signed link."""
+        remote = self._create_remote(url=PYPI_URL)
+        distro = self._create_distribution(remote=remote.pulp_href)
+        remote2 = self._create_remote(url=PYPI_URL)
+        distro2 = self._create_distribution(remote=remote2.pulp_href)
+        self.addCleanup(delete_orphans)
+        url = urljoin(self.PYPI_HOST, f"{distro.base_path}/simple/shelf-reader/")
+
+        package1, package2 = parse_repo_project_response("shelf-reader", requests.get(url)).packages
+        token = package1.url.split("?pt=", 1)[1]
+
+        wrong_file_url = package2.url.split("?pt=", 1)[0] + f"?pt={token}"
+        assert requests.get(wrong_file_url).status_code == 404
+
+        wrong_remote_url = package1.url.replace(f"/{distro.base_path}/", f"/{distro2.base_path}/")
+        assert requests.get(wrong_remote_url).status_code == 404
+
+        unsigned_url = package1.url.split("?pt=", 1)[0]
+        assert requests.get(unsigned_url).status_code == 404
+
+        response = requests.get(package1.url)
+        assert response.status_code == 200
+        assert (
+            sha256(response.content).hexdigest() == PYTHON_XS_FIXTURE_CHECKSUMS[package1.filename]
+        )
