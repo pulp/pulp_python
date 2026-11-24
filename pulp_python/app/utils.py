@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -7,6 +8,7 @@ from collections import defaultdict
 
 import pkginfo
 from django.conf import settings
+from django.core import signing
 from jinja2 import Template
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -17,6 +19,9 @@ from pulpcore.plugin.models import Remote
 PYPI_LAST_SERIAL = "X-PYPI-LAST-SERIAL"
 """TODO This serial constant is temporary until Python repositories implements serials"""
 PYPI_SERIAL_CONSTANT = 1000000000
+
+PULL_THROUGH_PARAM = "pt"
+PULL_THROUGH_SALT = "pulp_python.pull_through"
 
 simple_index_template = """<!DOCTYPE html>
 <html>
@@ -491,3 +496,30 @@ def get_remote_package_filter(remote):
     rfilter = PackageIncludeFilter(remote)
     _remote_filters[remote.pulp_id] = (remote.pulp_last_updated, rfilter)
     return rfilter
+
+
+def _pull_through_signer(remote):
+    # Changing what the remote lists invalidates its tokens.
+    listing = json.dumps([remote.url, remote.includes, remote.excludes])
+    salt = f"{PULL_THROUGH_SALT}:{remote.pk}:{hashlib.sha256(listing.encode()).hexdigest()}"
+    return signing.Signer(salt=salt)
+
+
+def sign_pull_through_path(remote, filename, url, sha256=None):
+    """Return the content path carrying the signed upstream URL."""
+    data = {"f": filename, "u": url}
+    if sha256:
+        data["s"] = sha256
+    token = _pull_through_signer(remote).sign_object(data, compress=True)
+    return f"{filename}?{PULL_THROUGH_PARAM}={token}"
+
+
+def unsign_pull_through_token(remote, token, filename):
+    """Return the upstream URL and SHA-256 for a valid token for this file."""
+    try:
+        data = _pull_through_signer(remote).unsign_object(token)
+    except signing.BadSignature:
+        return None
+    if filename == data["f"]:
+        return data["u"], data.get("s")
+    return None

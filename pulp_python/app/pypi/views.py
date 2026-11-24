@@ -48,6 +48,7 @@ from pulp_python.app.utils import (
     PYPI_SERIAL_CONSTANT,
     get_remote_package_filter,
     python_content_to_json,
+    sign_pull_through_path,
     write_simple_detail,
     write_simple_index,
 )
@@ -250,9 +251,10 @@ class SimpleView(PackageUploadMixin, ViewSet):
         def parse_package(release_package):
             parsed = urlparse(release_package.url)
             stripped_url = urlunsplit(chain(parsed[:3], ("", "")))
-            redirect_path = f"{path}/{release_package.filename}?redirect={stripped_url}"
-            d_url = urljoin(self.base_content_url, redirect_path)
-            return release_package.filename, d_url, release_package.digests.get("sha256", "")
+            sha256 = release_package.digests.get("sha256", "")
+            pt_path = sign_pull_through_path(remote, release_package.filename, stripped_url, sha256)
+            d_url = urljoin(self.base_content_url, f"{path}/{pt_path}")
+            return release_package.filename, d_url, sha256
 
         rfilter = get_remote_package_filter(remote)
         if not rfilter.filter_project(package):
@@ -286,7 +288,9 @@ class SimpleView(PackageUploadMixin, ViewSet):
         normalized = canonicalize_name(package)
         releases = {}
         if self.distribution.remote:
-            releases = self.pull_through_package_simple(normalized, path, self.distribution.remote)
+            releases = self.pull_through_package_simple(
+                normalized, path, self.distribution.remote.cast()
+            )
         elif self.should_redirect(repo_version=repo_ver):
             return redirect(urljoin(self.base_content_url, f"{path}/simple/{normalized}/"))
         if content is not None:

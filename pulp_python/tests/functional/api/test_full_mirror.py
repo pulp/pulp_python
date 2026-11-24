@@ -1,4 +1,5 @@
 import subprocess
+from hashlib import sha256
 from random import sample
 from urllib.parse import urljoin, urlsplit
 
@@ -53,7 +54,7 @@ def test_pull_through_simple(python_remote_factory, python_distribution_factory,
     assert len(project_page.packages) == 2
     for package in project_page.packages:
         assert package.filename in PYTHON_XS_FIXTURE_CHECKSUMS
-        relative_path = f"{distro.base_path}/{package.filename}?redirect="
+        relative_path = f"{distro.base_path}/{package.filename}?pt="
         assert urljoin(pulp_content_url, relative_path) in package.url
         assert PYTHON_XS_FIXTURE_CHECKSUMS[package.filename] == package.digests["sha256"]
 
@@ -115,7 +116,7 @@ def test_pull_through_with_repo(
     url = urljoin(distro.base_url, "simple/aiohttp/")
     project_page = ProjectPage.from_response(requests.get(url), "aiohttp")
     for package in sample(project_page.packages, 3):
-        assert "?redirect=" in package.url
+        assert "?pt=" in package.url
         r = requests.get(package.url)
         assert r.status_code == 200
 
@@ -153,12 +154,12 @@ def test_pull_through_local_only(
     url = f"{distro.base_url}simple/pulpcore/"
     r = requests.get(url)
     assert r.status_code == 200
-    assert "?redirect=" not in r.text
+    assert "?pt=" not in r.text
 
     url = f"{distro.base_url}simple/shelf-reader/"
     r = requests.get(url)
     assert r.status_code == 200
-    assert "?redirect=" in r.text
+    assert "?pt=" in r.text
 
     url = f"{distro.base_url}simple/pulp_python/"
     r = requests.get(url)
@@ -184,3 +185,29 @@ def test_pull_through_filtering_bad_names(python_remote_factory, python_distribu
     # Should have no packages with None version (they get filtered out)
     assert len(project_page.packages) > 0
     assert all(package.version is not None for package in project_page.packages)
+
+
+@pytest.mark.parallel
+def test_pull_through_rejects_bad_links(python_remote_factory, python_distribution_factory):
+    """Test that pull-through only downloads from a valid signed link."""
+    remote = python_remote_factory(includes=["shelf-reader"])
+    distro = python_distribution_factory(remote=remote.pulp_href)
+    remote2 = python_remote_factory(includes=["shelf-reader"])
+    distro2 = python_distribution_factory(remote=remote2.pulp_href)
+    url = f"{distro.base_url}simple/shelf-reader/"
+
+    package1, package2 = ProjectPage.from_response(requests.get(url), "shelf-reader").packages
+    token = package1.url.split("?pt=", 1)[1]
+
+    wrong_file_url = package2.url.split("?pt=", 1)[0] + f"?pt={token}"
+    assert requests.get(wrong_file_url).status_code == 404
+
+    wrong_remote_url = package1.url.replace(f"/{distro.base_path}/", f"/{distro2.base_path}/")
+    assert requests.get(wrong_remote_url).status_code == 404
+
+    unsigned_url = package1.url.split("?pt=", 1)[0]
+    assert requests.get(unsigned_url).status_code == 404
+
+    response = requests.get(package1.url)
+    assert response.status_code == 200
+    assert sha256(response.content).hexdigest() == PYTHON_XS_FIXTURE_CHECKSUMS[package1.filename]
