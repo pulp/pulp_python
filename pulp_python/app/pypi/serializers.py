@@ -63,15 +63,17 @@ class PackageUploadSerializer(serializers.Serializer):
         if action != "file_upload":
             raise serializers.ValidationError(_("We do not support the :action {}").format(action))
         file = data.get("content")
+        # The Google Cloud Storage backend renames the file when the artifact is saved.
+        filename = file.name
         for ext, packagetype in DIST_EXTENSIONS.items():
-            if file.name.endswith(ext):
+            if filename.endswith(ext):
                 break
         else:
             raise serializers.ValidationError(
                 _(
                     "Extension on {} is not a valid python extension "
                     "(.whl, .exe, .egg, .tar.gz, .tar.bz2, .zip)"
-                ).format(file.name)
+                ).format(filename)
             )
         sha256 = data.get("sha256_digest")
         digests = {"sha256": sha256} if sha256 else None
@@ -81,8 +83,8 @@ class PackageUploadSerializer(serializers.Serializer):
         except IntegrityError:
             artifact = Artifact.objects.get(sha256=artifact.sha256)
             artifact.touch()
-            log.info(f"Artifact for {file.name} already existed in database")
-        data["content"] = (artifact, file.name)
+            log.info(f"Artifact for {filename} already existed in database")
+        data["content"] = (artifact, filename)
         return data
 
 
