@@ -1,1 +1,0 @@
-Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
