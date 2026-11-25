@@ -1,1 +1,0 @@
-Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
