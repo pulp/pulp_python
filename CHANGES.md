@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.19.8 (2026-11-25) {: #3.19.8 }
+
+#### Bugfixes {: #3.19.8-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+
+---
+
 ## 3.19.7 (2026-11-16) {: #3.19.7 }
 
 No significant changes.
