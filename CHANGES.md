@@ -13,7 +13,7 @@
 #### Bugfixes {: #3.38.2-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links. CVE-2026-126984
 
 ---
 
@@ -74,7 +74,7 @@
 #### Bugfixes {: #3.36.7-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links. CVE-2026-126984
 
 ---
 
@@ -335,7 +335,7 @@
 #### Bugfixes {: #3.27.10-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. CVE-2026-126984
 
 ---
 
@@ -620,7 +620,7 @@ No significant changes.
 #### Bugfixes {: #3.19.8-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. CVE-2026-126984
 
 ---
 
@@ -783,7 +783,7 @@ No significant changes.
 #### Bugfixes {: #3.13.9-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. CVE-2026-126984
 
 ---
 
@@ -883,7 +883,7 @@ No significant changes.
 #### Bugfixes {: #3.12.11-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. CVE-2026-126984
 
 ---
 
@@ -1001,7 +1001,7 @@ No significant changes.
 #### Bugfixes {: #3.11.10-bugfix }
 
 - Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
-- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. CVE-2026-126984
 
 ---
 
