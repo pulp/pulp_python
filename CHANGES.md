@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 3.38.2 (2026-11-25) {: #3.38.2 }
+
+#### Bugfixes {: #3.38.2-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
+
+---
+
 ## 3.38.1 (2026-11-19) {: #3.38.1 }
 
 #### Bugfixes {: #3.38.1-bugfix }
@@ -57,6 +66,15 @@
 - RSS feed GUIDs are now stable when additional platform wheels arrive for the same release. GUIDs only change when a new PEP 427 build tag is introduced, preventing feed readers from showing duplicate entries for multi-architecture builds.
   [#1381](https://github.com/pulp/pulp_python/issues/1381)
 - Fixed the Integrity API evaluating the entire repository's content query before filtering.
+
+---
+
+## 3.36.7 (2026-11-25) {: #3.36.7 }
+
+#### Bugfixes {: #3.36.7-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
 
 ---
 
@@ -309,6 +327,15 @@
   with a matching checksum is allowed through idempotently.
   [#1162](https://github.com/pulp/pulp_python/issues/1162)
 - Added new setting PYPI_PATH_PREFIX to allow for customizing the path prefix for the PyPI API.
+
+---
+
+## 3.27.10 (2026-11-25) {: #3.27.10 }
+
+#### Bugfixes {: #3.27.10-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available. Refresh cached simple index pages to replace old unsigned links.
 
 ---
 
@@ -588,6 +615,15 @@ No significant changes.
 
 ---
 
+## 3.19.8 (2026-11-25) {: #3.19.8 }
+
+#### Bugfixes {: #3.19.8-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+
+---
+
 ## 3.19.7 (2026-11-16) {: #3.19.7 }
 
 No significant changes.
@@ -742,6 +778,15 @@ No significant changes.
 
 ---
 
+## 3.13.9 (2026-11-25) {: #3.13.9 }
+
+#### Bugfixes {: #3.13.9-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
+
+---
+
 ## 3.13.8 (2026-10-08) {: #3.13.8 }
 
 #### Bugfixes {: #3.13.8-bugfix }
@@ -830,6 +875,15 @@ No significant changes.
 #### Misc {: #3.13.0-misc }
 
 - [#774](https://github.com/pulp/pulp_python/issues/774)
+
+---
+
+## 3.12.11 (2026-11-25) {: #3.12.11 }
+
+#### Bugfixes {: #3.12.11-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
 
 ---
 
@@ -939,6 +993,15 @@ No significant changes.
 #### Misc {: #3.12.0-misc }
 
 - 
+
+---
+
+## 3.11.10 (2026-11-25) {: #3.11.10 }
+
+#### Bugfixes {: #3.11.10-bugfix }
+
+- Fixed uploads to the PyPI endpoint failing when Pulp stores artifacts in Google Cloud Storage.
+- Pull-through downloads now require signed package links and use the upstream SHA-256 when available.
 
 ---
 
